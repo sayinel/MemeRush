@@ -25,14 +25,7 @@ Stop the clock as close to the target as you can. Send the result. Beat your fri
 
 Each round a clock runs, then hides behind the day's meme. Tap once at the target time. Three rounds, summed: **"0.087s off."**
 
-<table>
-<tr>
-<td align="center"><img src="art/champion/1_play.jpg" width="170" alt="Play"><br><sub>Play</sub></td>
-<td align="center"><img src="art/champion/3_close-miss.jpg" width="170" alt="Close miss"><br><sub>One more try</sub></td>
-<td align="center"><img src="art/champion/4_share-card.jpg" width="170" alt="Share card"><br><sub>Challenge a Friend</sub></td>
-<td align="center"><img src="art/champion/2_champion.jpg" width="170" alt="Champion"><br><sub>Champion</sub></td>
-</tr>
-</table>
+<p align="center"><img src="docs/media/screens.jpg" alt="Four screens: Play, One more try, Challenge a Friend, Champion" width="520"></p>
 
 <sub>Concept art. Names and scores are placeholders.</sub>
 
