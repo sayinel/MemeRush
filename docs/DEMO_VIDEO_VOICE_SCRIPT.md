@@ -9,7 +9,7 @@
 4. Then Telegram buzzes. Today's game just dropped.
 5. Three rounds. One tap each. Stop the timer right on the target. Too early? Busted! 헐! Nail it, and you escape. 대박!
 6. Check your friends. Then the whole world.
-7. Why it wins. Hit memes and hit games, delivered daily. Agents do the work. One person approves. Thirty seconds, a global leaderboard, and a reason to share. Meme Rush. A brand new game, every single day.
+7. Hit memes. Hit games. Delivered daily. Agents do the work. One person approves. Thirty seconds, a global leaderboard, and a reason to share. This is Meme Rush.
 
 ## 영상 스타일(사장님 지시: 마야의 서비스 UX 가이드 참고)
 - 인트로·아웃트로 카드와 자막 바탕은 `MEME_RUSH_SERVICE_UX_GUIDE`를 따른다: 어두운 갈색 검정 바탕(#140C09), 불꽃 주황(#FF6A2B)·금색(#FFB547) 강조, 크림 글자(#FFF4E8), 제목은 Anton 대문자, 본문은 Figtree.

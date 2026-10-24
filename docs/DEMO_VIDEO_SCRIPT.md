@@ -45,9 +45,9 @@
 
 ## 3. 아웃트로 (62~80초) — 전략과 성공 포인트 [덱 문구 확인 후 확정]
 - **화면:** 소개덱의 핵심 문구 3개를 한 줄씩 → 주인공 퇴근 장면 → 로고
-- **자막:** HIT MEMES. HIT GAMES. DELIVERED DAILY. / AGENTS DO THE WORK. ONE PERSON APPROVES. / 30 SECONDS. GLOBAL RANKING. SHARE IT.
+- **자막(엔드 카드, 게임 이름 MEME RUSH를 가장 크게 위에):** MEME RUSH / HIT MEMES. HIT GAMES. DELIVERED DAILY. / AGENTS DO THE WORK. ONE PERSON APPROVES. / 30 SECONDS. GLOBAL RANKING. SHARE IT. (음성의 슬로건과 같은 문구)
 - **영어:** "Why it wins. Hit memes and hit games, delivered daily. Agents do the work, one person approves. Thirty seconds, a global leaderboard, and a reason to share. Meme Rush. A brand new game, every single day."
-- **한글:** "왜 이기는가. 히트 밈과 히트 게임을 매일 배달합니다. 일은 에이전트가 하고 사람은 승인만 합니다. 30초, 글로벌 순위, 그리고 공유할 이유. 밈 러시, 매일 새로운 게임."
+- **한글:** "히트 밈. 히트 게임. 매일 배달. 일은 에이전트가 하고 사람은 승인만 합니다. 30초, 글로벌 순위, 그리고 공유할 이유. 이것이 밈 러시입니다."
 - **효과음/음악:** 배경음 크게 올림 → 로고에서 마무리 효과음
 
 ## 4. 소리
