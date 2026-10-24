@@ -8,7 +8,9 @@ Stop the clock as close to the target as you can. Send the result. Beat your fri
 ![Hackathon](https://img.shields.io/badge/Ambition_for_Korea-Oct_24_2026-FF6A2B?labelColor=140C09)
 ![Status](https://img.shields.io/badge/status-hackathon_MVP-FFB547?labelColor=140C09)
 
-[Pre-register](https://simplifier.co.kr/preview/memerush/) (temporary page) · [Trailer (mp4)](docs/media/trailer.mp4) · [Pitch deck (PDF)](docs/pitch/SuperAgent_MemeRush_pitch.pdf)
+[Pre-register](https://simplifier.co.kr/preview/memerush/) (temporary page) · [Trailer (mp4)](docs/media/trailer.mp4)
+
+<a href="docs/pitch/SuperAgent_MemeRush_pitch.pdf"><img src="docs/media/btn-deck-en.png" alt="Pitch deck, English (PDF)" width="320"></a> <a href="docs/pitch/SuperAgent_MemeRush_pitch_KO.pdf"><img src="docs/media/btn-deck-ko.png" alt="발표자료 한국어 (PDF)" width="320"></a>
 
 <a href="docs/media/trailer.mp4"><img src="docs/media/trailer.gif" alt="Meme Rush trailer preview, click for the mp4" width="288"></a>
 
