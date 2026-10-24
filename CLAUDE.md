@@ -9,7 +9,7 @@ Meme Rush is a hackathon MVP (5-hour build). Specs live in `docs/` and are the s
 - `docs/MVP_SCOPE.md` — scope, decisions, DB schema, API contract, screens. Its "가이드 적용 규칙" table says which doc wins where the screen guides disagree.
 - `docs/MEME_GAME_DESIGN.md` — game design and the meme card format (day file `meme` field).
 - `docs/GAME_FRAME_SPEC.md` — game frame contract (`timing_stop`, 3 rounds summed).
-- `docs/SERVICE_SCREEN_GUIDE.md`, `docs/GAME_SCREEN_GUIDE.md`, `docs/ASSET_FORMATS.md` — visual rules and asset formats.
+- `docs/ADMIN_UX_GUIDE.md`, `docs/SERVICE_UX_GUIDE.md`, `docs/GAME_SCREEN_GUIDE.md`, `docs/ASSET_FORMATS.md` — visual rules and asset formats.
 
 ## Layout
 

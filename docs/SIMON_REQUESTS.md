@@ -37,9 +37,9 @@ MVP 개발에 필요한데 Simon님만 할 수 있는 일을 모았습니다. �
 - [ ] `GAME_SCREEN_GUIDE.md` 8절(결과마다 배경 따로) ↔ 10절(성공·실패 2장): 하나로 정해 주세요. 지금 구현은 게임 장면 = 사무실 배경 하나, 영상 = 성공·실패 2장입니다.
 - [ ] `GAME_SCREEN_GUIDE.md` 6절 자막 60자 → 30자(44px Anton으로 720px 폭에 들어가는 길이)
 - [ ] 두 가이드의 같은 이름 토큰(`sky`, `sky-light`, `navy`) 값이 다릅니다. 통일하거나 게임 쪽 이름을 따로 두어 주세요.
-- [ ] `SERVICE_SCREEN_GUIDE.md` 8절 문구 예시를 영어로(MVP는 영어). 예: "Play now", "See my rank", "Challenge a friend"
-- [ ] `SERVICE_SCREEN_GUIDE.md` 4절 글꼴: 본문 Noto Sans KR → Noto Sans(라틴)
-- [ ] `SERVICE_SCREEN_GUIDE.md` 3절 1등 메달 숫자 색 `#7A4A00`이 토큰에 없습니다.
+- [ ] `ADMIN_UX_GUIDE.md` 8절 문구 예시를 영어로(MVP는 영어). 예: "Play now", "See my rank", "Challenge a friend"
+- [ ] `ADMIN_UX_GUIDE.md` 4절 글꼴: 본문 Noto Sans KR → Noto Sans(라틴)
+- [ ] `ADMIN_UX_GUIDE.md` 3절 1등 메달 숫자 색 `#7A4A00`이 토큰에 없습니다.
 - [ ] 후보 관리 화면, "오늘의 게임으로 정하기" 확인 창, 인기 근거 칩은 발굴 로직 운영 화면이고 MVP 앱에는 없다고 표시해 주세요.
 
 ## 5. 틀 규격
