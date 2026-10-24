@@ -34,15 +34,28 @@ Each round a clock runs, then hides behind the day's meme. Tap once at the targe
 
 <sub>Concept art. Names and scores are placeholders.</sub>
 
-## Run locally
+## Run the admin demo
+
+The admin is where a new daily game gets made: pick a trending meme, pick the copy and the image, pick a day, publish.
 
 ```bash
 cd web
 npm install
-npm run dev   # http://localhost:3000
+ADMIN_LOCAL=1 npm run dev   # http://localhost:3000/admin
 ```
 
-Environment variables and the database schema: [`docs/MVP_SCOPE.md`](docs/MVP_SCOPE.md).
+1. **Home** shows this week's games (Monday "Cut the Dalgona" is already booked).
+2. **게임 등록** → pick the top topic, **Friday 5PM**. Automatic steps run between each choice.
+3. Pick one of the three copy options, then an image, then a publish day (Tuesday is preselected).
+4. **게임 제작 완료** → **발행하기** → confirm. The **발행 완료** screen shows the Telegram message players get; tap it to open the live game.
+
+Notes
+
+- **Sample mode.** Without pipeline output in `tools/discovery/out/pipeline/`, the admin runs on the sample data in `web/src/app/admin/_fixtures/` with an in-memory run. No Python, API key or database is needed. Restart the dev server to reset; starting a new registration also clears the last demo entry.
+- **Local only.** The admin and `/api/admin/*` return 404 unless `ADMIN_LOCAL=1`, so they stay closed in production.
+- **Options** (in `web/.env.local`): `ADMIN_WEEK_START` (YYYY-MM-DD, default `2026-10-26`) picks the week on the home screen; `NEXT_PUBLIC_MVP_URL` is the game the Telegram message opens (default: the live Friday 5PM game).
+- **Playing the game locally** also needs `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` in `web/.env.local` (copy `web/.env.example`). Schema: [`docs/MVP_SCOPE.md`](docs/MVP_SCOPE.md).
+- **Real run.** The same flow from the command line, all the way to a new game on the production URL: [`tools/discovery/README.md`](tools/discovery/README.md) → "자동 발행".
 
 ## Tech stack
 
