@@ -97,6 +97,88 @@ function Panel({ children, className = "" }: { children: ReactNode; className?: 
   );
 }
 
+const pillClass =
+  "flex min-h-11 flex-1 items-center justify-center rounded-full border-[3px] border-white bg-navy px-4 font-title text-lg text-white shadow-[0_3px_0_var(--navy)] active:translate-y-[3px] active:shadow-none disabled:opacity-50";
+
+type VideoState =
+  | { kind: "making" }
+  | { kind: "ready"; url: string; downloadUrl: string; file: File | null; shareUrl: string | null }
+  | { kind: "failed"; cardUrl: string | null };
+
+// Result video (MVP_SCOPE 6절 공유, 7절 영상): made as soon as the hub shows a best, previewed inline, then shared as
+// a file or downloaded. The file and the public link are fetched up front: awaiting them inside the tap handler
+// makes iOS drop the user gesture and reject navigator.share. If rendering fails, offer the result card instead.
+// The parent keys this by the best record, so a new best remounts it and makes a new video.
+function VideoPanel({ challengeId, dailyNo, bestErrorMs }: { challengeId: string; dailyNo: string; bestErrorMs: number }) {
+  const [state, setState] = useState<VideoState>({ kind: "making" });
+  const text = `Meme Rush ${dailyNo} | ${seconds(bestErrorMs)} off\nCan you beat it?`;
+
+  useEffect(() => {
+    let live = true;
+    // Public link: ref only, no league (AC-17).
+    const link = api<{ url: string; referralId: string }>("/api/referrals", { method: "POST", body: { challengeId, invite: false } });
+    api<{ url: string; downloadUrl: string; type: string }>("/api/videos", { method: "POST", body: { challengeId } })
+      .then(async (v) => {
+        const [file, ref] = await Promise.all([
+          fetch(v.url)
+            .then((r) => (r.ok ? r.blob() : Promise.reject(new Error(`HTTP ${r.status}`))))
+            .then((b) => new File([b], `meme-rush-${challengeId}.mp4`, { type: v.type }))
+            .catch(() => null),
+          link.catch(() => null),
+        ]);
+        if (live) setState({ kind: "ready", url: v.url, downloadUrl: v.downloadUrl, file, shareUrl: ref?.url ?? null });
+      })
+      .catch(async () => {
+        const ref = await link.catch(() => null);
+        if (live) setState({ kind: "failed", cardUrl: ref ? `/api/og/${ref.referralId}` : null });
+      });
+    return () => {
+      live = false;
+    };
+  }, [challengeId]);
+
+  const event = (type: string) => api("/api/events", { method: "POST", body: { type, challengeId } }).catch(() => {});
+
+  if (state.kind === "making") {
+    return <p className="py-3 text-center font-title text-lg text-ink-blue">Making your video…</p>;
+  }
+  if (state.kind === "failed") {
+    return state.cardUrl ? (
+      <a href={state.cardUrl} download={`meme-rush-${challengeId}.png`} className={pillClass}>
+        Save result card
+      </a>
+    ) : null;
+  }
+
+  const file = state.file;
+  const canShareFile = !!file && typeof navigator !== "undefined" && !!navigator.canShare?.({ files: [file] });
+  async function shareVideo() {
+    if (!file) return;
+    try {
+      await navigator.share({ files: [file], text: state.kind === "ready" && state.shareUrl ? `${text}\n${state.shareUrl}` : text });
+      event("native_share_invoked");
+    } catch {
+      // Cancelled or refused: Save video stays available.
+    }
+  }
+
+  return (
+    <div className="flex flex-col items-center gap-3">
+      <video src={state.url} playsInline muted autoPlay loop className="w-40 rounded-[14px] border-4 border-white shadow-[0_0_0_3px_var(--navy)]" />
+      <div className="flex w-full gap-2">
+        {canShareFile && (
+          <button onClick={shareVideo} className={pillClass}>
+            Share result
+          </button>
+        )}
+        <a href={state.downloadUrl} download onClick={() => event("video_downloaded")} className={pillClass}>
+          Save video
+        </a>
+      </div>
+    </div>
+  );
+}
+
 function RankBadge({ kind, rank, art }: { kind: "world" | "friends"; rank: number | null | undefined; art: Art }) {
   const img = art(kind === "world" ? "badge_world" : "badge_friends");
   const label = kind === "world" ? "WORLD" : "FRIENDS";
@@ -570,6 +652,12 @@ export default function ChallengeClient({
         )}
         {tab === "friends" && gapText && <p className="mt-2 text-center font-title text-lg text-ink-blue">{gapText}</p>}
       </Panel>
+
+      {me.bestErrorMs != null && (
+        <Panel className="relative z-10">
+          <VideoPanel key={me.bestErrorMs} challengeId={challengeId} dailyNo={dailyNo} bestErrorMs={me.bestErrorMs} />
+        </Panel>
+      )}
 
       {error && <p className="rounded-[14px] bg-warn-bg px-3 py-2 text-center text-sm font-bold text-warn-text">{error}</p>}
       {notice && <p className="text-center font-bold text-ink-blue">{notice}</p>}
