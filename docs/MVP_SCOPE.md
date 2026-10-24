@@ -1,7 +1,7 @@
 # MemeRush MVP 범위 확정본
 
 - 기준: PRD v0.3 (2026-10-24)과 [게임 후보 조사](GAME_CANDIDATES.md)(PR #1). 이 문서와 PRD가 다르면 이 문서를 따릅니다.
-- 게임: 1순위 후보인 스톱워치 타이머 정지(폭탄 해제 타이머 스킨). PRD의 5문항 퀴즈를 대신합니다.
+- 게임: 1순위 후보인 스톱워치 타이머 정지를 게임 틀로 쓰고, 그날의 밈을 밈 카드로 얹습니다([밈과 게임의 결합 설계](MEME_GAME_DESIGN.md)). PRD의 5문항 퀴즈를 대신합니다.
 - 조건: 5시간, 2명. 동훈님은 MVP 코드 전체, Simon님은 [발굴 로직](GAME_DISCOVERY_PLAN.md)(PR #2)과 MVP 에셋을 맡습니다.
 - 데모 시나리오: A 플레이 → 결과 화면에서 "Challenge a Friend" → B가 미리보기를 확인하고 링크 열기 → B가 리그에 참여해 플레이 → 두 사람이 Friends 랭킹에 함께 표시되고 Global 랭킹에도 오름 → 두 사람이 각자 기록에 맞는 MP4 저장·공유. 발표 때는 심사위원이 QR 코드로 들어와 Global 랭킹에 오릅니다.
 
@@ -12,7 +12,7 @@
 | 구분 | 항목 |
 |---|---|
 | 유지 | 게임 1개 · 닉네임 + 익명 세션 · 서버 기록 검증 · 무제한 재도전, 최고 기록 인정 · Global 랭킹과 Friends 랭킹 둘 다 표시 · 리그 자동 생성과 초대 링크 · 1위와의 기록 차이 · OG 메타와 동적 미리보기 이미지 · 영상 2종, MP4 다운로드·파일 공유 · Wordle식 텍스트 공유 · fallback(결과 카드, 링크 복사) · 이벤트 기록 |
-| 보류 | 두 번째 게임 · "오늘의 게임이 뽑힌 이유" 화면(발굴 로직 결과 표시) · 한국어 · 앱 안의 AI 기능(AI Meme Director 포함) · Friend Rivalry, Almost a Legend · Weekly League, Streak · PlatformIdentity, VideoExport · `/api/platform/config` · Telegram, Discord, TikTok 연동 |
+| 보류 | 두 번째 게임 · 밈 카드 생성기(첫날 카드는 손으로 씀, 시간이 남으면 만듦) · "오늘의 게임이 뽑힌 이유" 화면(발굴 로직 결과 표시) · 한국어 · 앱 안의 AI 기능(AI Meme Director 포함) · Friend Rivalry, Almost a Legend · Weekly League, Streak · PlatformIdentity, VideoExport · `/api/platform/config` · Telegram, Discord, TikTok 연동 |
 
 ## 2. 결정 사항
 
@@ -20,8 +20,8 @@ PRD에서 비어 있거나 절마다 어긋나던 항목, 게임이 바뀌면서
 
 | 항목 | 결정 | 관련 PRD |
 |---|---|---|
-| 게임 규칙 | 시작하면 폭탄 타이머가 0부터 올라가고, 처음 3초만 보인 뒤 숨겨짐. 목표 시간에 맞춰 화면을 한 번 탭해 멈춤 | §3.3, §8.1 |
-| 목표 시간 | 하루 하나, 모두 같음. 첫날은 10.00초 | §8.1 |
+| 게임 규칙 | 시작하면 타이머가 0부터 올라가고, 처음 3초만 보인 뒤 숨겨짐. 목표 시간에 맞춰 화면을 한 번 탭해 멈춤 | §3.3, §8.1 |
+| 목표 시간 | 하루 하나, 모두 같음. 밈 카드가 정함(3–15초, 형식·문구 밈이면 10.00초) | §8.1 |
 | 기록 | 오차(ms) = \|멈춘 시각 − 목표 시간\|. 낮을수록 좋음. 표시는 "0.034s off" | §8.1 |
 | 재도전 | 무제한. 실패하면 0.5초 안에 다시 시작. 그날의 공식 기록은 최저 오차 | §8.2 |
 | 측정·검증 | 클라이언트가 탭 시각을 재고, 서버가 오차를 계산. 서버는 시작~종료 요청 사이의 서버 시간보다 긴 측정값과 1–30초 범위 밖의 값을 거부. 두 시각은 모두 DB `now()`로 기록(서버리스 인스턴스 간 시계 차이 회피). 클라이언트 측정값을 서버 시간보다 짧게 조작하는 것은 막지 못함 — 알려진 한계로 둠 | §8.2, FR-G03 |
@@ -29,7 +29,7 @@ PRD에서 비어 있거나 절마다 어긋나던 항목, 게임이 바뀌면서
 | 기록 차이 | 1위와의 오차 차이. 내가 1위면 2위보다 앞선 차이 | FR-C04 |
 | 랭킹 | Global과 Friends 두 랭킹을 모두 보여 줌. Global은 전체 플레이어 상위 50 + 내 순위(50위 밖이어도 표시), CDN 캐시 5초. Friends는 내가 속한 리그의 리더보드(화면 표시 이름이 Friends, 내부 이름이 리그) | §3.4, §14.2 |
 | 언어 | 영어만 | FR-G05 |
-| AI | 게임 후보 선정은 Simon님의 발굴 로직(PR #2)이 맡음. 앱 안에는 AI 기능 없음 | FR-G06, §8.3 |
+| AI | 게임 틀 선정은 Simon님의 발굴 로직(PR #2), 밈 → 밈 카드 변환은 밈 카드 생성기가 맡음. 둘 다 앱 밖에서 돌고, 결과는 사람이 승인한 뒤 커밋 | FR-G06, §8.3 |
 | 게임 설정 | DB가 아니라 `content/challenges/2026-10-24.json`에 둠 | §8.1 |
 | 에셋 | Simon님 담당. 규칙만 참고하고 그림·이름·소리는 새로 만듦. 유명 밈 인물·상표는 쓰지 않음. 화면 스타일은 [아트 후보](../art/README.md)(PR #3) 중에서 고름 | §10.6 |
 | 사용자 식별 | 익명. 닉네임을 입력하면 서버가 무작위 세션 토큰을 httpOnly 쿠키 `mr_sid`로 발급. 플레이어 ID는 응답에 넣지 않음. 같은 브라우저 안에서만 같은 사용자로 취급 | §7.4, AC-07 |
@@ -38,11 +38,11 @@ PRD에서 비어 있거나 절마다 어긋나던 항목, 게임이 바뀌면서
 | 결과 화면의 리그 | URL의 리그 → 내가 만든 리그 → 참여한 첫 리그 순으로 하나를 표시 | §3.4 |
 | 링크 | 공개: `/c/{challengeId}?ref={referralId}` · 리그 초대: 같은 주소 + `&league={inviteToken}` | §5.2, §9.2 |
 | 미리보기 | OG 생성에 `league` 파라미터를 쓰지 않음. 공유한 사람 본인 기록만 표시하고 닉네임·리그 정보는 넣지 않음 | AC-17 |
-| 영상 유형 | 오차 100ms 이하 Victory Flex("Defused"), 초과 Self-Roast("Boom") | §3.5, §9.3 |
+| 영상 유형 | 오차 100ms 이하 Victory Flex(밈 카드의 `win` 두 컷), 초과 Self-Roast(`lose` 두 컷) | §3.5, §9.3 |
 | 영상 생성 | 동기 처리. 요청 하나에서 렌더링 → 업로드 → URL 반환. 렌더링이 15초를 넘으면 그때 비동기로 전환. 최고 기록이 바뀌면 새로 만듦 | §10.4 |
 | DB 접근 | 모든 DB 접근은 Next.js API에서 service role 키로 함. 클라이언트에는 Supabase 키를 두지 않음. 모든 테이블에 RLS를 켜고 정책은 만들지 않음 | AC-18 |
 | 통신 | 웹소켓 없이 REST만. 종료 응답에 내 순위를 같이 담음 | — |
-| 호스팅 | Vercel 기본. 1:30 체크포인트에서 배포 환경 렌더링이 안 되면 렌더링만 컨테이너(Railway·Fly·Render 중 하나)로 분리 | §12.1 |
+| 호스팅 | Vercel 기본. 1:15(13:45) 체크포인트에서 배포 환경 렌더링이 안 되면 렌더링만 컨테이너(Railway·Fly·Render 중 하나)로 분리 | §12.1 |
 
 ## 3. 게임 설정
 
@@ -50,12 +50,14 @@ PRD에서 비어 있거나 절마다 어긋나던 항목, 게임이 바뀌면서
 {
   "id": "2026-10-24",
   "title": "MemeRush Daily #001",
-  "targetMs": 10000,
-  "visibleMs": 3000
+  "targetMs": 6700,
+  "visibleMs": 3000,
+  "meme": { "...": "밈 카드" }
 }
 ```
 
 - `targetMs`: 목표 시간, `visibleMs`: 타이머가 보이는 시간
+- `meme`: 밈 카드. 필드와 작성 규칙은 [MEME_GAME_DESIGN.md](MEME_GAME_DESIGN.md) 4–5절
 - 서버 로딩 시 zod로 검증
 
 ### 탭 판정
@@ -148,7 +150,7 @@ alter table events enable row level security;
 | 메서드 | 경로 | 요청 | 응답 | 비고 |
 |---|---|---|---|---|
 | POST | `/api/players` | `{ nickname }` | `{ nickname }` | 쿠키 발급. 쿠키가 있으면 닉네임만 갱신 |
-| GET | `/api/challenges/{id}` | — | `{ id, title, targetMs, visibleMs }` | |
+| GET | `/api/challenges/{id}` | — | `{ id, title, targetMs, visibleMs, meme }` | `meme.context`는 빼도 됨 |
 | POST | `/api/attempts` | `{ challengeId, ref? }` | `{ attemptId }` | `started_at` 기록. 유효하지 않은 `ref`는 무시 |
 | POST | `/api/attempts/{attemptId}/finish` | `{ elapsedMs, leagueId? }` | `{ errorMs, bestErrorMs, isNewBest, globalRank, friendsRank, videoType }` | 내 시도이고 아직 끝나지 않았을 때만. 2절의 검증 규칙 적용. `friendsRank`는 `leagueId`(화면에 표시 중인 리그)가 있고 내가 멤버일 때만, 아니면 null |
 | GET | `/api/me?challengeId=` | — | `{ nickname?, bestErrorMs?, globalRank?, leagues: [{ leagueId, ownerNickname, isOwner }] }` | 재방문 시 화면 결정. 쿠키 없으면 빈 값 |
@@ -165,9 +167,9 @@ alter table events enable row level security;
 
 라우트는 `/c/[challengeId]` 하나이고, `/`는 여기로 리다이렉트합니다.
 
-1. **인트로**: 제목, "Stop the bomb at 10.00s", 리그 초대면 "{owner}'s league" 표시, 쿠키가 없을 때만 닉네임 입력, 시작 버튼(리그 초대면 "Join & Play")
+1. **인트로**: 제목, 밈 카드의 `setup`과 `prompt`(예: "Stop at 6.70s"), 리그 초대면 "{owner}'s league" 표시, 쿠키가 없을 때만 닉네임 입력, 시작 버튼(리그 초대면 "Join & Play")
 2. **게임**: 화면 전체가 탭 영역. 타이머가 처음 3초만 보이고 사라짐. 탭하면 바로 오차·최고 기록·Global 순위·Friends 순위와 큰 Retry 버튼, "See results" 버튼
-3. **결과**: 최고 기록 → 랭킹(Global | Friends 탭) → 영상(생성 → 미리보기 → 저장·공유) → 공유 버튼
+3. **결과**: 최고 기록을 밈 카드의 두 컷(`win`/`lose`)으로 표시 → 랭킹(Global | Friends 탭) → 영상(생성 → 미리보기 → 저장·공유) → 공유 버튼
 
 ### 랭킹 탭
 
@@ -185,7 +187,7 @@ alter table events enable row level security;
 
 ### 공유
 
-- 텍스트 복사: Wordle식 한 줄 + 공개 링크. 예: `MemeRush #001 💣 0.034s off — can you beat me? {url}`
+- 텍스트 복사: Wordle식 한 줄 + 공개 링크. 밈 카드의 `share` 문구를 씀. 예: `MemeRush #001 6…7 🤷 6.734s (0.034s off) — can you beat me? {url}`
 - 영상이 준비되면 바로 `fetch`해서 `File`로 만들어 둡니다. 버튼을 누른 뒤에 받으면 iOS에서 사용자 동작으로 인정되지 않아 공유가 거부될 수 있습니다.
 - `navigator.canShare({ files })`가 참이면 `navigator.share({ files, text })`, 아니면 다운로드 링크와 링크 복사를 보여 줍니다.
 - 다운로드 링크는 Storage 공개 URL에 download 옵션을 붙여 만듭니다(`getPublicUrl(path, { download: true })`). 다른 출처 URL에는 `<a download>`가 듣지 않습니다.
@@ -197,9 +199,9 @@ alter table events enable row level security;
 | 항목 | 값 |
 |---|---|
 | 규격 | 720×1280, 30fps, 10초, H.264, `-pix_fmt yuv420p`, `-movflags +faststart`, 무음 |
-| 구성 | 0–3초 훅 · 3–7초 펀치라인 + 기록("Stopped at 9.966s — 0.034s off") · 7–10초 CTA + 공개 챌린지 URL(`/c/{challengeId}`, ref 없음) |
-| 배경 | 유형별 이미지 1장(해제된 폭탄 / 터진 폭탄, 직접 제작 또는 CC0)에 `zoompan`으로 움직임 |
-| 문구 | 유형별 고정 문구에 기록만 넣음 |
+| 구성 | 0–3초 훅(밈 카드 `setup`) · 3–7초 두 컷(`win`/`lose`의 `top` → `bottom`, `{result}`에 기록) · 7–10초 CTA + 공개 챌린지 URL(`/c/{challengeId}`, ref 없음) |
+| 배경 | 성공·실패 이미지 1장씩(PR #3 스타일로 새로 그린 것)에 `zoompan`으로 움직임. 밈마다 바꾸지 않음 |
+| 문구 | 밈 카드에서 가져옴. 코드에 고정 문구를 두지 않음 |
 | 미리보기 | `<video playsinline muted>`. iOS에서 `playsinline`이 없으면 전체 화면으로 열림 |
 | 실패 시 | 결과 카드 다운로드로 대체. 공개 referral(`invite: false`)을 만들고 `/api/og/{referralId}`를 받음. 기록은 영상 요청 전에 이미 저장되어 있음(AC-20) |
 
@@ -252,7 +254,7 @@ MVP 코드는 동훈님 혼자 맡으므로, 위험이 큰 것부터 순서대�
 
 | 시간 | 동훈님: MVP |
 |---|---|
-| 0:00–0:30 (12:30–13:00) | Next.js 생성, Vercel 배포, Supabase 테이블·뷰·버킷 생성 |
+| 0:00–0:30 (12:30–13:00) | Next.js 생성, Vercel 배포, Supabase 테이블·뷰·버킷 생성. 첫날 밈 카드는 밈이 정해지는 대로 손으로 씀 |
 | 0:30–1:15 (13:00–13:45) | 배포 환경에서 렌더링 스파이크: 고정값과 단색 배경으로 MP4 1개 |
 | 1:15 (13:45) | **체크포인트**: 배포 환경에서 MP4가 나오는지 확인. 안 나오면 렌더링만 컨테이너로 분리 |
 | 1:15–2:15 (13:45–14:45) | players, challenges, attempts(시작·종료·검증), me API + 게임 화면(타이머, 탭 판정) |
@@ -267,7 +269,7 @@ Simon님은 PR #2 일정대로 발굴 로직을 진행하면서 아래 결과물
 | 결과물 | 규격 | 필요 시점 |
 |---|---|---|
 | 화면 스타일 결정 | PR #3 후보 중 하나(동훈님과 함께 결정) | 1:15 (13:45), 게임 화면 착수 전 |
-| 영상 배경 2장 | 해제된 폭탄 / 터진 폭탄, 720×1280 | 3:00 (15:30) |
+| 영상 배경 2장 | 성공 / 실패, 720×1280, 밈과 무관한 공용 이미지 | 3:00 (15:30) |
 | OG 기본 이미지 | 1200×630 | 3:45 (16:15) |
 | 데모의 B 역할 | 폰 한 대 | 4:15–5:00 (16:45–17:30) |
 
@@ -286,7 +288,8 @@ PR #2의 5단계(17:00, 사장님과 함께하는 선택 기록)가 MVP 실기�
 
 ## 11. 남은 결정
 
+- **첫날의 밈**: 목표 시간과 화면·영상 문구가 여기서 정해집니다. 게임 화면 착수(1:15, 13:45) 전에 정해야 합니다. 발굴 로직 결과를 기다리기 어려우면 사람이 고릅니다.
 - **재도전 규칙**: 기본은 무제한 재도전에 최고 기록 인정입니다. PRD §8.2처럼 하루 한 번만 공식으로 치려면 `attempts`에 (player, challenge) 첫 기록만 인정하도록 바꿉니다.
 - **Victory 기준**: 100ms는 가정입니다. 게임 화면이 붙으면(1:15–2:15) 몇 번 해 보고 조정합니다.
 - **언어**: 심사를 한국어로 하면 영어 대신 한국어로 바꿉니다. 영상에 한글을 넣으려면 한글 폰트가 필요합니다.
-- **렌더링 위치**: 1:30 체크포인트 결과로 정합니다.
+- **렌더링 위치**: 1:15(13:45) 체크포인트 결과로 정합니다.
