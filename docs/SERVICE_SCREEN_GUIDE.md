@@ -17,6 +17,10 @@ colors:
   lime: "#7AE83A"
   warn-text: "#7A5200"
   warn-bg: "#FFF1CF"
+  outline-white: "#FFFFFF"
+  mascot: "#EC8323"
+  mascot-line: "#804526"
+  caption-line: "#000000"
 typography:
   title: {fontSize: 28px, fontWeight: 400, lineHeight: 1.2}
   score: {fontSize: 22px, fontWeight: 400, lineHeight: 1.1}
@@ -33,7 +37,7 @@ rounded:
 
 # Meme Rush 서비스 화면 가이드
 
-이 가이드는 Meme Rush의 서비스 화면(랭킹, 오늘의 게임 후보 관리, 결과, 공유 카드의 틀, 버튼, 확인 창, 안내 문구)을 정한다. 게임 안의 그림(캐릭터, 배경, 효과, 소리)은 핏이 만드는 게임 가이드(저장소 `art/README.md`)가 정하고, 이 가이드는 그 위에 얹히는 화면 틀과 규칙만 다룬다. 색은 사장님이 준 젤리 리더보드 참고 이미지에서 픽셀로 뽑았다.
+이 가이드는 Meme Rush의 서비스 화면(랭킹, 오늘의 게임 후보 관리, 결과, 공유 카드의 틀, 버튼, 확인 창, 안내 문구)을 정한다. 게임 안의 그림(캐릭터, 배경, 효과, 소리)은 핏이 만든 게임 화면 가이드(`MEME_RUSH_GAME_GUIDE`, 저장소 `docs/GAME_SCREEN_GUIDE.md`)가 정하고, 이 가이드는 그 위에 얹히는 화면 틀과 규칙만 다룬다. 색은 사장님이 준 젤리 리더보드 참고 이미지에서 픽셀로 뽑았다.
 
 ## 1. 범위: 서비스 화면과 게임 안 그림을 나눈다
 
@@ -42,7 +46,7 @@ rounded:
 값:
 ```text
 서비스 화면(이 가이드)   랭킹(Global·Friends), 결과 화면, 후보 관리 화면, 확인 창, 공유 카드 틀, 버튼, 칩, 안내 문구
-게임 안(게임 가이드)     플레이 중 그림, 캐릭터, 배경, 효과, 소리, 영상 컷의 그림체
+게임 안(게임 화면 가이드 MEME_RUSH_GAME_GUIDE)     플레이 중 그림, 캐릭터, 배경, 효과, 소리, 영상 컷의 그림체
 ```
 
 ## 2. 색은 정해진 토큰만 쓴다
@@ -52,7 +56,7 @@ rounded:
 값:
 ```css
 :root{--sky:#3EAEF5;--sky-light:#80E3FE;--panel:#4CC0F7;--row:#A3E8FA;--navy:#1C5692;--ink-blue:#0F3A73;--text-blue:#245887;
---gold:#FEDE25;--hot:#FFC531;--bronze:#F49E57;--silver:#D8DFEA;--green:#17803F;--red:#C93A52;--lime:#7AE83A;--warn-text:#7A5200;--warn-bg:#FFF1CF}
+--gold:#FEDE25;--hot:#FFC531;--bronze:#F49E57;--silver:#D8DFEA;--green:#17803F;--red:#C93A52;--lime:#7AE83A;--warn-text:#7A5200;--warn-bg:#FFF1CF;--outline-white:#FFFFFF;--mascot:#EC8323;--mascot-line:#804526;--caption-line:#000000}
 ```
 
 ## 3. 글자는 읽히는 조합만 쓴다
@@ -73,7 +77,7 @@ ink-blue / hot                    7.09       내 순위 행 글자
 
 ## 4. 글꼴과 모양
 
-규칙: 제목·순위·점수·버튼은 Jua, 설명·표·칩은 Noto Sans KR 500~700이다. 설명 글자는 12px(0.78rem)보다 작게 쓰지 않는다. 카드 모서리 14px, 큰 패널 22px, 버튼과 칩은 완전히 둥글게(99px). 카드는 흰 3px과 파랑 2px의 이중 테두리, 패널은 흰 4px과 navy 3px, 버튼은 아래 3px 그림자로 눌리는 느낌을 준다. 모든 글자는 이미지가 아닌 화면 글자로 둔다.
+규칙: 제목·순위·점수·버튼은 Jua, 설명·표·칩은 Noto Sans KR 500~700이다. 설명 글자는 12px(0.78rem)보다 작게 쓰지 않는다. 카드 모서리 14px, 큰 패널 22px, 버튼과 칩은 완전히 둥글게(99px). 카드는 흰 3px과 파랑 2px의 이중 테두리, 패널은 흰 4px과 navy 3px, 버튼은 아래 3px 그림자로 눌리는 느낌을 준다. 두 컷 자막(결과 화면)만 Anton 대문자를 쓴다(9절). 모든 글자는 이미지가 아닌 화면 글자로 둔다.
 적용: 서비스 화면 전체.
 값:
 ```text
@@ -119,4 +123,16 @@ ink-blue / hot                    7.09       내 순위 행 글자
 ```text
 좋은 예  한 판 시작하기 / 내 순위 보기 / 단일 출처 / 샘플 자료
 피할 예  확인 / OK / 제출
+```
+
+## 9. 챔피언 스타일을 서비스 화면에 입힌다 (2026-10-24 사장님 확정 기준)
+
+규칙: 게임 안의 챔피언 4장(플레이, 챔피언, 아쉬운 결과, 공유 카드)과 같은 세계로 보이게 서비스 화면을 맞춘다. 네 가지만 지키면 된다. 첫째, 결과 화면의 두 컷은 게임 가이드 6절의 자막 모양(흰 글씨, 검정 윤곽선 6~8px, 대문자 Anton, 가운데 정렬)으로 위아래 두 줄에 얹는다. 둘째, 버튼과 칩은 흰 테두리 2~3px로 스티커처럼 두르고 아래 그림자를 둔다. 셋째, 랭킹의 프로필은 주황 둥근 캐릭터를 흰 테두리 원 안에 넣고, 1~3등은 금·은·동 메달과 1등 왕관을 얹는다. 넷째, Global과 Friends 두 탭은 한 화면에 함께 보이고 내 줄은 hot으로 강조하며 위쪽 화살표를 붙인다. 이미지에 글자를 굽지 않는다.
+적용: 결과 화면, 랭킹(Global·Friends), 공유 카드 틀, 리그 초대.
+값:
+```css
+.caption{font-family:"Anton",Impact,sans-serif;text-transform:uppercase;color:#fff;text-align:center;
+ -webkit-text-stroke:7px var(--caption-line);paint-order:stroke fill;line-height:1}
+.btn,.chip{border:3px solid var(--outline-white);box-shadow:0 3px 0 var(--navy)}
+.avatar{border:3px solid var(--outline-white);border-radius:50%;background:var(--mascot)}
 ```
