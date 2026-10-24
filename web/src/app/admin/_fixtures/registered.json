@@ -1,0 +1,11 @@
+[
+  {
+    "title": "Cut the Dalgona",
+    "image": "/mock/dalgona.jpg",
+    "publishDate": "w+0",
+    "status": "reserved",
+    "topic": "Sample dalgona cutting",
+    "frame": "cut_shape",
+    "createdAt": "2026-10-24T00:00:00+09:00"
+  }
+]

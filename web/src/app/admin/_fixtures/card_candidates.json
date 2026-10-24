@@ -1,0 +1,20 @@
+[
+  {
+    "title": "Clock Out Rush",
+    "win": "CLOCKED OUT. / WEEKEND UNLOCKED.",
+    "lose": "ONE SECOND LATE. / BACK TO WORK.",
+    "share": "{result} in Clock Out Rush. Beat me:"
+  },
+  {
+    "title": "Friday 5PM Rush",
+    "win": "EXACTLY 5:00:00. / LEGEND.",
+    "lose": "TOO EARLY. / BOSS IS WATCHING.",
+    "share": "{result} in Friday 5PM Rush. Beat me:"
+  },
+  {
+    "title": "Weekend Unlock Rush",
+    "win": "WEEKEND UNLOCKED. / GO HOME.",
+    "lose": "STILL AT YOUR DESK. / SEND HELP.",
+    "share": "{result} in Weekend Unlock Rush. Beat me:"
+  }
+]

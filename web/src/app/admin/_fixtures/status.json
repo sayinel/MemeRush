@@ -1,0 +1,17 @@
+{
+  "date": "2026-10-24",
+  "meme": "",
+  "current": "pick_topic",
+  "steps": [
+    { "id": "research", "label": "밈 조사", "kind": "auto", "state": "done", "startedAt": null, "endedAt": null, "artifact": "topics.json", "error": null },
+    { "id": "pair", "label": "틀과 밈 짝짓기", "kind": "auto", "state": "done", "startedAt": null, "endedAt": null, "artifact": null, "error": null },
+    { "id": "brief", "label": "스토리 브리프", "kind": "auto", "state": "done", "startedAt": null, "endedAt": null, "artifact": "story_brief.json", "error": null },
+    { "id": "pick_topic", "label": "주제 고르기", "kind": "human", "state": "waiting", "startedAt": null, "endedAt": null, "artifact": null, "error": null },
+    { "id": "cards", "label": "틀·스토리 구성", "kind": "auto", "state": "waiting", "startedAt": null, "endedAt": null, "artifact": "card_candidates.json", "error": null },
+    { "id": "pick_copy", "label": "문구 고르기", "kind": "human", "state": "waiting", "startedAt": null, "endedAt": null, "artifact": null, "error": null },
+    { "id": "assets", "label": "이미지 제작", "kind": "auto", "state": "waiting", "startedAt": null, "endedAt": null, "artifact": "asset_requests.json", "error": null },
+    { "id": "pick_image", "label": "이미지 확정", "kind": "human", "state": "waiting", "startedAt": null, "endedAt": null, "artifact": null, "error": null },
+    { "id": "schedule", "label": "예약", "kind": "auto", "state": "waiting", "startedAt": null, "endedAt": null, "artifact": null, "error": null },
+    { "id": "publish", "label": "배포", "kind": "auto", "state": "waiting", "startedAt": null, "endedAt": null, "artifact": "registered.json", "error": null }
+  ]
+}
