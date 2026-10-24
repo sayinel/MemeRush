@@ -11,7 +11,7 @@
 
 | 구분 | 항목 |
 |---|---|
-| 유지 | 게임 1개 · 닉네임 + 익명 세션 · 서버 기록 검증 · 무제한 재도전, 최고 기록 인정 · Global 랭킹과 Friends 랭킹 둘 다 표시 · 리그 자동 생성과 초대 링크 · 1위와의 기록 차이 · OG 메타와 동적 미리보기 이미지 · 결과 3종(Perfect·Too Early·Too Late) 연출과 하이라이트 영상, MP4 다운로드·파일 공유 · Wordle식 텍스트 공유 · fallback(결과 카드, 링크 복사) · 이벤트 기록 |
+| 유지 | 게임 1개 · 닉네임 + 익명 세션 · 서버 기록 검증 · 무제한 재도전, 최고 기록 인정 · Global 랭킹과 Friends 랭킹 둘 다 표시 · 리그 자동 생성과 초대 링크 · 1위와의 기록 차이 · OG 메타와 동적 미리보기 이미지 · 결과 3종(`win`, `lose`·`early`, `lose`·`late`) 연출과 하이라이트 영상, MP4 다운로드·파일 공유 · Wordle식 텍스트 공유 · fallback(결과 카드, 링크 복사) · 이벤트 기록 |
 | 보류 | 두 번째 게임 · 밈 카드 생성기(첫날 카드는 손으로 씀, 시간이 남으면 만듦) · "오늘의 게임이 뽑힌 이유" 화면(발굴 로직 결과 표시) · 한국어 · 앱 안의 AI 기능(AI Meme Director 포함) · Friend Rivalry, Almost a Legend · Weekly League, Streak · PlatformIdentity, VideoExport · `/api/platform/config` · Telegram, Discord, TikTok 연동 |
 
 ## 2. 결정 사항
@@ -31,14 +31,14 @@ PRD에서 비어 있거나 절마다 어긋나던 항목, 게임이 바뀌면서
 | 언어 | 영어만 | FR-G05 |
 | AI | 게임 틀 선정은 Simon님의 발굴 로직(PR #2), 밈 → 밈 카드 변환은 밈 카드 생성기가 맡음. 둘 다 앱 밖에서 돌고, 결과는 사람이 승인한 뒤 커밋 | FR-G06, §8.3 |
 | 게임 설정 | DB가 아니라 `content/challenges/2026-10-24.json`에 둠 | §8.1 |
-| 에셋 | Simon님 담당. 규칙만 참고하고 그림·이름·소리는 새로 만듦. 유명 밈 인물·상표는 쓰지 않음. 화면 스타일은 [아트 후보](../art/README.md)(PR #3) 중에서 고름 | §10.6 |
+| 에셋 | Simon님 담당. 규칙만 참고하고 그림·이름·소리는 새로 만듦. 유명 밈 인물·상표는 쓰지 않음. 스타일은 [챔피언 스타일](../art/champion/README.md), 파일 형식은 [ASSET_FORMATS.md](ASSET_FORMATS.md)를 따름 | §10.6 |
 | 사용자 식별 | 익명. 닉네임을 입력하면 서버가 무작위 세션 토큰을 httpOnly 쿠키 `mr_sid`로 발급. 플레이어 ID는 응답에 넣지 않음. 같은 브라우저 안에서만 같은 사용자로 취급 | §7.4, AC-07 |
 | 리그 | 1인 1리그. "Challenge a Friend"를 처음 누를 때 자동 생성하고 만든 사람을 멤버로 넣음. 한 사람이 여러 리그에 속할 수 있음 | §9.1 |
 | 리그 참여 | 초대 링크로 들어온 사람은 "Join {owner}'s league & play" 버튼을 눌러야 참여. 이 버튼이 명시적 동의 | §9.2 |
 | 결과 화면의 리그 | URL의 리그 → 내가 만든 리그 → 참여한 첫 리그 순으로 하나를 표시 | §3.4 |
 | 링크 | 공개: `/c/{challengeId}?ref={referralId}` · 리그 초대: 같은 주소 + `&league={inviteToken}` | §5.2, §9.2 |
 | 미리보기 | OG 생성에 `league` 파라미터를 쓰지 않음. 공유한 사람 본인 기록만 표시하고 닉네임·리그 정보는 넣지 않음 | AC-17 |
-| 결과 종류 | 오차 100ms 이하 Perfect, 100ms 넘게 빠르면 Too Early, 늦으면 Too Late. 서버가 정하고, 결과 화면 연출과 영상이 이 종류를 따름 | §3.5, §9.3 |
+| 결과 종류 | 오차 100ms 이하 `win`(Perfect), 넘으면 `lose`. `lose`는 빠르면 `early`(Too Early), 늦으면 `late`(Too Late)로 나눔. 서버가 정하고, 결과 화면 연출과 영상이 이 종류를 따름 | §3.5, §9.3 |
 | 영상 생성 | 동기 처리. 요청 하나에서 렌더링 → 업로드 → URL 반환. 렌더링이 15초를 넘으면 그때 비동기로 전환. 최고 기록이 바뀌면 새로 만듦 | §10.4 |
 | DB 접근 | 모든 DB 접근은 Next.js API에서 service role 키로 함. 클라이언트에는 Supabase 키를 두지 않음. 모든 테이블에 RLS를 켜고 정책은 만들지 않음 | AC-18 |
 | 통신 | 웹소켓 없이 REST만. 종료 응답에 내 순위를 같이 담음 | — |
@@ -46,10 +46,11 @@ PRD에서 비어 있거나 절마다 어긋나던 항목, 게임이 바뀌면서
 
 ## 3. 게임 설정
 
-게임 설정 파일은 밈 카드 그 자체입니다. 전체 형식과 작성 규칙은 [MEME_GAME_DESIGN.md](MEME_GAME_DESIGN.md) 6절을 따르고, 서버가 쓰는 값은 아래와 같습니다.
+하루 판 파일 형식은 [GAME_FRAME_SPEC.md](GAME_FRAME_SPEC.md) 6절, 그 안의 밈 카드(`meme`)는 [MEME_GAME_DESIGN.md](MEME_GAME_DESIGN.md) 6절을 따릅니다. 서버가 쓰는 값은 아래와 같습니다.
 
-- `stopwatch.targetMs`: 목표 시간, `stopwatch.visibleMs`: 시계가 보이는 시간
-- `outcomes`: 결과 종류별 연출 소품과 문구, `hope`·`share`: 영상과 공유 문구
+- `frame`: MVP는 `timing_stop`만 지원
+- `frameParams.targetMs`: 목표 시간, `frameParams.visibleMs`: 시계가 보이는 시간
+- `meme.win`·`meme.lose`(`early`·`late` 갈래 포함): 결과별 두 줄 자막과 소품, `meme.hope`·`meme.share`: 영상과 공유 문구
 - 서버 로딩 시 zod로 검증
 
 ### 탭 판정
@@ -99,7 +100,8 @@ create table attempts (
   finished_at timestamptz,
   elapsed_ms int,                              -- 클라이언트 측정값
   error_ms int,                                -- 서버 계산값
-  outcome text,                                -- 'perfect' | 'early' | 'late', 서버 계산값
+  outcome text,                                -- 'win' | 'lose', 서버 계산값
+  outcome_variant text,                        -- timing_stop의 lose 갈래: 'early' | 'late'
   video_path text                              -- Storage 경로
 );
 
@@ -108,7 +110,7 @@ create index attempts_ranking on attempts (challenge_id, error_ms) where error_m
 create view best_attempts with (security_invoker = true) as
 select distinct on (a.player_id, a.challenge_id)
   a.id, a.player_id, a.challenge_id, a.error_ms, a.finished_at,
-  a.elapsed_ms, a.outcome, a.video_path, p.nickname
+  a.elapsed_ms, a.outcome, a.outcome_variant, a.video_path, p.nickname
 from attempts a
 join players p on p.id = a.player_id
 where a.error_ms is not null
@@ -144,7 +146,7 @@ alter table events enable row level security;
 | POST | `/api/players` | `{ nickname }` | `{ nickname }` | 쿠키 발급. 쿠키가 있으면 닉네임만 갱신 |
 | GET | `/api/challenges/{id}` | — | 밈 카드 | `meme.context`는 빼도 됨 |
 | POST | `/api/attempts` | `{ challengeId, ref? }` | `{ attemptId }` | `started_at` 기록. 유효하지 않은 `ref`는 무시 |
-| POST | `/api/attempts/{attemptId}/finish` | `{ elapsedMs, leagueId? }` | `{ errorMs, bestErrorMs, isNewBest, globalRank, friendsRank, outcome }` | 내 시도이고 아직 끝나지 않았을 때만. 2절의 검증 규칙 적용. `friendsRank`는 `leagueId`(화면에 표시 중인 리그)가 있고 내가 멤버일 때만, 아니면 null |
+| POST | `/api/attempts/{attemptId}/finish` | `{ elapsedMs, leagueId? }` | `{ errorMs, bestErrorMs, isNewBest, globalRank, friendsRank, outcome, outcomeVariant }` | 내 시도이고 아직 끝나지 않았을 때만. 2절의 검증 규칙 적용. `friendsRank`는 `leagueId`(화면에 표시 중인 리그)가 있고 내가 멤버일 때만, 아니면 null |
 | GET | `/api/me?challengeId=` | — | `{ nickname?, bestErrorMs?, globalRank?, leagues: [{ leagueId, ownerNickname, isOwner }] }` | 재방문 시 화면 결정. 쿠키 없으면 빈 값 |
 | GET | `/api/leaderboard?challengeId=` | — | `{ rows: [{ nickname, errorMs, rank }] }` | Global 상위 50. 모두에게 같은 응답이라 `Cache-Control: public, s-maxage=5`. 내 순위는 여기 넣지 않고 `/api/me`·finish 응답의 `globalRank`로 표시 |
 | GET | `/api/leagues/invites/{token}` | — | `{ leagueId, ownerNickname, memberCount }` | 인트로 화면 표시용 |
@@ -191,7 +193,7 @@ alter table events enable row level security;
 | 항목 | 값 |
 |---|---|
 | 규격 | 720×1280, 30fps, 10초, H.264, `-pix_fmt yuv420p`, `-movflags +faststart`, 무음 |
-| 구성 | 희망(`hope`) → 반전(`outcomes.{결과}.twist`와 소품) → 밈 결과(`result`, 순위, "BEAT ME!", 공개 챌린지 URL `/c/{challengeId}`, ref 없음). [게임 디자인](MEME_GAME_DESIGN.md) 5절 |
+| 구성 | 희망(`meme.hope`) → 반전(결과 자막 윗줄 `top`과 소품) → 밈 결과(아랫줄 `bottom`, 순위, "BEAT ME!", 공개 챌린지 URL `/c/{challengeId}`, ref 없음). [게임 디자인](MEME_GAME_DESIGN.md) 5절 |
 | 그림 | 게임과 같은 배경·캐릭터·소품 스프라이트를 FFmpeg으로 장면마다 겹침. 화면 녹화는 하지 않음 |
 | 문구 | 밈 카드에서 가져옴. 코드에 고정 문구를 두지 않음 |
 | 미리보기 | `<video playsinline muted>`. iOS에서 `playsinline`이 없으면 전체 화면으로 열림 |
@@ -226,7 +228,7 @@ PRD §13.6 이름을 그대로 쓰고, 8개만 기록합니다.
 | 04 | "Challenge a Friend" → `/api/referrals` (`invite: true`) |
 | 05, 06 | `league` 토큰 → Join & Play → Friends 랭킹 |
 | 07 | 쿠키 + `/api/me` (같은 브라우저 기준) |
-| 08 | 결과 종류 3가지(Perfect·Too Early·Too Late)마다 다른 영상 |
+| 08 | 결과 3가지(`win`, `lose`·`early`, `lose`·`late`)마다 다른 영상 |
 | 09 | Storage 다운로드 URL |
 | 10 | 기록과 유형별 문구를 영상에 합성 |
 | 11 | Vercel HTTPS |
@@ -260,8 +262,8 @@ Simon님은 PR #2 일정대로 발굴 로직을 진행하면서 아래 결과물
 
 | 결과물 | 규격 | 필요 시점 |
 |---|---|---|
-| 화면 스타일 결정 | PR #3 후보 중 하나(동훈님과 함께 결정) | 1:15 (13:45), 게임 화면 착수 전 |
-| 게임·영상 스프라이트 | [게임 디자인](MEME_GAME_DESIGN.md) 9절의 아트 목록(사무실 배경, 직장인 캐릭터 5동작, 보스 2동작, 시계, 문, 메일·회의 오브젝트) | 1:15 (13:45), 게임 화면 착수 전. 늦으면 도형으로 먼저 만들고 교체 |
+| 게임 스프라이트 | [게임 디자인](MEME_GAME_DESIGN.md) 9절의 게임 아트(사무실 배경, 직장인 캐릭터 5동작, 보스 2동작, 시계, 문, 메일·회의 소품). 형식은 ASSET_FORMATS 3·4번 | 1:15 (13:45), 게임 화면 착수 전. 늦으면 도형으로 먼저 만들고 교체 |
+| 영상 배경 2장과 반응 스티커 | 성공·실패 배경(ASSET_FORMATS 1번)과 결과별 반응 스티커(투명 PNG) | 3:00 (15:30) |
 | OG 기본 이미지 | 1200×630 | 3:45 (16:15) |
 | 데모의 B 역할 | 폰 한 대 | 4:15–5:00 (16:45–17:30) |
 
