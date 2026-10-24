@@ -1,0 +1,20 @@
+[
+  {
+    "title": "Beat Tap Rush",
+    "win": "ON THE BEAT. / LEGEND.",
+    "lose": "OFF THE BEAT. / SIT DOWN.",
+    "share": "{result} in Beat Tap Rush. Beat me:"
+  },
+  {
+    "title": "Thumb Dance Rush",
+    "win": "TWO STEPS. / NAILED IT.",
+    "lose": "TWO LEFT FEET. / AGAIN?",
+    "share": "{result} in Thumb Dance Rush. Beat me:"
+  },
+  {
+    "title": "Banana Beat Rush",
+    "win": "PEELED IT. / PERFECT.",
+    "lose": "SLIPPED. / ONE MORE TRY?",
+    "share": "{result} in Banana Beat Rush. Beat me:"
+  }
+]

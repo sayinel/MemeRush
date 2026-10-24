@@ -1,0 +1,11 @@
+[
+  {
+    "title": "Land the UFO",
+    "image": "/mock/ufo.jpg",
+    "publishDate": "+1",
+    "status": "reserved",
+    "topic": "Sample UFO landing",
+    "frame": "swipe_dodge",
+    "createdAt": "2026-10-24T00:00:00+09:00"
+  }
+]

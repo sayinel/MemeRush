@@ -1,0 +1,82 @@
+{
+  "generatedAt": "2026-10-24T09:00:00+09:00",
+  "topics": [
+    {
+      "rank": 1,
+      "name": "While They're Out Partying BTW",
+      "score": 77,
+      "online": "TikTok·Reels 수천만 회",
+      "community": "Reddit·X·직장인 커뮤니티 업보트 수만",
+      "background": "남들이 노는 동안 자신은 버거 포장 같은 단순 노동 기술을 극한으로 연마했다고 자랑하는 풍자 밈. 2025년 말 시작, 2026년 9~10월 초고속 버거 포장 영상과 결합해 확산.",
+      "reactions": [
+        { "mood": "비꼼에 공감", "summary": "일상 노동을 플렉스로 포장하는 비꼼에 공감하는 반응이 많다.", "where": "TikTok 댓글", "source": { "name": "KnowYourMeme", "url": "https://knowyourmeme.com" } },
+        { "mood": "감탄", "summary": "알바생 손놀림 영상에 감탄하는 반응이 이어진다.", "where": "Reels 댓글", "source": { "name": "KnowYourMeme", "url": "https://knowyourmeme.com" } }
+      ],
+      "fading": "평범한 행동까지 가져다 쓰며 풍자가 옅어짐",
+      "frame": "swipe_dodge (밀려드는 버거를 스와이프)",
+      "sources": [{ "name": "KnowYourMeme", "url": "https://knowyourmeme.com" }],
+      "sourceStatus": "미확인"
+    },
+    {
+      "rank": 2,
+      "name": "Babydoll Dance Challenge",
+      "score": 73,
+      "online": "TikTok·Reels 상위 트렌드",
+      "community": "댄스 커뮤니티 수만 회 언급",
+      "background": "누구나 5분이면 배우는 2스텝 안무를 따라 하는 챌린지. 2026년 8월 음원 발매, 10월 유명 인물 참여로 폭발. 음원은 게임에 쓸 수 없어 박자 소리를 새로 만들어야 함.",
+      "reactions": [
+        { "mood": "참여 의욕", "summary": "쉽다, 나도 해 본다는 참여 반응이 많다.", "where": "TikTok 댓글", "source": { "name": "KnowYourMeme", "url": "https://knowyourmeme.com" } },
+        { "mood": "피로감", "summary": "안무 영상 도배에 대한 피로감이 함께 나온다.", "where": "Reddit 스레드", "source": { "name": "KnowYourMeme", "url": "https://knowyourmeme.com" } }
+      ],
+      "fading": "피드 도배로 스크롤 패스 증가",
+      "frame": "tap_rush (박자에 맞춰 탭)",
+      "sources": [{ "name": "KnowYourMeme", "url": "https://knowyourmeme.com" }],
+      "sourceStatus": "미확인"
+    },
+    {
+      "rank": 3,
+      "name": "I'm So Sorry (Slideshow Trend)",
+      "score": 70,
+      "online": "TikTok 영상 2,560만 회",
+      "community": "X 좋아요 3,500+, Reddit 인증 열풍",
+      "background": "보정된 사진을 올리다가 슬라이드를 넘기면 흑역사 원본을 공개하며 사과하는 밈. 2026년 8월 하순 시작, 10월 할로윈 시즌에 폭발.",
+      "reactions": [
+        { "mood": "자기비하 공감", "summary": "자기비하 유머에 공감하고, 어린 시절 흑역사 의상 인증이 이어진다.", "where": "X 답글", "source": { "name": "KnowYourMeme", "url": "https://knowyourmeme.com" } }
+      ],
+      "fading": "연출된 가짜 보정이 늘며 반전이 약해짐",
+      "frame": "tap_rush (보정 레이어 벗기기)",
+      "sources": [{ "name": "KnowYourMeme", "url": "https://knowyourmeme.com" }],
+      "sourceStatus": "미확인"
+    },
+    {
+      "rank": 4,
+      "name": "Thank You Baby (Bounce Trend)",
+      "score": 40,
+      "online": "파생 영상 10만 건, 누적 수억 회",
+      "community": "X·Reddit·디스코드 짤방 인용",
+      "background": "래퍼 분장 쌍둥이가 구절에 맞춰 칼박자로 바운스를 타는 밈. 2026년 9월 23일 라이브 이후 확산.",
+      "reactions": [
+        { "mood": "웃음", "summary": "중독성 있는 구절과 B급 분장의 대비에 웃음이 나온다.", "where": "디스코드", "source": { "name": "KnowYourMeme", "url": "https://knowyourmeme.com" } }
+      ],
+      "fading": "정식 음원 출시로 초기 B급 감성이 옅어짐",
+      "frame": "timing_stop 또는 tap_rush",
+      "sources": [{ "name": "KnowYourMeme", "url": "https://knowyourmeme.com" }],
+      "sourceStatus": "미확인"
+    },
+    {
+      "rank": 5,
+      "name": "Grr Mondays",
+      "score": 37,
+      "online": "초기 영상 280만 회+",
+      "community": "Reddit·X·국내 직장인 게시판에서 월요일마다 반복 인용",
+      "background": "피곤한 월요일 상황에 투덜거리는 오디오를 얹는 밈. 2026년 9월 시작, 매주 월요일 재유행.",
+      "reactions": [
+        { "mood": "보편적 공감", "summary": "월요일에 대한 보편적 공감이 매주 출근 도장처럼 반복된다.", "where": "직장인 게시판", "source": { "name": "NapoleonCat", "url": "https://napoleoncat.com" } }
+      ],
+      "fading": "정례 게시물화되어 유머가 약해짐",
+      "frame": "swipe_dodge (알람과 커피 피하기)",
+      "sources": [{ "name": "NapoleonCat", "url": "https://napoleoncat.com" }],
+      "sourceStatus": "미확인"
+    }
+  ]
+}
