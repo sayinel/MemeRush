@@ -3,6 +3,22 @@
   "topics": [
     {
       "rank": 1,
+      "name": "Friday 5PM (퇴근 밈)",
+      "score": 84,
+      "online": "샘플 자료: 금요일 오후 5시 퇴근 카운트다운 영상이 매주 반복 확산",
+      "community": "샘플 자료: 직장인 커뮤니티에서 금요일마다 인용",
+      "background": "샘플 자료: 금요일 오후 5시, 시계를 노려보며 퇴근을 기다리는 보편적인 직장인 밈. 특정 원작 없이 매주 반복되어 어느 나라 직장인에게나 통한다.",
+      "reactions": [
+        { "mood": "공감", "summary": "샘플 자료: 5시 1분 전 시계만 쳐다본다는 공감 반응이 가장 많다.", "where": "직장인 게시판", "source": { "name": "샘플 자료(시연용)", "url": "" } },
+        { "mood": "해방감", "summary": "샘플 자료: 정각에 자리를 박차고 나가는 짤을 주고받으며 주말 인사를 나눈다.", "where": "SNS 댓글", "source": { "name": "샘플 자료(시연용)", "url": "" } }
+      ],
+      "fading": "샘플 자료: 금요일 외의 요일에는 반응이 약하고, 정례 게시물이 늘면 신선함이 떨어짐",
+      "frame": "timing_stop (5:00:00 정각에 멈추기)",
+      "sources": [{ "name": "샘플 자료(시연용, 대조하지 않음)", "url": "" }],
+      "sourceStatus": "샘플 자료"
+    },
+    {
+      "rank": 2,
       "name": "While They're Out Partying BTW",
       "score": 77,
       "online": "TikTok·Reels 수천만 회",
@@ -18,7 +34,7 @@
       "sourceStatus": "미확인"
     },
     {
-      "rank": 2,
+      "rank": 3,
       "name": "Babydoll Dance Challenge",
       "score": 73,
       "online": "TikTok·Reels 상위 트렌드",
@@ -34,7 +50,7 @@
       "sourceStatus": "미확인"
     },
     {
-      "rank": 3,
+      "rank": 4,
       "name": "I'm So Sorry (Slideshow Trend)",
       "score": 70,
       "online": "TikTok 영상 2,560만 회",
@@ -49,7 +65,7 @@
       "sourceStatus": "미확인"
     },
     {
-      "rank": 4,
+      "rank": 5,
       "name": "Thank You Baby (Bounce Trend)",
       "score": 40,
       "online": "파생 영상 10만 건, 누적 수억 회",
@@ -61,21 +77,6 @@
       "fading": "정식 음원 출시로 초기 B급 감성이 옅어짐",
       "frame": "timing_stop 또는 tap_rush",
       "sources": [{ "name": "KnowYourMeme", "url": "https://knowyourmeme.com" }],
-      "sourceStatus": "미확인"
-    },
-    {
-      "rank": 5,
-      "name": "Grr Mondays",
-      "score": 37,
-      "online": "초기 영상 280만 회+",
-      "community": "Reddit·X·국내 직장인 게시판에서 월요일마다 반복 인용",
-      "background": "피곤한 월요일 상황에 투덜거리는 오디오를 얹는 밈. 2026년 9월 시작, 매주 월요일 재유행.",
-      "reactions": [
-        { "mood": "보편적 공감", "summary": "월요일에 대한 보편적 공감이 매주 출근 도장처럼 반복된다.", "where": "직장인 게시판", "source": { "name": "NapoleonCat", "url": "https://napoleoncat.com" } }
-      ],
-      "fading": "정례 게시물화되어 유머가 약해짐",
-      "frame": "swipe_dodge (알람과 커피 피하기)",
-      "sources": [{ "name": "NapoleonCat", "url": "https://napoleoncat.com" }],
       "sourceStatus": "미확인"
     }
   ]

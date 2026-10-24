@@ -20,6 +20,31 @@ const GROUPS: string[][] = [["pick_topic"], ["cards"], ["pick_copy"], ["assets"]
 const PREP = ["research", "pair", "brief"];
 const WAIT_LABEL: Record<number, string> = { 1: "틀을 맞추고 스토리를 짜는 중", 3: "핏이 이미지를 만드는 중", 6: "배포하고 예약하는 중" };
 const DONE_UI = 7;
+// 텔레그램 시안을 누르면 열리는 MVP 서비스 주소
+const MVP_URL = process.env.NEXT_PUBLIC_MVP_URL || "https://meme-rush-meme-rush.vercel.app/c/2026-10-24";
+const TG_DESC = "Clock out at exactly 5:00:00. Beat your friends.";
+const isPublished = (status: string) => ["published", "발행됨", "발행"].includes(status);
+const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
+
+function TelegramMock({ title, image, time }: { title: string; image: string | null; time: string }) {
+  return (
+    <div className="tg" aria-label="텔레그램 대화 시안">
+      <div className="tg-day">오늘</div>
+      <a className="tg-bubble" href={MVP_URL} target="_blank" rel="noopener noreferrer" aria-label={`${title}. Meme Rush 열기. 새 탭에서 열려요`}>
+        <div className="tg-card">
+          <div className="tg-site">Meme Rush</div>
+          <div className="tg-title">{title}</div>
+          <div className="tg-desc">{TG_DESC}</div>
+          {image && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img className="tg-img" src={image} alt="" />
+          )}
+        </div>
+        <span className="tg-time">{time}</span>
+      </a>
+    </div>
+  );
+}
 
 type Derived = { ui: number; prepWait: boolean; errLabel: string | null; errText: string | null };
 
@@ -187,7 +212,7 @@ function TopicRow({ t, on, onPick }: { t: Topic; on: boolean; onPick: () => void
   );
 }
 
-type Dlg = { kind: "schedule" | "reimage"; opener: HTMLElement | null } | null;
+type Dlg = { kind: "schedule" | "reimage" | "publish"; opener: HTMLElement | null } | null;
 
 export default function NewClient({ fresh }: { fresh: boolean }) {
   const [data, setData] = useState<AdminState | null>(null);
@@ -202,6 +227,9 @@ export default function NewClient({ fresh }: { fresh: boolean }) {
   const [image, setImage] = useState<string | null>(null);
   const [date, setDate] = useState<string | null>(null);
   const [dlg, setDlg] = useState<Dlg>(null);
+  const [publishing, setPublishing] = useState(false);
+  // 시안에 찍는 시각(서울). 화면이 처음 그려질 때 한 번만 정한다.
+  const [tgTime] = useState(() => new Intl.DateTimeFormat("en-GB", { timeZone: "Asia/Seoul", hour: "2-digit", minute: "2-digit", hour12: false }).format(new Date()));
 
   const refresh = useCallback(async () => {
     try {
@@ -239,7 +267,7 @@ export default function NewClient({ fresh }: { fresh: boolean }) {
   const pendingOn = !!pending && ui <= pending.ui;
   const shown = pendingOn && pending ? Math.min(pending.ui + 1, 6) : ui;
   const isAuto = ui < DONE_UI && UI_STEPS[ui].kind === "auto";
-  const waiting = booting || !data || !d || pendingOn || d.prepWait || isAuto;
+  const waiting = booting || !data || !d || pendingOn || d.prepWait || isAuto || publishing;
   const hasErr = !!d?.errLabel && !pendingOn;
 
   async function submit(kind: PickKind, value: string | number, fromUi: number) {
@@ -274,6 +302,22 @@ export default function NewClient({ fresh }: { fresh: boolean }) {
     }
   }
 
+  async function publish() {
+    if (busy) return;
+    setBusy(true);
+    setErr(null);
+    setPublishing(true);
+    try {
+      await Promise.all([post("/api/admin/run", { mode: "publish" }), sleep(1500)]);
+      await refresh();
+    } catch (e) {
+      setErr((e as Error).message);
+    } finally {
+      setPublishing(false);
+      setBusy(false);
+    }
+  }
+
   const topics = data?.topics ?? [];
   const items = data?.items ?? [];
   const occupied = new Map(items.map((i) => [i.date, i.state]));
@@ -283,6 +327,12 @@ export default function NewClient({ fresh }: { fresh: boolean }) {
   const defaultDate = weekDays.find((day, i) => i > lastFull && !occupied.has(day)) ?? weekDays.find((day) => !occupied.has(day)) ?? null;
   const pickedDate = date && !occupied.has(date) ? date : defaultDate;
 
+  // 7단계가 끝난 뒤의 등록 정보(제작 완료와 발행 완료 화면이 함께 쓴다)
+  const done = data && ui === DONE_UI ? data : null;
+  const doneDate = done?.picks.publishDate ?? null;
+  const doneReg = done ? (done.registered.find((r) => r.publishDate === doneDate) ?? done.registered[done.registered.length - 1]) : undefined;
+  const isPub = doneReg ? isPublished(doneReg.status) : false;
+
   // 단계마다 주 CTA 하나. 상단(우상단)과 하단(우측)에 같은 문구로 둔다.
   let cta: { label: string; disabled: boolean; onClick: (el: HTMLElement) => void } | null = null;
   if (data && !waiting && !hasErr) {
@@ -290,6 +340,7 @@ export default function NewClient({ fresh }: { fresh: boolean }) {
     if (ui === 2) cta = { label: "이 문구로 정하기", disabled: busy || !data.copies[copyIdx], onClick: () => void submit("copy", copyIdx + 1, 2) };
     if (ui === 4) cta = { label: "이 이미지로 확정하기", disabled: busy || !image, onClick: () => void submit("image", image as string, 4) };
     if (ui === 5) cta = { label: "발행일 정하기", disabled: busy || !pickedDate, onClick: (el) => setDlg({ kind: "schedule", opener: el }) };
+    if (done && !isPub) cta = { label: "발행하기", disabled: busy || !doneReg, onClick: (el) => setDlg({ kind: "publish", opener: el }) };
   }
   if (data && hasErr) cta = { label: "다시 시도하기", disabled: busy, onClick: () => void run("resume") };
 
@@ -301,12 +352,10 @@ export default function NewClient({ fresh }: { fresh: boolean }) {
       </button>
     );
 
-  const done = data && ui === DONE_UI ? data : null;
-
   // ----- 본문 -----
   let body: ReactNode = null;
   if (waiting && !hasErr) {
-    const label = booting || !data ? "불러오는 중" : d?.prepWait ? "주제 후보를 모으는 중" : isAuto ? WAIT_LABEL[ui] : "선택을 저장하는 중";
+    const label = booting || !data ? "불러오는 중" : publishing ? "발행하는 중" : d?.prepWait ? "주제 후보를 모으는 중" : isAuto ? WAIT_LABEL[ui] : "선택을 저장하는 중";
     body = (
       <div className="screen wait" aria-live="polite">
         <Logo />
@@ -322,17 +371,26 @@ export default function NewClient({ fresh }: { fresh: boolean }) {
       </div>
     );
   } else if (done) {
-    const pd = done.picks.publishDate;
-    const reg = done.registered.find((r) => r.publishDate === pd) ?? done.registered[done.registered.length - 1];
-    const pubDate = reg?.publishDate ?? pd ?? "";
+    const reg = doneReg;
+    const pubDate = reg?.publishDate ?? doneDate ?? "";
     const title = reg?.title || done.copies[(done.picks.copy ?? 1) - 1]?.title || "-";
     const topicName = reg?.topic || done.picks.topic || done.status.meme;
     const topic = done.topics.find((t) => t.name === topicName);
     const img = done.items.find((i) => i.date === pubDate)?.image ?? null;
-    const published = reg ? ["published", "발행됨", "발행"].includes(reg.status) : false;
+    const published = isPub;
+    if (published) {
+      body = (
+        <div className="screen">
+          <p className="meta">{pubDate ? `${md(pubDate)} 편이 발행됐어요. 홈 목록에서 확인할 수 있어요.` : "발행됐어요."}</p>
+          <p className="tg-label">텔레그램에 도착한 화면(시안)</p>
+          <TelegramMock title={title} image={img} time={tgTime} />
+          <p className="meta">실제 텔레그램 화면이 아니라 시안이에요. 말풍선을 누르면 MVP 서비스가 새 탭에서 열려요.</p>
+        </div>
+      );
+    } else
     body = (
       <div className="screen done-card">
-        <h2>게임이 등록됐어요</h2>
+        <h2>게임 제작이 끝났어요</h2>
         {img && (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={img} alt="후킹 이미지" />
@@ -348,11 +406,11 @@ export default function NewClient({ fresh }: { fresh: boolean }) {
           <dt>틀</dt>
           <dd>{reg?.frame || topic?.frame || "-"}</dd>
           <dt>발행일</dt>
-          <dd>{pubDate ? `${md(pubDate)} ${published ? "발행" : "예약"}` : "-"}</dd>
+          <dd>{pubDate ? `${md(pubDate)} 예약` : "-"}</dd>
           <dt>상태</dt>
           <dd>
-            <span className={`chip ${published ? "pub" : "res"}`}>{published ? "발행됨" : "예약"}</span>
-            홈 목록에서 확인할 수 있어요
+            <span className="chip res">예약</span>
+            발행하면 텔레그램으로 알림이 가요
           </dd>
         </dl>
       </div>
@@ -436,7 +494,7 @@ export default function NewClient({ fresh }: { fresh: boolean }) {
     );
   }
 
-  const title = done ? "등록 완료" : "게임 등록";
+  const title = done ? (isPub ? "발행 완료" : "게임 제작 완료") : "게임 등록";
 
   return (
     <main className="board">
@@ -444,7 +502,7 @@ export default function NewClient({ fresh }: { fresh: boolean }) {
         <h1>{title}</h1>
         <div className="acts">
           {data?.sample && <span className="sample">샘플 자료</span>}
-          {done ? (
+          {done && isPub ? (
             <>
               <span className="okmark" aria-hidden="true">✓</span>
               <Link className="btn" href="/admin">
@@ -502,7 +560,7 @@ export default function NewClient({ fresh }: { fresh: boolean }) {
               다시 만들어 달라고 하기
             </button>
           )}
-          {done ? (
+          {done && isPub ? (
             <Link className="btn" href="/admin">
               홈으로 이동
             </Link>
@@ -522,6 +580,19 @@ export default function NewClient({ fresh }: { fresh: boolean }) {
           onOk={() => {
             setDlg(null);
             void submit("date", pickedDate, 5);
+          }}
+        />
+      )}
+      {dlg?.kind === "publish" && doneReg && (
+        <Dialog
+          title={`${md(doneReg.publishDate)} 편을 발행할까요?`}
+          body="발행하면 되돌리기 어려워요. 발행하는 순간 텔레그램으로 알림이 가요."
+          okLabel="발행하기"
+          opener={dlg.opener}
+          onClose={() => setDlg(null)}
+          onOk={() => {
+            setDlg(null);
+            void publish();
           }}
         />
       )}

@@ -1,3 +1,10 @@
 [
-  { "name": "ufo.jpg", "url": "/mock/ufo.jpg" }
+  {
+    "name": "1_play.jpg",
+    "url": "/admin-sample/1_play.jpg"
+  },
+  {
+    "name": "2_champion.jpg",
+    "url": "/admin-sample/2_champion.jpg"
+  }
 ]

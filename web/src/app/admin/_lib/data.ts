@@ -222,7 +222,8 @@ const g = globalThis as unknown as { __admSim?: Sim; __admRun?: ChildProcess | n
 function freshSim(): Sim {
   const status = normStatus(statusFixture) as PipelineStatus;
   status.date = seoulToday();
-  const s: Sim = { status, picks: normPicks(picksFixture), registered: g.__admSim?.registered ?? [] };
+  // 새 등록을 시작하면 이전 시연 기록은 비운다(같은 화요일을 다시 고를 수 있게).
+  const s: Sim = { status, picks: normPicks(picksFixture), registered: [] };
   return s;
 }
 const sim = (): Sim => (g.__admSim ??= freshSim());
@@ -445,6 +446,14 @@ export async function applyRun(mode: RunMode): Promise<{ message: string }> {
   }
 
   const complete = st.status.steps.every((x) => x.state === "done");
+  if (mode === "publish") {
+    // 실행기에 발행 명령이 아직 없다. 샘플 모드에서만 모의 발행으로 상태를 바꾼다.
+    if (!isSim) throw new AdminError("실제 발행 명령은 아직 연결되지 않았어요.", 501);
+    const reg = sim().registered.find((r) => r.publishDate === sim().picks.publishDate);
+    if (!complete || !reg) throw new AdminError("아직 발행할 수 있는 상태가 아니에요.", 409);
+    reg.status = "published";
+    return { message: "발행했어요." };
+  }
   if (isSim) {
     if (mode === "new" && complete) {
       g.__admSim = freshSim();

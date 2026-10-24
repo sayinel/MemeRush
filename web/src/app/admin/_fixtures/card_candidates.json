@@ -1,20 +1,20 @@
 [
   {
-    "title": "Beat Tap Rush",
-    "win": "ON THE BEAT. / LEGEND.",
-    "lose": "OFF THE BEAT. / SIT DOWN.",
-    "share": "{result} in Beat Tap Rush. Beat me:"
+    "title": "Clock Out Rush",
+    "win": "CLOCKED OUT. / WEEKEND UNLOCKED.",
+    "lose": "ONE SECOND LATE. / BACK TO WORK.",
+    "share": "{result} in Clock Out Rush. Beat me:"
   },
   {
-    "title": "Thumb Dance Rush",
-    "win": "TWO STEPS. / NAILED IT.",
-    "lose": "TWO LEFT FEET. / AGAIN?",
-    "share": "{result} in Thumb Dance Rush. Beat me:"
+    "title": "Friday 5PM Rush",
+    "win": "EXACTLY 5:00:00. / LEGEND.",
+    "lose": "TOO EARLY. / BOSS IS WATCHING.",
+    "share": "{result} in Friday 5PM Rush. Beat me:"
   },
   {
-    "title": "Banana Beat Rush",
-    "win": "PEELED IT. / PERFECT.",
-    "lose": "SLIPPED. / ONE MORE TRY?",
-    "share": "{result} in Banana Beat Rush. Beat me:"
+    "title": "Weekend Unlock Rush",
+    "win": "WEEKEND UNLOCKED. / GO HOME.",
+    "lose": "STILL AT YOUR DESK. / SEND HELP.",
+    "share": "{result} in Weekend Unlock Rush. Beat me:"
   }
 ]

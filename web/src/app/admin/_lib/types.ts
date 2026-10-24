@@ -71,5 +71,5 @@ export type AdminState = {
 
 export const PICK_KINDS = ["topic", "copy", "image", "date"] as const;
 export type PickKind = (typeof PICK_KINDS)[number];
-export const RUN_MODES = ["resume", "new", "reimage"] as const;
+export const RUN_MODES = ["resume", "new", "reimage", "publish"] as const;
 export type RunMode = (typeof RUN_MODES)[number];
