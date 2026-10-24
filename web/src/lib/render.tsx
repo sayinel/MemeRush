@@ -15,23 +15,34 @@ const H = 1280;
 const FPS = 30;
 const anton = readFile(path.join(process.cwd(), "assets/fonts/Anton-Regular.ttf"));
 const GAME_DIR = path.join(process.cwd(), "public/game");
+// Video backgrounds, 1440x2560 (SIMON_REQUESTS 2절, ASSET_FORMATS 1번); not served, only composed into the video.
+const VIDEO_DIR = path.join(process.cwd(), "assets/video");
 
 // y: top edge of the line as a fraction of the frame height.
 export type CaptionLine = { text: string; y: number; size?: number; color?: string; keepCase?: boolean };
 export type Scene = {
   seconds: number;
-  mood: "win" | "lose"; // picks bg_win / bg_lose art, or the matching sky gradient
+  mood: "win" | "lose"; // picks assets/video/bg_win|bg_lose.png, or the matching sky gradient
   sprite: string; // key in public/game/manifest.json, e.g. "worker_crying"
   lines: CaptionLine[];
 };
 
 const GRADIENT = { win: "linear-gradient(180deg, #80E3FE 0%, #3EAEF5 60%, #1C5692 100%)", lose: "linear-gradient(180deg, #4CC0F7 0%, #1C5692 55%, #0F3A73 100%)" };
 
+async function dataUri(file: string): Promise<string> {
+  return `data:image/png;base64,${(await readFile(file)).toString("base64")}`;
+}
+
+async function background(mood: Scene["mood"]): Promise<string | null> {
+  const file = path.join(VIDEO_DIR, `bg_${mood}.png`);
+  return existsSync(file) ? dataUri(file) : null;
+}
+
 async function art(key: string): Promise<string | null> {
   const manifest = JSON.parse(await readFile(path.join(GAME_DIR, "manifest.json"), "utf8")) as Record<string, string>;
   const file = manifest[key] && path.join(GAME_DIR, manifest[key]);
   if (!file || !existsSync(file)) return null;
-  return `data:image/png;base64,${(await readFile(file)).toString("base64")}`;
+  return dataUri(file);
 }
 
 // Top and bottom 25% stay free for captions (MEME_GAME_DESIGN 5절); the sprite sits in the middle.
@@ -39,7 +50,7 @@ async function art(key: string): Promise<string | null> {
 // ffmpeg then only concatenates stills — the Linux ffmpeg-static build has no drawtext, and stacking looped
 // overlays made every frame decode several PNGs (≈12s per render on Vercel).
 async function sceneImage(scene: Scene): Promise<Buffer> {
-  const [bg, sprite] = await Promise.all([art(`bg_${scene.mood}`), art(scene.sprite)]);
+  const [bg, sprite] = await Promise.all([background(scene.mood), art(scene.sprite)]);
   const res = new ImageResponse(
     (
       <div style={{ width: W, height: H, display: "flex", position: "relative", backgroundImage: GRADIENT[scene.mood] }}>

@@ -17,6 +17,7 @@ from .pipeline import (make_sim_fetch, render_markdown, render_memes_markdown, r
                        run_pipeline)
 from .sources.file_source import FileSource
 from . import production as prod
+from . import ship as ship_mod
 
 
 def _read_picks(out: Path) -> set[str]:
@@ -164,7 +165,7 @@ def cmd_card(a: argparse.Namespace) -> int:
     brief = prod.read_json(out / "story_brief.json")
     combo, _ = prod.pick_combo(out, int(brief["combo"]))
     library = prod.load_library(Path(a.manifest))
-    card_file = prod.make_card_file(brief, combo, library, prod._client())
+    card_file = prod.make_card_file(brief, combo, library, prod._client(), max_new=0 if a.library_only else prod.MAX_NEW_KEYS)
     prod.write_json(out / "card.json", card_file)
     print(f"카드 후보 {len(card_file['options'])}개 → {out / 'card.json'}")
     for o in card_file["options"]:
@@ -202,6 +203,14 @@ def cmd_publish(a: argparse.Namespace) -> int:
     return 0
 
 
+@_prod
+def cmd_ship(a: argparse.Namespace) -> int:
+    day = Path(a.to) / f"{a.date}.json"
+    state = ship_mod.ship(day, repo=a.repo, prod_url=a.prod_url, status_path=Path(a.out) / "ship.json", base=a.base)
+    print(f"공개됨: {state['liveUrl']} (PR {state['prUrl']})")
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(prog="discovery")
     sub = p.add_subparsers(dest="cmd", required=True)
@@ -233,6 +242,7 @@ def main(argv: list[str] | None = None) -> int:
     c = sub.add_parser("card", help="4단계: 브리프로 밈 카드 후보 3개(Claude) + 규칙 검사")
     c.add_argument("--out", default="out")
     c.add_argument("--manifest", default=DEFAULT_MANIFEST, help="게임 그림 목록(web/public/game/manifest.json)")
+    c.add_argument("--library-only", action="store_true", help="이미 있는 그림만 쓴다(자동 발행: 그림 제작을 기다리지 않음)")
     c.set_defaults(fn=cmd_card)
     s5 = sub.add_parser("assets", help="5단계: 고른 카드에 필요한데 없는 그림 목록")
     s5.add_argument("--option", type=int, required=True, help="card.json의 카드 번호")
@@ -245,5 +255,13 @@ def main(argv: list[str] | None = None) -> int:
     pb.add_argument("--to", default="../../web/content/challenges", help="하루 판 파일 폴더")
     pb.add_argument("--force", action="store_true")
     pb.set_defaults(fn=cmd_publish)
+    sh = sub.add_parser("ship", help="9단계: 하루 판을 PR → Vercel 빌드 검사 → 머지 → 프로덕션 공개까지 자동(어드민 Publish 버튼)")
+    sh.add_argument("--date", required=True, help="YYYY-MM-DD (하루 판 파일 이름)")
+    sh.add_argument("--to", default="../../web/content/challenges", help="하루 판 파일 폴더")
+    sh.add_argument("--repo", default="sayinel/MemeRush")
+    sh.add_argument("--base", default="main")
+    sh.add_argument("--prod-url", default="https://meme-rush-meme-rush.vercel.app")
+    sh.add_argument("--out", default="out", help="진행 상태 ship.json을 쓸 폴더(어드민이 읽음)")
+    sh.set_defaults(fn=cmd_ship)
     a = p.parse_args(argv)
     return a.fn(a)
