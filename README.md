@@ -12,6 +12,8 @@ Stop the clock as close to the target as you can. Send the result. Beat your fri
 
 <a href="docs/pitch/SuperAgent_MemeRush_pitch.pdf"><img src="docs/media/btn-deck-en.png" alt="Pitch deck, English (PDF)" width="320"></a> <a href="docs/pitch/SuperAgent_MemeRush_pitch_KO.pdf"><img src="docs/media/btn-deck-ko.png" alt="발표자료 한국어 (PDF)" width="320"></a>
 
+<a href="https://meme-rush-meme-rush.vercel.app/"><img src="docs/media/btn-play.png" alt="Play today's game" width="320"></a>
+
 <a href="https://meme-rush-meme-rush.vercel.app/trailer.mp4"><img src="docs/media/trailer.gif" alt="Meme Rush trailer preview, click for the mp4" width="288"></a>
 
 </div>
