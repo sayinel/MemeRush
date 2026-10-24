@@ -5,6 +5,7 @@ import { useCallback, useEffect, useRef, useState, type ReactNode } from "react"
 import type { Challenge } from "@/lib/challenge";
 import type { FinishResult } from "@/game/types";
 import { WIN_MAX_TOTAL_ERROR_MS } from "@/lib/timing";
+import { formatClock, parseLabel } from "@/game/captions";
 
 const GameCanvas = dynamic(() => import("@/game/GameCanvas"), { ssr: false });
 
@@ -536,43 +537,74 @@ export default function ChallengeClient({
   }
 
   if (stage === "intro") {
+    // Poster layout from art/champion/1_play.jpg: caption on top, the gold clock panel, the sweating hero on the
+    // stop button, the tap moment as the bottom caption. Words come from the day file (MVP_SCOPE 6절 인트로).
+    const rounds = challenge.meme.theme.rounds;
+    const last = rounds.length - 1;
+    const startClock = formatClock(parseLabel(rounds[0].startLabel), false);
+    const tapAt = formatClock(parseLabel(rounds[last].startLabel) + challenge.frameParams.targetMs[last], false);
+    const sprite = (key: string, className: string) => {
+      const src = art(key);
+      // eslint-disable-next-line @next/next/no-img-element
+      return src ? <img src={src} alt="" className={className} /> : null;
+    };
     return (
-      <main className="mx-auto flex min-h-dvh w-full max-w-md flex-col items-center gap-5 px-5 pb-28 pt-8 text-center">
-        <Header dailyNo={dailyNo} />
-        <h1 className="meme-caption text-[52px]">{challenge.title}</h1>
-        <p className="max-w-xs text-base font-bold text-ink-blue">{challenge.meme.prompt}</p>
+      <main className="relative mx-auto flex min-h-dvh w-full max-w-md flex-col items-center gap-3 overflow-hidden px-4 pb-28 pt-4 text-center">
+        <div className="flex w-full items-center justify-between">
+          <span className="rounded-full border-[3px] border-white bg-navy px-3 py-1 font-title text-sm text-white shadow-[0_3px_0_var(--ink-blue)]">
+            DAILY {dailyNo}
+          </span>
+          <span className="rounded-full border-[3px] border-white bg-navy px-3 py-1 font-title text-sm text-white shadow-[0_3px_0_var(--ink-blue)]">
+            {rounds.length} ROUNDS
+          </span>
+        </div>
+
+        <h1 className="meme-caption relative z-10 text-[50px]">{challenge.title}</h1>
+
+        <div className="relative z-10 flex flex-col items-center">
+          <div className="relative flex h-[96px] w-[270px] items-center justify-center">
+            {sprite("timer_panel", "absolute inset-0 h-full w-full object-fill") ?? (
+              <span className="absolute inset-0 rounded-[18px] border-4 border-gold bg-navy" />
+            )}
+            <span className="relative font-title text-[46px] leading-none text-gold [text-shadow:0_3px_0_#7a5200]">{startClock}</span>
+            <span className="anim-pulse-star absolute -left-7 top-5 text-5xl text-gold [-webkit-text-stroke:2px_#fff]">★</span>
+            <span className="anim-pulse-star absolute -right-7 top-5 text-5xl text-gold [-webkit-text-stroke:2px_#fff] [animation-delay:0.6s]">★</span>
+          </div>
+          <p className="-mt-1 max-w-[260px] rounded-b-[16px] border-[3px] border-t-0 border-gold bg-navy px-4 py-2 text-sm font-bold leading-snug text-white">
+            {challenge.meme.prompt}
+          </p>
+        </div>
+
+        {/* The hero leans over the stop button: button drawn in front, overlapping his hands. */}
+        <div className="relative h-[270px] w-full">
+          {sprite("confetti_star", "anim-pulse-star absolute left-0 top-0 h-28 w-28 opacity-90")}
+          {sprite("duck", "anim-jitter absolute left-6 top-14 h-24 w-24 [animation-duration:0.9s]")}
+          <span className="meme-caption meme-caption-sm absolute left-1/3 top-2 -rotate-12 text-5xl">!</span>
+          <span className="meme-caption meme-caption-sm absolute right-4 top-0 rotate-12 text-6xl">!!</span>
+          {sprite("worker_sweating", "anim-jitter absolute right-0 top-6 h-60 w-60")}
+          {sprite("clock_button", "absolute bottom-0 left-[34%] h-36 w-36 drop-shadow-[0_4px_0_rgba(28,86,146,0.35)]")}
+        </div>
+
         {invite && (
-          <p className="flex items-center gap-2 rounded-full border-[3px] border-white bg-hot px-4 py-1.5 font-bold text-ink-blue shadow-[0_3px_0_var(--navy)]">
+          <p className="relative z-10 flex items-center gap-2 rounded-full border-[3px] border-white bg-hot px-4 py-1.5 font-bold text-ink-blue shadow-[0_3px_0_var(--navy)]">
             <Avatar name={invite.ownerNickname} />
             {invite.ownerNickname}&apos;s league · {invite.memberCount} in
           </p>
         )}
-        <Panel className="w-full">
-          <ol className="space-y-2">
-            {challenge.meme.theme.rounds.map((r, i) => (
-              <li
-                key={r.label}
-                className="flex items-center justify-between rounded-[14px] border-[3px] border-white bg-row px-4 py-2 shadow-[0_0_0_2px_var(--panel)]"
-              >
-                <span className="font-title text-lg text-ink-blue">
-                  Round {i + 1} · {r.label}
-                </span>
-                <span className="font-title text-lg text-ink-blue">{(challenge.frameParams.targetMs[i] / 1000).toFixed(2)}s</span>
-              </li>
-            ))}
-          </ol>
-        </Panel>
         {!me.nickname && (
           <input
             value={nickname}
             onChange={(e) => setNickname(e.target.value)}
             maxLength={20}
             placeholder="Your nickname"
-            className="h-12 w-full rounded-full border-[3px] border-white bg-white px-5 text-center text-lg font-bold text-ink-blue shadow-[0_0_0_2px_var(--navy)] placeholder:text-[#245887]/60"
+            className="relative z-10 h-12 w-full rounded-full border-[3px] border-white bg-white px-5 text-center text-lg font-bold text-ink-blue shadow-[0_0_0_2px_var(--navy)] placeholder:text-[#245887]/60"
           />
         )}
         {error && <p className="rounded-[14px] bg-warn-bg px-3 py-2 text-sm font-bold text-warn-text">{error}</p>}
-        <div className="fixed inset-x-0 bottom-0 mx-auto w-full max-w-md px-5 pb-5">
+
+        <p className="meme-caption relative z-10 text-[46px]">Tap at {tapAt}</p>
+
+        <div className="fixed inset-x-0 bottom-0 z-20 mx-auto w-full max-w-md px-5 pb-5">
           <PrimaryButton onClick={start} disabled={busy || (!me.nickname && nickname.trim().length === 0)}>
             {needsJoin && invite ? `Join ${invite.ownerNickname}'s league & play` : "Play now"}
           </PrimaryButton>

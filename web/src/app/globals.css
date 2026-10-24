@@ -80,3 +80,16 @@ body {
 .meme-caption-sm {
   -webkit-text-stroke-width: 4px;
 }
+
+/* Intro poster (art/champion/1_play.jpg): the waiting hero jitters, the stars pulse */
+@keyframes jitter {
+  0%, 100% { transform: translate(0, 0) rotate(0deg); }
+  25% { transform: translate(-3px, 1px) rotate(-2deg); }
+  75% { transform: translate(3px, -1px) rotate(2deg); }
+}
+@keyframes pulse-star {
+  0%, 100% { transform: scale(1) rotate(0deg); }
+  50% { transform: scale(1.15) rotate(12deg); }
+}
+.anim-jitter { animation: jitter 0.35s ease-in-out infinite; }
+.anim-pulse-star { animation: pulse-star 1.2s ease-in-out infinite; }
