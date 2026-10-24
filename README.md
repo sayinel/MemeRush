@@ -29,6 +29,8 @@ Each round a clock runs, then hides behind the day's meme. Tap once at the targe
 
 <p align="center"><img src="docs/media/screens.jpg" alt="Four screens: Play, One more try, Challenge a Friend, Champion" width="520"></p>
 
+<p align="center"><img src="art/character-cast/all-characters.jpg" alt="The cast: the hero in 9 moods and 5 actions, the alien, and the street vendor" width="100%"></p>
+
 <sub>Concept art. Names and scores are placeholders.</sub>
 
 ## Run the online demo
