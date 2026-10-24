@@ -165,6 +165,18 @@ alter table events enable row level security;
 2. **게임**: Phaser 캔버스, 화면 전체가 탭 영역. 시계가 처음 3초만 보이고 가려짐. 탭하면 결과 종류별 연출 뒤 오차·최고 기록·Global 순위·Friends 순위와 큰 Retry 버튼, "See results" 버튼
 3. **결과**: 최고 기록과 그 결과 종류의 연출 → 랭킹(Global | Friends 탭) → 영상(생성 → 미리보기 → 저장·공유) → 공유 버튼
 
+### 주 버튼
+
+[서비스 화면 가이드](SERVICE_SCREEN_GUIDE.md) 5절에 따라 채운 버튼은 한 화면에 하나만 두고, 나머지는 글자 링크로 낮춥니다.
+
+| 화면 | 채운 버튼 | 글자 링크 |
+|---|---|---|
+| 인트로 | 시작("Play" 또는 리그 초대면 "Join & Play") | — |
+| 게임 직후 | Retry | See results |
+| 결과 | Challenge a Friend | 영상 만들기·저장·공유, 링크 복사, 다시 플레이 |
+
+결과 화면에서 Challenge a Friend를 주 버튼으로 둔 이유: Friends 랭킹과 리그 초대가 데모 시나리오의 중심이고, 친구가 들어와야 순위 경쟁과 재방문이 생기기 때문입니다.
+
 ### 랭킹 탭
 
 - **Global**: 상위 50 목록. 내가 50위 밖이면 목록 아래에 내 순위 한 줄을 따로 붙입니다.
