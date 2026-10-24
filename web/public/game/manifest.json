@@ -7,5 +7,16 @@
   "worker_laughing": "worker_laughing.png",
   "worker_facepalm": "worker_facepalm.png",
   "worker_proud": "worker_proud.png",
-  "worker_bored": "worker_bored.png"
+  "worker_bored": "worker_bored.png",
+  "bg_office": "bg_office.webp",
+  "timer_panel": "timer_panel.png",
+  "clock_button": "clock_button.png",
+  "email_pile": "email_pile.png",
+  "meeting_card": "meeting_card.png",
+  "banner_gold": "banner_gold.png",
+  "trophy": "trophy.png",
+  "door": "door.png",
+  "confetti_star": "confetti_star.png",
+  "duck": "duck.png",
+  "poof": "poof.png"
 }
