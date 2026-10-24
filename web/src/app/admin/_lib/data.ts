@@ -27,7 +27,9 @@ import { addDays, isIsoDate, weekOf } from "./week";
 const DEFAULT_WEEK_START = "2026-10-26";
 
 // ADMIN_LOCAL=1 일 때만 어드민이 열린다(배포 환경에서 로컬 파일과 명령을 막는다).
-export const adminEnabled = () => process.env.ADMIN_LOCAL === "1";
+// ADMIN_DEMO=1 이면 온라인 시연용으로 열린다: 샘플 모드로 고정하고 파일 읽기와 명령 실행을 쓰지 않는다.
+export const adminDemo = () => process.env.ADMIN_DEMO === "1";
+export const adminEnabled = () => process.env.ADMIN_LOCAL === "1" || adminDemo();
 
 // web 폴더에서 실행한다고 본다(npm run dev / build 의 작업 폴더).
 const WEB = process.cwd();
@@ -279,7 +281,7 @@ export async function readState(): Promise<AdminState> {
   const weekStart = weekStartDate();
   const sampleParts: string[] = [];
 
-  let status = normStatus(await readJson(path.join(PIPE, "status.json")));
+  let status = adminDemo() ? null : normStatus(await readJson(path.join(PIPE, "status.json")));
   const isSim = status === null;
   if (isSim) {
     advance();
@@ -382,6 +384,7 @@ function short(s: string): string {
 
 function execPy(args: string[]): Promise<void> {
   return new Promise((resolve, reject) => {
+    if (adminDemo()) return reject(new AdminError("시연 모드에서는 실제 명령을 실행하지 않아요.", 403));
     // 쉘 문자열을 이어 붙이지 않는다. 인자는 배열로만 넘긴다.
     execFile(/*turbopackIgnore: true*/ PY, ["-m", "discovery", ...args], { cwd: DISC, timeout: 30_000, windowsHide: true }, (err, _out, stderr) => {
       if (err) reject(new AdminError(`명령을 실행하지 못했어요. ${short(stderr || err.message)}`, 500));
