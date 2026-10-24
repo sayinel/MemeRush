@@ -40,12 +40,43 @@
   --color-red: var(--red);
   --color-warn-text: var(--warn-text);
   --color-warn-bg: var(--warn-bg);
-  --font-sans: var(--font-geist-sans);
-  --font-display: "Anton", Impact, sans-serif;
+  --font-sans: var(--font-noto), Arial, sans-serif;
+  --font-title: var(--font-jua), var(--font-noto), sans-serif;
+  --font-caption: "Anton", Impact, sans-serif;
+  --color-mascot: #ec8323;
+  --color-silver-text: #4a5568;
 }
 
 body {
-  background: linear-gradient(to bottom, var(--sky-light), var(--sky));
+  /* Sky gradient with soft rays, as in art/champion */
+  background:
+    repeating-conic-gradient(from 0deg at 50% 18%, rgb(255 255 255 / 0.12) 0deg 8deg, transparent 8deg 20deg),
+    linear-gradient(to bottom, var(--sky-light), var(--sky));
+  background-attachment: fixed;
   color: var(--ink-blue);
-  font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
+  font-family: var(--font-noto), Arial, Helvetica, sans-serif;
+}
+
+/* GAME_SCREEN_GUIDE 6절 caption: white, black outline, uppercase Anton, centered */
+.meme-caption {
+  font-family: var(--font-caption);
+  text-transform: uppercase;
+  color: #fff;
+  text-align: center;
+  -webkit-text-stroke: 7px #000;
+  paint-order: stroke fill;
+  line-height: 1;
+}
+
+/* SERVICE_SCREEN_GUIDE 3절: big score numbers white with a navy outline */
+.score-number {
+  font-family: var(--font-jua), sans-serif;
+  color: #fff;
+  -webkit-text-stroke: 1.5px var(--navy);
+  paint-order: stroke fill;
+}
+
+/* Small captions: a 7px outline swallows the letters below ~40px */
+.meme-caption-sm {
+  -webkit-text-stroke-width: 4px;
 }

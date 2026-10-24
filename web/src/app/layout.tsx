@@ -1,16 +1,10 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Jua, Noto_Sans } from "next/font/google";
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
+// SERVICE_SCREEN_GUIDE 4절: Jua for titles/ranks/scores/buttons, Noto Sans for body (Latin, MVP is English).
+const jua = Jua({ weight: "400", subsets: ["latin"], variable: "--font-jua" });
+const notoSans = Noto_Sans({ weight: ["500", "700"], subsets: ["latin"], variable: "--font-noto" });
 
 export const metadata: Metadata = {
   title: "MemeRush",
@@ -21,7 +15,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${jua.variable} ${notoSans.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">{children}</body>
     </html>
