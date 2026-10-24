@@ -54,6 +54,8 @@ export type HomeItem = {
 
 export type AdminState = {
   today: string;
+  /** 홈에 보여 줄 주의 월요일(ADMIN_WEEK_START) */
+  weekStart: string;
   /** 샘플 자료를 하나라도 썼으면 true */
   sample: boolean;
   sampleParts: string[];

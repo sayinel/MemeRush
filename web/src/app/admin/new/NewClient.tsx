@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
 import type { AdminState, PickKind, Topic } from "../_lib/types";
-import { DATE_RANGE_DAYS, DOW, addDays, dowIndex, md } from "../_lib/week";
+import { DOW, dowIndex, md, weekOf } from "../_lib/week";
 
 // 7단계. 사람 단계는 둥근 번호 칸, 자동 단계는 네모 칸.
 const UI_STEPS = [
@@ -277,6 +277,11 @@ export default function NewClient({ fresh }: { fresh: boolean }) {
   const topics = data?.topics ?? [];
   const items = data?.items ?? [];
   const occupied = new Map(items.map((i) => [i.date, i.state]));
+  // 발행일 기본값: 이 주에서 이미 찬 마지막 날 다음의 첫 빈 날(없으면 첫 빈 날)
+  const weekDays = data ? weekOf(data.weekStart) : [];
+  const lastFull = weekDays.reduce((acc, day, i) => (occupied.has(day) ? i : acc), -1);
+  const defaultDate = weekDays.find((day, i) => i > lastFull && !occupied.has(day)) ?? weekDays.find((day) => !occupied.has(day)) ?? null;
+  const pickedDate = date && !occupied.has(date) ? date : defaultDate;
 
   // 단계마다 주 CTA 하나. 상단(우상단)과 하단(우측)에 같은 문구로 둔다.
   let cta: { label: string; disabled: boolean; onClick: (el: HTMLElement) => void } | null = null;
@@ -284,7 +289,7 @@ export default function NewClient({ fresh }: { fresh: boolean }) {
     if (ui === 0) cta = { label: "이 주제로 만들기", disabled: busy || !topics[topicIdx], onClick: () => void submit("topic", topics[topicIdx].name, 0) };
     if (ui === 2) cta = { label: "이 문구로 정하기", disabled: busy || !data.copies[copyIdx], onClick: () => void submit("copy", copyIdx + 1, 2) };
     if (ui === 4) cta = { label: "이 이미지로 확정하기", disabled: busy || !image, onClick: () => void submit("image", image as string, 4) };
-    if (ui === 5) cta = { label: "발행일 정하기", disabled: busy || !date, onClick: (el) => setDlg({ kind: "schedule", opener: el }) };
+    if (ui === 5) cta = { label: "발행일 정하기", disabled: busy || !pickedDate, onClick: (el) => setDlg({ kind: "schedule", opener: el }) };
   }
   if (data && hasErr) cta = { label: "다시 시도하기", disabled: busy, onClick: () => void run("resume") };
 
@@ -411,16 +416,16 @@ export default function NewClient({ fresh }: { fresh: boolean }) {
       </div>
     );
   } else if (data && ui === 5) {
-    const days = Array.from({ length: DATE_RANGE_DAYS }, (_, i) => addDays(data.today, i));
+    const days = weekDays;
     body = (
       <div className="screen">
         <h2>언제 발행할까요?</h2>
-        <p className="meta">비어 있는 날만 고를 수 있어요.</p>
+        <p className="meta">이 주에서 비어 있는 날만 고를 수 있어요. 다음 빈 날이 미리 골라져 있어요.</p>
         <div className="dates">
           {days.map((day) => {
             const o = occupied.get(day);
             return (
-              <button key={day} type="button" className="dt" aria-pressed={date === day} disabled={!!o} onClick={() => setDate(day)}>
+              <button key={day} type="button" className="dt" aria-pressed={pickedDate === day} disabled={!!o} onClick={() => setDate(day)}>
                 {DOW[dowIndex(day)]} {md(day)}
                 <small>{o ? (o === "published" ? "발행됨" : "예약") : day === data.today ? "오늘" : "비어 있음"}</small>
               </button>
@@ -507,16 +512,16 @@ export default function NewClient({ fresh }: { fresh: boolean }) {
         </div>
       </div>
 
-      {dlg?.kind === "schedule" && date && (
+      {dlg?.kind === "schedule" && pickedDate && (
         <Dialog
-          title={`${md(date)} 발행을 예약할까요?`}
+          title={`${md(pickedDate)} 발행을 예약할까요?`}
           body="예약하면 어드민 홈 목록에 들어가요. 예약한 뒤에 바꾸는 기능은 아직 없어요."
           okLabel="예약하기"
           opener={dlg.opener}
           onClose={() => setDlg(null)}
           onOk={() => {
             setDlg(null);
-            void submit("date", date, 5);
+            void submit("date", pickedDate, 5);
           }}
         />
       )}

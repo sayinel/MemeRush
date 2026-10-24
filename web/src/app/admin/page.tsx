@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { connection } from "next/server";
 import { readState } from "./_lib/data";
-import { DOW, addDays, md, weekOf } from "./_lib/week";
+import { DOW, md, weekOf } from "./_lib/week";
 
 export const dynamic = "force-dynamic";
 
@@ -11,10 +11,7 @@ export default async function AdminHome() {
   await connection();
   const st = await readState();
   const byDate = new Map(st.items.map((i) => [i.date, i]));
-  const weeks = [
-    { name: "이번 주", days: weekOf(st.today) },
-    { name: "다음 주", days: weekOf(addDays(st.today, 7)) },
-  ];
+  const days = weekOf(st.weekStart);
 
   return (
     <main className="board">
@@ -28,11 +25,10 @@ export default async function AdminHome() {
         </div>
       </div>
       <p className="sub">요일별 발행과 예약이에요. 후킹 이미지, 타이틀, 발행일이 보입니다.</p>
-      {weeks.map((w) => (
-        <section key={w.name} aria-label={w.name}>
-          <h2 className="weekname">{w.name}</h2>
+      {[days].map((w) => (
+        <section key={w[0]} aria-label="이번 주">
           <div className="list" role="list">
-            {w.days.map((d, i) => {
+            {w.map((d, i) => {
               const it = byDate.get(d);
               return (
                 <div key={d} role="listitem" className={`day ${d === st.today ? "today" : ""}`}>

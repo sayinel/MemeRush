@@ -22,7 +22,9 @@ import {
   type Source,
   type Topic,
 } from "./types";
-import { DATE_RANGE_DAYS, addDays, isIsoDate } from "./week";
+import { addDays, isIsoDate, weekOf } from "./week";
+
+const DEFAULT_WEEK_START = "2026-10-26";
 
 // ADMIN_LOCAL=1 일 때만 어드민이 열린다(배포 환경에서 로컬 파일과 명령을 막는다).
 export const adminEnabled = () => process.env.ADMIN_LOCAL === "1";
@@ -147,17 +149,24 @@ function normPicks(raw: unknown): Picks {
   };
 }
 
-function resolveDate(v: unknown, today: string): string | null {
+export function weekStartDate(): string {
+  const v = process.env.ADMIN_WEEK_START;
+  return weekOf(isIsoDate(v) ? v : DEFAULT_WEEK_START)[0];
+}
+
+// "+1" 은 오늘 기준, "w+0" 은 보여 줄 주의 월요일 기준(샘플 자료용)
+function resolveDate(v: unknown, today: string, weekStart: string): string | null {
   const s = str(v);
   if (/^[+-]\d+$/.test(s)) return addDays(today, Number(s));
+  if (/^w\+\d+$/.test(s)) return addDays(weekStart, Number(s.slice(2)));
   return isIsoDate(s) ? s : null;
 }
 
-function normRegistered(raw: unknown, today: string): Registered[] {
+function normRegistered(raw: unknown, today: string, weekStart: string): Registered[] {
   const out: Registered[] = [];
   for (const x of arr(raw)) {
     const r = rec(x);
-    const publishDate = resolveDate(r.publishDate, today);
+    const publishDate = resolveDate(r.publishDate, today, weekStart);
     if (!publishDate) continue;
     out.push({
       title: str(r.title),
@@ -240,7 +249,7 @@ function finishSim(s: Sim, t: number) {
   s.registered.push({
     title: copies[(s.picks.copy ?? 1) - 1]?.title ?? "Untitled",
     image: image?.url ?? null,
-    publishDate: s.picks.publishDate ?? seoulToday(),
+    publishDate: s.picks.publishDate ?? weekStartDate(),
     status: "reserved",
     topic: s.picks.topic ?? "",
     frame: topic?.frame ?? "",
@@ -266,6 +275,7 @@ function advance() {
 
 export async function readState(): Promise<AdminState> {
   const today = seoulToday();
+  const weekStart = weekStartDate();
   const sampleParts: string[] = [];
 
   let status = normStatus(await readJson(path.join(PIPE, "status.json")));
@@ -300,18 +310,14 @@ export async function readState(): Promise<AdminState> {
 
   const regRaw = await readJson(path.join(PIPE, "registered.json"));
   let registered: Registered[];
-  if (Array.isArray(regRaw)) registered = normRegistered(regRaw, today);
+  if (Array.isArray(regRaw)) registered = normRegistered(regRaw, today, weekStart);
   else {
-    registered = normRegistered(registeredFixture, today);
+    registered = normRegistered(registeredFixture, today, weekStart);
     sampleParts.push("예약 목록");
   }
   if (isSim) registered = [...registered, ...sim().registered];
 
-  let published = await readPublished();
-  if (published.length === 0) {
-    published = [{ date: today, title: "Cut the Dalgona", image: "/mock/dalgona.jpg" }];
-    sampleParts.push("발행 목록");
-  }
+  const published = await readPublished();
 
   const byDate = new Map<string, HomeItem>();
   const sorted = [...registered].sort((a, b) => a.createdAt.localeCompare(b.createdAt));
@@ -324,10 +330,13 @@ export async function readState(): Promise<AdminState> {
     });
   }
   for (const p of published) byDate.set(p.date, { date: p.date, title: p.title, image: p.image, state: "published" });
-  const items = [...byDate.values()].sort((a, b) => a.date.localeCompare(b.date));
+  // 홈은 한 주만 보여 주므로 그 주 밖의 항목은 뺀다.
+  const week = new Set(weekOf(weekStart));
+  const items = [...byDate.values()].filter((i) => week.has(i.date)).sort((a, b) => a.date.localeCompare(b.date));
 
   return {
     today,
+    weekStart,
     sample: sampleParts.length > 0,
     sampleParts,
     status: status as PipelineStatus,
@@ -357,7 +366,7 @@ export function validatePick(kind: PickKind, value: unknown, st: AdminState): { 
     if (typeof value !== "string" || !IMAGE_NAME.test(value) || !st.images.some((i) => i.name === value)) throw new AdminError("고를 수 없는 이미지예요.");
     return { arg: "--image", value };
   }
-  if (!isIsoDate(value) || value < st.today || value > addDays(st.today, DATE_RANGE_DAYS - 1)) throw new AdminError("고를 수 없는 날짜예요.");
+  if (!isIsoDate(value) || !weekOf(st.weekStart).includes(value)) throw new AdminError("고를 수 없는 날짜예요.");
   if (st.items.some((i) => i.date === value)) throw new AdminError("이미 게임이 있는 날이에요.", 409);
   return { arg: "--date", value };
 }
