@@ -2,28 +2,50 @@
 
 MVP 개발에 필요한데 Simon님만 할 수 있는 일을 모았습니다. 끝난 항목은 체크해 주세요. 필요 시점은 [MVP_SCOPE.md](MVP_SCOPE.md) 10절 일정 기준입니다.
 
-## 1. 게임 스프라이트 — 지금 바로 (원래 13:45)
+## 1. 게임 그림 — 챔피언 스타일
 
-게임 화면 작업이 시작됐습니다. 그림이 오기 전까지는 도형으로 그리고, 파일이 들어오면 바로 바꿉니다.
+게임 화면을 [챔피언 시안](../art/champion/README.md)(1_play, 2_champion, 3_close-miss) 스타일로 다시 그리고 있습니다. 그림이 없는 자리는 코드가 비슷하게 그리고, 파일이 들어오면 코드 수정 없이 바로 바뀝니다.
 
-- 넣을 곳: `web/public/game/{키}.png`. 코드는 아래 표의 이름 그대로 `/game/{키}.png`를 불러옵니다. 이름은 하루 판 파일(`web/content/challenges/2026-10-24.json`)의 `meme.theme` 키를 따르고, 동작이 여럿인 캐릭터는 뒤에 동작 이름을 붙였습니다.
-- 형식: [ASSET_FORMATS.md](ASSET_FORMATS.md) 3·4번(스프라이트는 투명 PNG·2배 해상도, 배경은 WebP 허용), [GAME_SCREEN_GUIDE.md](GAME_SCREEN_GUIDE.md) 4·6·7절(흰 테두리, 글자 없음, 풀블리드)
+**넣는 방법**
+1. `web/public/game/{키}.png`(배경은 `.webp`)로 저장
+2. `web/public/game/manifest.json`에 `"{키}": "{파일 이름}"` 한 줄 추가. 게임은 이 목록에 있는 그림만 불러옵니다.
 
-| 체크 | 키(파일 이름) | 내용 |
-|---|---|---|
-| [ ] | `office` | 사무실 배경(배경은 `office.webp`도 됨) |
-| [ ] | `worker_idle`, `worker_run`, `worker_grabbed`, `worker_buried`, `worker_escape` | 주인공 5동작: 대기(발 동동), 달리기, 잡힘, 파묻힘, 탈출 |
-| [ ] | `boss_walk`, `boss_grab` | 보스 2동작 |
-| [ ] | `clock`, `door` | 시계(숫자는 코드가 그림), 문 |
-| [ ] | `email_pile`, `meeting_card` | 1·2라운드에서 시계를 가리는 방해물(3라운드는 보스) |
-| [ ] | `confetti`, `email`, `calendar` | 결과 소품 |
+**공통 규칙** ([GAME_SCREEN_GUIDE.md](GAME_SCREEN_GUIDE.md) 4·6·7절, [ASSET_FORMATS.md](ASSET_FORMATS.md))
+- 스프라이트: 투명 PNG, 정사각 768×768(크게 쓰는 것은 1024×1024), 파일당 200KB 안팎, 흰 스티커 테두리 + 갈색 안쪽 윤곽, 아래쪽 가운데에 발·바닥 기준점
+- 그림 안에 글자·숫자 없음(자막·기록·버튼 글씨는 코드가 얹음), 실존 인물·기존 밈 캐릭터·상표 없음
+- 주인공은 확정된 [표정 9종 시트](../art/character-champion/README.md)와 같은 캐릭터(주황 블롭 + 빨간 넥타이)
 
-## 2. 영상 배경과 반응 스티커 — 15:30
+**이미 된 것**
+- [x] 주인공 표정 9종: 시트를 잘라 `worker_deadpan`, `worker_shocked`, `worker_smug`, `worker_crying`, `worker_sweating`, `worker_laughing`, `worker_facepalm`, `worker_proud`, `worker_bored`로 넣었습니다(533×533). 더 선명한 원본이 있으면 같은 이름으로 바꿔 주세요.
+
+**P0 — 시연에 꼭 필요**
+
+| 체크 | 키 | 내용 | 참고 시안 |
+|---|---|---|---|
+| [ ] | `bg_office` | 게임 배경. 밝은 하늘과 방사광이 보이는 사무실(큰 창, 책상 정도만). 1080×1920 WebP, 위아래 25%는 조용한 그림(자막 자리), 풀블리드 | 1_play 배경 |
+| [ ] | `boss_walk`, `boss_grab` | 보스 2동작: 걸어와 시계를 막아섬 / 주인공 뒷덜미를 잡음. 키 크고 어두운 정장, 실존 인물을 닮지 않게 | — |
+| [ ] | `timer_panel` | 화면 위 시계 판. 금색 테두리의 남색 패널, 숫자 자리는 비움. 가로형 1024×400 | 1_play 위쪽 |
+| [ ] | `clock_button` | 주인공이 내리치는 큰 빨간 둥근 버튼(글자 없음) | 1_play STOP 버튼 |
+| [ ] | `email_pile`, `meeting_card` | 1·2라운드에서 시계를 가리는 방해물: 쌓인 메일 봉투 더미 / 달력 아이콘이 있는 회의 초대 카드(글자 없음) | — |
+| [ ] | `banner_gold` | 결과 제목용 금색 리본 배너(글자 없음). 가로형 1024×400 | 2_champion 위쪽 |
+| [ ] | `trophy` | 웃는 트로피 | 2_champion |
+
+**P1 — 있으면 좋음**
+
+| 체크 | 키 | 내용 | 참고 시안 |
+|---|---|---|---|
+| [ ] | `door` | 퇴근 문 | — |
+| [ ] | `confetti`, `star` | 색종이 조각, 반짝 별(작은 스티커) | 2_champion |
+| [ ] | `duck` | 곁다리 오리(놀란/어지러운 표정) | 1_play, 3_close-miss |
+| [ ] | `poof` | 실패 때 터지는 연기 구름(글자 없음) | 3_close-miss |
+
+## 2. 영상 배경 — 15:30
 
 | 체크 | 넣을 곳 | 내용 |
 |---|---|---|
-| [ ] | `web/assets/video/bg_win.png`, `bg_lose.png` | 성공·실패 배경, 1440×2560, 위아래 25%는 자막 자리(ASSET_FORMATS 1번) |
-| [ ] | `web/assets/video/sticker_win.png`, `sticker_early.png`, `sticker_late.png` | 결과별 반응 스티커(우쭐함, 억울함, 체념), 투명 PNG |
+| [ ] | `web/assets/video/bg_win.png`, `bg_lose.png` | 성공·실패 배경, 1440×2560, 위아래 25%는 자막 자리(ASSET_FORMATS 1번). 성공은 2_champion, 실패는 3_close-miss 분위기 |
+
+결과별 반응 스티커는 따로 만들지 않아도 됩니다. 주인공 표정 스프라이트(`worker_smug`, `worker_shocked`, `worker_crying`)를 영상에도 그대로 씁니다.
 
 ## 3. OG 기본 이미지 — 16:15
 
