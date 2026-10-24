@@ -14,8 +14,8 @@ from datetime import date, timedelta
 from pathlib import Path
 from typing import Any
 
-from .config import DEFAULT_ROUND_TARGET_S, ROUNDS, expected_session_s, session_in_range
-from .frames import FRAMES, clamp_params
+from .config import MAX_SESSION_S, MIN_SESSION_S, ROUNDS, round_targets_s, session_in_range
+from .frames import FRAMES, clamp_params, session_estimate
 from .memes import MEME_TYPES
 
 FIT_SAME, FIT_NEAR, FIT_FAR = 1.0, 0.6, 0.3
@@ -93,8 +93,13 @@ def build_params(frame_id: str, meme: dict[str, Any]) -> dict[str, Any]:
     h = meme["meme_card_hint"]
     p: dict[str, Any] = {}
     fph = h.get("frameParamsHint") or {}
-    if frame_id == "timing_stop":
-        p["targetMs"] = h["targetMs"] if h.get("targetMs") is not None else DEFAULT_ROUND_TARGET_S * 1000
+    if frame_id == "timing_stop":  # 규격 6절: targetMs는 라운드별 배열(길이 = rounds)
+        if h.get("roundTargetsMs"):
+            p["targetMs"] = list(h["roundTargetsMs"])
+        elif h.get("targetMs") is not None:
+            p["targetMs"] = h["targetMs"]  # 숫자 하나면 모든 라운드에 같은 값
+        else:
+            p["targetMs"] = [int(t * 1000) for t in round_targets_s(ROUNDS)]  # 목표 없는 밈은 첫날 3·4·5초
         p["rounds"] = ROUNDS
     elif frame_id == "tap_rush" and "bpm" in fph:
         p["bpm"] = fph["bpm"]
@@ -113,16 +118,18 @@ def day_plan(frame_id: str, meme: dict[str, Any], day: str, number: int) -> dict
     if h.get("frameParamsHint"):
         hint["frameParamsHint"] = h["frameParamsHint"]
     params = build_params(frame_id, meme)
-    plan = {"id": day, "title": f"MemeRush Daily #{number:03d}", "frame": frame_id,
+    return {"id": day, "title": f"MemeRush Daily #{number:03d}", "frame": frame_id,
             "frameParams": params, "seed": day, "meme": hint}
-    if FRAMES[frame_id].score_direction == "asc":  # 점수가 오차 합산(낮을수록 좋음)인 틀
-        plan["rounds"] = params.get("rounds", ROUNDS)
-        plan["scoreRule"] = "sum_of_errors"
-        if "targetMs" in params:
-            est = expected_session_s(plan["rounds"], params["targetMs"] / 1000)
-            plan["expectedSessionS"] = round(est, 2)
-            plan["sessionInRange"] = session_in_range(est)
-    return plan
+
+
+def plan_meta(frame_id: str, plan: dict[str, Any]) -> dict[str, Any]:
+    """하루 판 파일(6절)에 넣지 않는 조합 메타데이터: 라운드 수, 점수 규칙·방향, 한 판 예상 길이."""
+    params = plan["frameParams"]
+    est = session_estimate(frame_id, params)
+    return {"rounds": params.get("rounds", ROUNDS), "scoreRule": "sum",
+            "scoreDirection": FRAMES[frame_id].score_direction,
+            "expectedSessionS": None if est is None else round(est, 2),
+            "sessionInRange": None if est is None else session_in_range(est)}
 
 
 def build_combos(cands: list[Any], memes: list[dict[str, Any]], history: list[dict[str, str]],
@@ -135,6 +142,7 @@ def build_combos(cands: list[Any], memes: list[dict[str, Any]], history: list[di
         for m in memes:
             fp, mp = st["popularity"] / 100, m["popularity_total"] / 100
             fit, ease, rec = fit_score(fid, m["type"]), ease_factor(fid), recency_factor(fid, history, today)
+            plan = day_plan(fid, m, today.isoformat(), number)
             combos.append({
                 "frame": fid, "meme": m["name"], "meme_type": m["type"],
                 "score": round(fp * mp * fit * ease * rec * 100, 2),
@@ -142,21 +150,31 @@ def build_combos(cands: list[Any], memes: list[dict[str, Any]], history: list[di
                           "fit": fit, "ease": ease, "recency": rec},
                 "games": st["games"], "inferred": st["inferred"],
                 "confidence": "낮음(추론값)" if st["inferred"] else "보통",
-                "plan": day_plan(fid, m, today.isoformat(), number)})
+                "plan": plan, "plan_meta": plan_meta(fid, plan)})
     combos.sort(key=lambda c: (-c["score"], c["frame"], c["meme"]))
     return combos[:top_n]
+
+
+def _meta_line(m: dict[str, Any]) -> str:
+    est = m["expectedSessionS"]
+    length = ("한 판 예상 길이 알 수 없음(틀 파라미터에 시간 없음)" if est is None else
+              f"한 판 예상 {est:g}초 " + (f"({MIN_SESSION_S}~{MAX_SESSION_S}초 안)" if m["sessionInRange"]
+                                         else f"(⚠ {MIN_SESSION_S}~{MAX_SESSION_S}초 밖)"))
+    return (f"- 조합 메타(하루 판 파일에는 넣지 않음): {m['rounds']}라운드, scoreRule `{m['scoreRule']}`, "
+            f"scoreDirection `{m['scoreDirection']}`, {length}")
 
 
 def render_combos(combos: list[dict[str, Any]]) -> list[str]:
     lines: list[str] = []
     for i, c in enumerate(combos, 1):
         p = c["parts"]
-        lines += [f"### 조합 {i}: {c['frame']} × {c['meme']} — {c['score']}점",
+        lines += [f"### 조합 {i}: {c['frame']} × {c['meme']} - {c['score']}점",
                   f"- 틀 `{c['frame']}` ({FRAMES[c['frame']].rule}) / 연결된 게임: {', '.join(c['games'])}",
                   f"- 계산: 틀 인기도 {p['frame_popularity']:g} x 밈 인기도 {p['meme_popularity']:g} "
                   f"x 적합도 {p['fit']:g}({c['meme_type']}) x 구현 쉬움 {p['ease']:g} x 최근 사용 {p['recency']:g}",
-                  "- 신뢰: " + (f"⚠ 추론값 — {c['confidence']} (틀 연결 근거 게임의 traits를 규칙으로 추론함)"
+                  "- 신뢰: " + (f"⚠ 추론값: {c['confidence']} (틀 연결 근거 게임의 traits를 규칙으로 추론함)"
                               if c["inferred"] else c["confidence"]),
+                  _meta_line(c["plan_meta"]),
                   "- 하루 판 초안:", "```json", json.dumps(c["plan"], ensure_ascii=False, indent=2), "```", ""]
     lines.append("판을 정하면: `python -m discovery decide --date <날짜> --frame <틀 id>` (같은 틀이 연속 나오지 않게 기록)")
     return lines

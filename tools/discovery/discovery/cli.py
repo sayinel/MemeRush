@@ -3,11 +3,13 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
-from datetime import datetime, timezone
+from datetime import datetime
 from pathlib import Path
 
-from .link_check import httpx_fetch
+from .config import KST, parse_now, to_kst
+from .link_check import httpx_fetch, memoize_fetch
 from .ingest import ingest_file
 from .memes import load_memes, run_memes
 from .pairing import best_frame_for_meme, build_combos, load_history, record_decision
@@ -23,20 +25,48 @@ def _read_picks(out: Path) -> set[str]:
     return {json.loads(l)["name"] for l in p.read_text(encoding="utf-8").splitlines() if l.strip()}
 
 
+OUTPUT_FILES = ("candidates.json", "rejected.json", "memes.json", "rejected_memes.json",
+                "CANDIDATES.md", "MEMES.md", "TODAY.md", "combos.json")
+TOP_N = 5
+
+
+def _clashing_inputs(out: Path, inputs: list[Path]) -> list[Path]:
+    """출력 파일과 같은 파일인 입력(덮어쓰면 입력이 사라진다)."""
+    clash = []
+    for p in inputs:
+        for name in OUTPUT_FILES:
+            target = out / name
+            if p.exists() and target.exists() and os.path.samefile(p, target):
+                clash.append(p)
+                break
+    return clash
+
+
 def cmd_run(a: argparse.Namespace) -> int:
     out = Path(a.out)
+    memes_path = Path(a.memes) if a.memes else Path(a.signals).with_name("memes.json")
+    clash = _clashing_inputs(out, [Path(a.signals), memes_path])
+    if clash:
+        print("입력 파일이 출력 파일과 같아 덮어쓰게 됩니다. --out을 다른 폴더로 지정하세요: "
+              + ", ".join(str(p) for p in clash), file=sys.stderr)
+        return 2
     out.mkdir(parents=True, exist_ok=True)
     signals = FileSource(a.signals).collect()
-    memes_path = Path(a.memes) if a.memes else Path(a.signals).with_name("memes.json")
     memes = load_memes(memes_path) if memes_path.exists() else []
     fetch = httpx_fetch if a.online else make_sim_fetch(signals, memes)
-    now = datetime.fromisoformat(a.now) if a.now else datetime.now(timezone.utc)
-    cands, rejected = run_pipeline(signals, fetch, now=now, picked=_read_picks(out))
-    ranked, rej_memes = run_memes(memes, fetch)
-    # 틀 선택은 상위 5개 밖 후보까지 모두 쓴다(표시만 5개로 자름)
-    all_cands, _ = run_pipeline(signals, fetch, now=now, top_n=10**6)
-    all_memes, _ = run_memes(memes, fetch, top_n=10**6)
-    combos = build_combos(all_cands, all_memes, load_history(out / "history.jsonl"), now.date())
+    fetch = memoize_fetch(fetch)  # 같은 링크는 한 번만 연다
+    now = parse_now(a.now)
+    today = to_kst(now)  # 판 id·seed·최근 사용 감점의 날짜는 한국 시간 기준
+    # 파이프라인은 한 번만 돌리고 전체 순위에서 상위 5개를 자른다(틀 선택은 상위 5개 밖 후보까지 쓴다)
+    all_cands, rejected = run_pipeline(signals, fetch, now=now, top_n=10**6, picked=_read_picks(out))
+    cands = all_cands[:TOP_N]
+    rejected += [{"name": c.name, "link_status": c.link_status, "reasons": [f"상위 {TOP_N}개 밖 (점수 {c.score})"]}
+                 for c in all_cands[TOP_N:]]
+    all_memes, rej_memes = run_memes(memes, fetch, top_n=10**6, now=now)
+    ranked = all_memes[:TOP_N]
+    rej_memes += [{"name": m["name"], "kind": "meme", "reasons": [f"상위 {TOP_N}개 밖 (점수 {m['score']})"]}
+                  for m in all_memes[TOP_N:]]
+    combos = build_combos(all_cands, all_memes, load_history(out / "history.jsonl"), today.date())
     dump = lambda name, obj: (out / name).write_text(json.dumps(obj, ensure_ascii=False, indent=2), encoding="utf-8")
     dump("candidates.json", [c.to_dict() for c in cands])
     dump("rejected.json", rejected)
@@ -44,7 +74,7 @@ def cmd_run(a: argparse.Namespace) -> int:
     dump("rejected_memes.json", rej_memes)
     (out / "CANDIDATES.md").write_text(render_markdown(cands), encoding="utf-8")
     (out / "MEMES.md").write_text(render_memes_markdown(ranked), encoding="utf-8")
-    (out / "TODAY.md").write_text(render_today(cands, ranked, now, combos), encoding="utf-8")
+    (out / "TODAY.md").write_text(render_today(cands, ranked, today, combos), encoding="utf-8")
     dump("combos.json", combos)
     print(f"신호 {len(signals)}건 → 게임 틀 후보 {len(cands)}개, 탈락/밀림 {len(rejected)}건 / "
           f"밈 {len(memes)}건 → 후보 {len(ranked)}개, 탈락/밀림 {len(rej_memes)}건 "
@@ -95,7 +125,7 @@ def cmd_pick(a: argparse.Namespace) -> int:
             print(f"후보에 없는 이름: {a.name} (후보: {', '.join(names)})", file=sys.stderr)
             return 1
     out.mkdir(parents=True, exist_ok=True)
-    rec = {"name": a.name, "picked_at": datetime.now(timezone.utc).isoformat()}
+    rec = {"name": a.name, "picked_at": datetime.now(KST).isoformat()}
     with (out / "picks.jsonl").open("a", encoding="utf-8") as f:
         f.write(json.dumps(rec, ensure_ascii=False) + "\n")
     print(f"선택 기록: {a.name}")

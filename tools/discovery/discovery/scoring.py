@@ -8,7 +8,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-from .config import MAX_SESSION_S, MIN_SESSION_S, session_in_range
+from .config import MAX_ORIGINAL_GAME_S
 from .frames import FRAMES
 from .models import Signal
 from .popularity import PopularityResult, parse_time
@@ -35,12 +35,14 @@ _parse_time = parse_time
 
 
 def required_failures(sig: Signal, w: dict[str, Any]) -> list[str]:
-    """필수 기준: 한 판 30~60초(config),탭·스와이프만, 점수가 숫자 하나."""
+    """필수 기준: 원본 게임 한 판 30초 이내(상한만, config), 탭·스와이프만, 점수가 숫자 하나."""
     t, reasons = sig.traits, []
     lenient = bool(t.get("inferred"))  # 추론 항목 중 글에 없는 값은 틀 기본값을 쓰므로 불명이어도 통과
     secs = t.get("session_seconds")
-    if (secs is None and not lenient) or (secs is not None and not session_in_range(secs)):
-        reasons.append(f"한 판 {secs}초: {MIN_SESSION_S}~{MAX_SESSION_S}초 밖 또는 불명")
+    if secs is None and not lenient:
+        reasons.append("한 판 길이 불명")
+    elif secs is not None and secs > MAX_ORIGINAL_GAME_S:
+        reasons.append(f"한 판 {secs:g}초: 원본 게임 {MAX_ORIGINAL_GAME_S}초 이내 기준 초과")
     controls = t.get("controls") or []
     if (not controls and not lenient) or not set(controls) <= TOUCH_CONTROLS:
         reasons.append(f"탭·스와이프 외 조작 필요: {controls}")
@@ -94,8 +96,8 @@ def score_signal(sig: Signal, w: dict[str, Any],
     if secs is None:
         length = 0.75 if inferred else 0.0  # 추론 입력: 글에 없으면 틀 기본 길이 중간값
     else:
-        # 30초 이하 만점, 60초 0.5 (범위는 config)
-        length = max(0.0, min(1.0, 1 - (secs - MIN_SESSION_S) / (2 * (MAX_SESSION_S - MIN_SESSION_S))))
+        # 원본 길이는 상한만 둔다: 30초 이하 만점, 넘으면 선형 감소(필수 기준에서 이미 탈락하므로 참고용)
+        length = max(0.0, min(1.0, 1 - (secs - MAX_ORIGINAL_GAME_S) / MAX_ORIGINAL_GAME_S))
     simple = {"single_number": 1.0, "multiple": 0.4}.get(t.get("score_type"), 1.0 if inferred else 0.0)
     controls = set(t.get("controls") or [])
     if controls == {"tap"}:

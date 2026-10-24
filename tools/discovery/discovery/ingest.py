@@ -13,13 +13,43 @@ from typing import Any
 
 from .evidence import derive_tier, normalize_evidence, num, truthy
 from .frames import FRAMES, guess_frame
-from .infer import infer_traits
+from .infer import infer_score_type, infer_traits
 from .memes import MEME_TYPES, classify_type
 
 KINDS = ("game", "meme")
 _TYPE_KO = {"숫자": "number", "타이밍": "timing", "박자": "rhythm", "리듬": "rhythm", "춤": "rhythm",
+            "반복 동작": "rhythm",  # 규격 5절: 반복 동작 밈은 tap_rush. 아래 "반복"(노동)보다 먼저 본다
             "피하기": "obstacle", "장애물": "obstacle", "반복": "obstacle", "노동": "obstacle",
             "형식": "format", "문구": "format"}
+
+# ---------------- 절 단위 부정 판정 ----------------
+# "특정인 조롱 요소 있음, 성적 암시 없음"처럼 한 줄에 있음과 없음이 섞일 수 있다.
+# 줄을 절로 나눠 절마다 판정하고, 줄 전체가 없음/해당 없음일 때만 "없음"으로 본다.
+_NEG_END = re.compile(r"(?:없음|없다|없습니다|없었음|아님|않음|않다|않았음)\s*[.!)\]]*\s*$")
+_NEG_START = re.compile(r"^\W*(?:해당\s*(?:사항\s*)?없음|없음|없다)")
+_PAREN = re.compile(r"[(（]([^)）]*)[)）]")
+_CLAUSE_SPLIT = re.compile(r"[,，;；\n]|\.(?:\s|$)|\s및\s|\s그리고\s")
+_JUDGMENT_WORD = re.compile(r"없|있|아님|않")
+
+
+def clauses(text: str) -> list[str]:
+    """줄을 절로 나눈다. 괄호 안에 있음/없음 판정이 들어 있으면 그것도 별도 절로 본다."""
+    out: list[str] = []
+    for m in _PAREN.finditer(text or ""):
+        if _JUDGMENT_WORD.search(m.group(1)):
+            out.append(m.group(1).strip())
+    rest = _PAREN.sub(lambda m: " " if _JUDGMENT_WORD.search(m.group(1)) else m.group(0), text or "")
+    out += [c.strip() for c in _CLAUSE_SPLIT.split(rest)]
+    return [c for c in out if re.sub(r"[\W_]+", "", c)]
+
+
+def is_negated(clause: str) -> bool:
+    return bool(_NEG_END.search(clause) or _NEG_START.search(clause))
+
+
+def positive_clauses(text: str) -> list[str]:
+    """없음/해당 없음으로 끝나거나 시작하는 절을 뺀 나머지 절. 비어 있으면 줄 전체가 없음."""
+    return [c for c in clauses(text) if not is_negated(c)]
 
 
 # ---------------- normalize ----------------
@@ -80,7 +110,7 @@ _H1 = re.compile(r"^\s{0,3}#{1,6}\s*(\d+)[.)]\s*(.+?)\s*$")
 _H2 = re.compile(r"^(\d+)[.)]\s+\*\*(.+?)\*\*\s*(.*)$")
 _END = re.compile(r"^\s{0,3}#{1,6}\s*(?!\d)\S*\s*(종합|총평|결론)")
 _FIELD = re.compile(r"^\s*(?:[*\-•]\s+)?\*\*(.+?)\*\*\s*[:：]?\s*(.*)$")
-_LABELS = [  # (머리말 시작, 키) — 앞에서부터 처음 맞는 것
+_LABELS = [  # (머리말 시작, 키): 앞에서부터 처음 맞는 것
     ("출처", "source"), ("이름", "name"), ("밈 내용", "summary"), ("한 줄 요약", "summary"),
     ("언제부터", "since"), ("온라인 인기도", "online"), ("커뮤니티 인기도", "community"),
     ("시들해지는", "fading"), ("인위적", "astroturf"), ("게임으로 바꾸면", "game_hint"),
@@ -136,16 +166,29 @@ def split_items(text: str) -> list[dict[str, Any]]:
 _APPROX = {"수천만": 3e7, "수백만": 3e6, "수십만": 3e5, "수억": 3e8, "수천": 3e3, "수백": 3e2, "수만": 3e4, "수십": 30.0}
 _APPROX_RE = re.compile("|".join(_APPROX))
 _UNIT = {"억": 1e8, "만": 1e4, "천": 1e3}
-_NUM_RE = re.compile(r"(?<![\w@./:-])(\d[\d,]*(?:\.\d+)?)\s*(억|만|천)?\+?(?![\d~]|\s*[년월일위주개분])")
+# 숫자 한 덩어리(쉼표 묶음 포함)를 통째로 읽는다. 정규식 하나로 뒤 글자까지 걸면 되돌아가며
+# "1,000개"가 1로, "12,345위"가 12로 읽히므로, 덩어리를 먼저 잡고 뒤 글자는 따로 본다.
+_NUM_TOKEN = re.compile(r"(?<![\w@./:~-])(?<!\d,)(?<!톱 )(?<!톱)(?<!상위 )(?<!상위)(\d{1,3}(?:,\d{3})+|\d+)(\.\d+)?")  # "톱 10"·"상위 5"는 순위
+_UNIT_AFTER = re.compile(r"\s*(억|만|천)")
+# 조회수 같은 규모가 아닌 숫자: 날짜·순위·비율·배수·시간·나이 등
+_NOT_AMOUNT_AFTER = re.compile(r"\s*(?:%|퍼센트|배|초|시간|년|월|일|위|주|분|살|세|~|"
+                               r"개\s*(?:플랫폼|사이트|커뮤니티|채널|국가|언어|버전|카테고리|출처))")
 
 
 def extract_amounts(seg: str) -> list[float]:
-    """'2,560만 회', '수십만 건', '3,500+' → 대략 숫자. 날짜·순위·핸들 속 숫자는 제외."""
+    """'2,560만 회', '1,000개', '3만 개', '수십만 건', '3,500+' → 대략 숫자.
+    날짜·순위·핸들·비율(30%)·배수(3배)·시간(15초) 속 숫자는 제외."""
     out = [_APPROX[m.group(0)] for m in _APPROX_RE.finditer(seg)]
     rest = _APPROX_RE.sub(" ", seg)
-    for m in _NUM_RE.finditer(rest):
-        v = float(m.group(1).replace(",", "")) * _UNIT.get(m.group(2) or "", 1.0)
-        out.append(v)
+    for m in _NUM_TOKEN.finditer(rest):
+        tail = rest[m.end():]
+        unit = _UNIT_AFTER.match(tail)
+        if unit is None and _NOT_AMOUNT_AFTER.match(tail):
+            continue
+        if re.match(r",\d", tail):  # 3자리 묶음이 아닌 이어진 숫자 조각(예: 1,00)은 건너뜀
+            continue
+        v = float(m.group(1).replace(",", "") + (m.group(2) or ""))
+        out.append(v * _UNIT[unit.group(1)] if unit else v)
     return out
 
 
@@ -300,10 +343,10 @@ def parse_item(block: dict[str, Any], kind: str) -> dict[str, Any]:
     if f.get("community") and not community:
         notes.append("커뮤니티 인기도 근거 줄은 있으나 커뮤니티를 읽지 못함")
     if f.get("fading"):
-        item["fading"] = not re.search(r"없음|없다|특이\s*사항\s*없", f["fading"])
+        item["fading"] = bool(positive_clauses(f["fading"]))  # 줄 전체가 없음일 때만 False
         item["fading_note"] = f["fading"]
     if f.get("astroturf"):
-        item["astroturf_suspect"] = bool(re.search(r"의심|있음|확인", f["astroturf"])) and not re.search(r"없음|아님", f["astroturf"])
+        item["astroturf_suspect"] = any(re.search(r"의심|있음|확인|정황", c) for c in positive_clauses(f["astroturf"]))
     body = " ".join(v for k, v in f.items() if k in ("summary", "background", "community", "name"))
     if kind == "meme":
         item["summary"] = f.get("summary", "")
@@ -315,14 +358,14 @@ def parse_item(block: dict[str, Any], kind: str) -> dict[str, Any]:
             item["type_inferred"] = True
             notes.append(f"밈 유형 미기재: 본문 단어로 {item['type']} 추정(추론값, 사람 확인 필요)")
         ip = f.get("ip", "")
-        risks = [] if (ip and re.search(r"위험\s*없음|없음", ip) and not re.search(r"음원|상표|로고", ip)) else ([ip] if ip else [])
+        risks = positive_clauses(ip)  # 없음인 절(예: "상표 없음")은 위험으로 세지 않는다
         if any(k in body for k in _REAL_PERSON_KW):
             risks.append("실존 인물: 유명인 얼굴 합성 언급(본문 감지)")
             notes.append("본문에서 실존 인물 사용 감지: ip_risks 추가")
         item["ip_risks"] = risks
         flags = [k for k in _SAFETY_KW if k in body]
-        if f.get("safety") and not re.search(r"없음", f["safety"]):
-            flags.append(f["safety"])
+        if f.get("safety"):
+            flags += positive_clauses(f["safety"])  # "조롱 있음, 성적 암시 없음" → 조롱 절만 플래그
         if flags:
             notes.append(f"본문에서 안전 키워드 감지: {', '.join(flags)} → 안전 플래그로 기록(탈락 처리, 사람이 확인)")
         item["safety_flags"] = flags
@@ -348,7 +391,11 @@ def parse_item(block: dict[str, Any], kind: str) -> dict[str, Any]:
         if m:
             traits["session_seconds"] = float(m.group(1))
         if f.get("score_type"):
-            traits["score_type"] = "single_number" if re.search(r"숫자\s*(하나|한 개|1개)|single", f["score_type"], re.I) else "unclear"
+            # 점수 줄이 있으면 숫자 하나로 나오는지 본다. 여러 점수·등급·문구면 불명확, 점수를 숫자로 말하면(점수·횟수·기록·시간 등) 통과.
+            st = f["score_type"]
+            multi = re.search(r"여러|복합|다중|등급|유형|문구|multiple", st, re.I)
+            single = re.search(r"숫자|개수|거리|높이|콤보|레벨|스코어|score|single", st, re.I) or infer_score_type(st)
+            traits["score_type"] = "single_number" if single and not multi else "unclear"
         rule_txt = f.get("rule") or f.get("game_hint") or ""
         reason_txt = f.get("reason", "")
         frame, kws = guess_frame(rule_txt)

@@ -26,17 +26,62 @@ TODAY = date(2026, 10, 24)
 def test_six_frames_with_spec_fields():
     assert list(FRAMES) == ["timing_stop", "tap_rush", "swipe_dodge", "gauge_stop", "outline_trace", "merge_drop"]
     assert {f.difficulty_score for f in FRAMES.values()} == {5, 3, 1}
-    assert FRAMES["timing_stop"].score_direction == "asc" and FRAMES["tap_rush"].score_direction == "desc"
+    # 규격 4절: 점수 방향. 오차·거리의 합(timing_stop, gauge_stop)은 낮을수록 좋다
+    assert {f.id: f.score_direction for f in FRAMES.values()} == {
+        "timing_stop": "asc", "tap_rush": "desc", "swipe_dodge": "desc",
+        "gauge_stop": "asc", "outline_trace": "desc", "merge_drop": "desc"}
     assert FRAMES["merge_drop"].difficulty == "높음" and FRAMES["swipe_dodge"].difficulty == "중간"
     for f in FRAMES.values():
         assert f.fits and f.validation and f.params
         assert clamp_params(f.id, {}) == f.default_params()
 
 
+def test_frame_params_follow_spec_section_4():
+    keys = {fid: set(f.params) for fid, f in FRAMES.items()}
+    assert keys["timing_stop"] == {"rounds", "targetMs", "visibleMs"}
+    assert keys["tap_rush"] == {"rounds", "durationMs", "bpm"}
+    assert keys["swipe_dodge"] == {"rounds", "roundCapMs", "speed", "gap"}
+    assert keys["gauge_stop"] == {"zoneStart", "zoneEnd", "speed", "rounds"}
+    assert keys["outline_trace"] == {"rounds", "shape", "tolerance"}
+    assert keys["merge_drop"] == {"rounds", "durationMs", "boardSize"}
+    d = {fid: f.default_params() for fid, f in FRAMES.items()}
+    assert d["timing_stop"] == {"rounds": 3, "targetMs": [3000, 4000, 5000], "visibleMs": 1500}
+    assert d["tap_rush"]["durationMs"] == 10000 and d["tap_rush"]["rounds"] == 3     # 라운드당 약 10초
+    assert d["swipe_dodge"]["roundCapMs"] == 10000                                   # 라운드당 15초 이하
+    assert d["merge_drop"]["rounds"] == 1 and d["merge_drop"]["durationMs"] == 60000  # 60초 한 판
+
+
 def test_clamp_params_to_range():
     assert clamp_params("tap_rush", {"bpm": 999, "durationMs": 10})["bpm"] == 180
-    assert clamp_params("tap_rush", {"durationMs": 10})["durationMs"] == 30000  # 한 판 30~60초
+    assert clamp_params("tap_rush", {"durationMs": 10})["durationMs"] == 8000    # 라운드당 약 10초(8~12초)
+    assert clamp_params("swipe_dodge", {"roundCapMs": 99999})["roundCapMs"] == 15000
+    assert clamp_params("merge_drop", {"rounds": 3, "durationMs": 1000}) == {"rounds": 1, "durationMs": 60000,
+                                                                              "boardSize": 5}
     assert clamp_params("outline_trace", {"shape": "banana"})["shape"] == "circle"
+
+
+def test_timing_stop_target_ms_is_per_round_list_and_visible_is_below_target():
+    p = clamp_params("timing_stop", {"targetMs": [1000, 4000, 9000]})
+    assert p["targetMs"] == [3000, 4000, 7000]          # 각 3000~7000(숫자 밈 7000까지)
+    assert clamp_params("timing_stop", {"targetMs": 4500})["targetMs"] == [4500, 4500, 4500]  # 숫자 하나는 모든 라운드
+    assert clamp_params("timing_stop", {"rounds": 2})["targetMs"] == [3000, 4000]            # 길이 = rounds
+    assert clamp_params("timing_stop", {"rounds": 5})["targetMs"] == [3000, 4000, 5000, 5000, 5000]
+    assert clamp_params("timing_stop", {})["visibleMs"] == 1500
+    for v in (500, 1500, 2500, 15000):                  # visibleMs < 가장 짧은 targetMs
+        p = clamp_params("timing_stop", {"visibleMs": v})
+        assert p["visibleMs"] < min(p["targetMs"])
+    assert clamp_params("timing_stop", {"visibleMs": 3000})["visibleMs"] == 2500
+
+
+def test_session_estimate_per_frame():
+    from discovery.frames import session_estimate
+    est = {fid: session_estimate(fid, f.default_params()) for fid, f in FRAMES.items()}
+    assert est["timing_stop"] == 30      # 3 x (2+3) + (3+4+5) + 3
+    assert est["tap_rush"] == 48         # 3 x (2+10+3) + 3
+    assert est["swipe_dodge"] == 48
+    assert est["outline_trace"] == 48
+    assert est["merge_drop"] == 60       # 3라운드로 나누지 않는 60초 한 판
+    assert est["gauge_stop"] is None     # 틀 파라미터에 시간이 없음
 
 
 @pytest.mark.parametrize("text,frame", [
@@ -119,7 +164,8 @@ def test_explicit_traits_not_marked_inferred():
     ("남들 파티할 때 단순 노동 기술을 자랑", "", "obstacle"), ("월요일 출근의 고통", "", "obstacle"),
     ("숫자 67만 외치는 유행", "", "number"), ("기다렸다 터지는 순간", "", "timing"),
     ("사진을 넘기며 사과하는 밈", "연속 탭하는 게임", "format"),
-    ("사진을 넘기며 사과하는 밈", "박자 맞추는 게임", "rhythm"), ("", "", "format")])
+    ("사진을 넘기며 사과하는 밈", "박자 맞추는 게임", "rhythm"), ("", "", "format"),
+    ("같은 반복 동작을 끝없이 하는 밈", "", "rhythm"), ("반복 작업에 지친 직장인 밈", "", "obstacle")])  # 규격 5절
 def test_classify_type(summary, hint, t):
     assert classify_type(summary, hint) == t
 
@@ -139,6 +185,8 @@ def test_rhythm_obstacle_suggest_frame_params_not_target_time():
 def test_existing_target_rules_unchanged_for_number_timing_format():
     assert convert_target("number", 4.7)["ms"] == 4700 and convert_target("timing", 22)["ms"] == 5000
     assert convert_target("format", 3)["ms"] == 4000
+    assert convert_target("number", 6.7)["ms"] == 6700 and convert_target("number", 9)["ms"] == 7000  # 숫자 밈 7초까지
+    assert convert_target("timing", 6.7)["ms"] == 5000                                              # 그 밖은 5초까지
 
 
 def test_meme_without_type_is_classified_and_ranked_with_hint():
@@ -157,8 +205,12 @@ def _cand(frame, pop, name=None, inferred=False):
 
 
 def _meme(name, mtype, pop):
-    tgt = {"number": 6700, "timing": 8000, "format": 10000}.get(mtype)
+    tgt = {"number": 6700, "timing": 4000, "format": 4000}.get(mtype)
     hint = {"type": mtype, "targetMs": tgt, "targetReason": "r"}
+    if mtype == "number":
+        hint["roundTargetsMs"] = [6700, 6700, 6700]
+    elif mtype == "format":
+        hint["roundTargetsMs"] = [3000, 4000, 5000]
     if mtype == "rhythm":
         hint["frameParamsHint"] = {"bpm": 140}
     return {"name": name, "type": mtype, "popularity_total": pop, "meme_card_hint": hint,
@@ -181,6 +233,24 @@ def test_combo_score_formula_and_plan_shape():
     assert set(p) == {"id", "title", "frame", "frameParams", "seed", "meme"}
     assert p["frame"] == "tap_rush" and p["frameParams"]["bpm"] == 140 and p["seed"] == "2026-10-24"
     assert p["title"] == "MemeRush Daily #001" and p["meme"]["name"] == "춤"
+    assert p["frameParams"]["rounds"] == 3 and p["frameParams"]["durationMs"] == 10000
+    # 최상위 rounds·scoreRule·expectedSessionS·sessionInRange는 하루 판 파일이 아니라 조합 메타데이터
+    assert c["plan_meta"] == {"rounds": 3, "scoreRule": "sum", "scoreDirection": "desc",
+                              "expectedSessionS": 48, "sessionInRange": True}
+
+
+def test_timing_stop_plan_follows_spec_6_and_meta():
+    # 숫자 밈(6.7초): 모든 라운드 같은 값. 3 x (2+6.7+3) + 3 = 38.1초
+    (c,) = build_combos([_cand("timing_stop", 80)], [_meme("6 7", "number", 80)], [], TODAY, top_n=1)
+    assert c["plan"]["frameParams"] == {"rounds": 3, "targetMs": [6700, 6700, 6700], "visibleMs": 1500}
+    assert c["plan_meta"] == {"rounds": 3, "scoreRule": "sum", "scoreDirection": "asc",
+                              "expectedSessionS": 38.1, "sessionInRange": True}
+    # 목표 시간 없는 밈(리듬)과 형식 밈은 첫날 3·4·5초 = 30초
+    for mt in ("rhythm", "format"):
+        (c,) = build_combos([_cand("timing_stop", 80)], [_meme("m", mt, 80)], [], TODAY, top_n=1)
+        assert c["plan"]["frameParams"]["targetMs"] == [3000, 4000, 5000]
+        assert c["plan_meta"]["expectedSessionS"] == 30 and c["plan_meta"]["sessionInRange"] is True
+    assert set(c["plan"]) == {"id", "title", "frame", "frameParams", "seed", "meme"}
 
 
 def test_fit_beats_popularity_when_much_better():
@@ -259,23 +329,28 @@ def test_real_guru_games_and_memes_end_to_end(tmp_path, capsys):
     games = json.loads(sig.read_text(encoding="utf-8"))["signals"]
     assert len(games) == 10 and not any(g["needs_review"] for g in games)  # 추론으로 통과
     linked = [g for g in games if g["frame_guess"]]
-    assert len(linked) >= 6
-    assert all(g["traits"]["inferred"] for g in games)
+    assert len(linked) == 9 and [g["name"] for g in games if not g["frame_guess"]] == ["드라이브 매드 (Drive Mad)"]
+    assert len(games) == 10 and all(g["traits"]["inferred"] and g["traits"]["controls"] for g in games)
 
     assert cli.main(["run", "--signals", str(sig), "--memes", str(mem), "--out", str(out),
                      "--now", NOW.isoformat()]) == 0
     cands = json.loads((out / "candidates.json").read_text(encoding="utf-8"))
     rej = json.loads((out / "rejected.json").read_text(encoding="utf-8"))
-    all_frames = {g["name"]: g["frame_guess"] for g in games}
-    assert len(set(f for f in all_frames.values() if f)) >= 3
-    assert any("구현할 틀 없음" in " ".join(r["reasons"]) for r in rej)  # 드라이브 매드
-    assert all(c["inferred"] and c["frame"] for c in cands)
+    assert {g["frame_guess"] for g in linked} == {"tap_rush", "swipe_dodge", "gauge_stop", "merge_drop"}
+    nofit = [r for r in rej if "구현할 틀 없음" in " ".join(r["reasons"])]
+    assert [r["name"] for r in nofit] == ["드라이브 매드 (Drive Mad)"]
+    assert [c["name"] for c in cands] == [
+        "무한의 계단 (Infinite Stairs)", "스택 / 타워 쌓기 (Stack / Tower Builder Format)",
+        "나이프 히트 (Knife Hit)", "스틱맨 후크 (Stickman Hook)", "슬라이스 마스터 (Slice Master)"]
+    assert [c["frame"] for c in cands] == ["tap_rush", "gauge_stop", "swipe_dodge", "swipe_dodge", "swipe_dodge"]
+    assert all(c["inferred"] for c in cands)
 
     ranked = json.loads((out / "memes.json").read_text(encoding="utf-8"))
-    assert len(ranked) == 5
-    assert {m["type"] for m in ranked} >= {"rhythm", "obstacle", "format"}
-    best = {best_frame_for_meme(m["type"]) for m in ranked}
-    assert len(best) >= 3 and best <= set(FRAMES)
+    assert [(m["name"], m["type"]) for m in ranked] == [
+        ("I'm So Sorry (TikTok Slideshow Trend)", "format"), ("While They're Out Partying BTW", "obstacle"),
+        ("Babydoll Dance Challenge", "rhythm"), ("Thank You Baby (Bounce Trend)", "rhythm"),
+        ("Grr Mondays", "obstacle")]
+    assert {best_frame_for_meme(m["type"]) for m in ranked} == {"outline_trace", "swipe_dodge", "tap_rush"}
     for m in ranked:
         if m["type"] in ("rhythm", "obstacle"):
             assert m["meme_card_hint"]["targetMs"] is None and m["frame_params_hint"]
@@ -285,4 +360,6 @@ def test_real_guru_games_and_memes_end_to_end(tmp_path, capsys):
     today = (out / "TODAY.md").read_text(encoding="utf-8")
     assert today.count("```json") == 3 and "추론값" in today
     plan = combos[0]["plan"]
-    assert FRAMES[plan["frame"]] and plan["frameParams"] and plan["seed"] == "2026-10-24"
+    assert (combos[0]["frame"], combos[0]["meme"]) == ("tap_rush", "Babydoll Dance Challenge")
+    assert plan["frameParams"] == {"rounds": 3, "durationMs": 10000, "bpm": 120} and plan["seed"] == "2026-10-24"
+    assert combos[0]["plan_meta"]["expectedSessionS"] == 48

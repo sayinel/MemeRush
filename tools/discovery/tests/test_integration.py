@@ -2,6 +2,8 @@ import json
 from datetime import datetime, timezone
 from pathlib import Path
 
+import pytest
+
 from discovery import cli
 from discovery.pipeline import make_sim_fetch, run_pipeline
 from discovery.sources.file_source import FileSource
@@ -24,6 +26,29 @@ def test_top5_matches_expected_rank():
     cands, _ = _run()
     assert [c.name for c in cands] == exp["top5"]
     assert [c.rank for c in cands] == [1, 2, 3, 4, 5]
+
+
+def test_scores_match_hand_calculation():
+    # expected_rank.json의 hand_scores는 입력 근거 수치에서 사람이 계산한 값(PROGRESS.md 참고). 구현 출력과 독립이다.
+    exp = json.loads((FX / "expected_rank.json").read_text(encoding="utf-8"))
+    sigs = FileSource(FX / "signals.json").collect()
+    cands, _ = run_pipeline(sigs, make_sim_fetch(sigs), now=NOW, top_n=100)
+    got = {c.name: c.score for c in cands}
+    assert set(got) == set(exp["hand_scores"])
+    for name, hand in exp["hand_scores"].items():
+        assert got[name] == pytest.approx(hand, abs=0.15), name
+    assert [c.name for c in cands][:5] == exp["top5"]
+
+
+def test_meme_scores_match_hand_calculation():
+    from discovery.memes import load_memes, run_memes
+    exp = json.loads((FX / "expected_rank.json").read_text(encoding="utf-8"))
+    memes = load_memes(FX / "memes.json")
+    ranked, _ = run_memes(memes, make_sim_fetch([], memes), top_n=100, now=NOW)
+    got = {m["name"]: m["score"] for m in ranked}
+    assert set(got) == set(exp["hand_meme_scores"])
+    for name, hand in exp["hand_meme_scores"].items():
+        assert got[name] == pytest.approx(hand, abs=0.15), name
 
 
 def test_rejections_have_reasons():

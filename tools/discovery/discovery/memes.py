@@ -9,8 +9,10 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
-from .config import (DEFAULT_ROUND_TARGET_S, MAX_SESSION_S, MIN_SESSION_S, ROUND_SLACK_S,
-                     ROUND_TARGET_RANGE_S, ROUNDS, expected_session_s, session_in_range)
+from datetime import datetime, timezone
+
+from .config import (DEFAULT_ROUND_TARGET_S, NUMBER_MEME_MAX_S, ROUND_TARGET_RANGE_S, ROUNDS,
+                     expected_session_s, round_targets_s, session_in_range)
 from .evidence import is_sample, normalize_evidence, num, truthy
 from .link_check import Fetch, check_link
 from .popularity import compute_popularity, background_line, verify_links
@@ -21,14 +23,15 @@ import re
 # 유형 순서는 pairing의 "한 칸 떨어짐" 거리 계산에도 쓴다.
 MEME_TYPES = ("number", "timing", "rhythm", "obstacle", "format")
 TARGET_TYPES = ("number", "timing", "format")  # 목표 시간으로 바꾸는 유형. rhythm/obstacle은 틀 파라미터 제안
-MIN_SEC, MAX_SEC = float(ROUND_TARGET_RANGE_S[0]), float(ROUND_TARGET_RANGE_S[1])  # 라운드당 목표 시간
+MIN_SEC = float(ROUND_TARGET_RANGE_S[0])  # 라운드당 목표 시간 하한
+MAX_SEC = float(ROUND_TARGET_RANGE_S[1])  # 상한(숫자 밈은 NUMBER_MEME_MAX_S까지)
 DEFAULT_SEC = float(DEFAULT_ROUND_TARGET_S)
 
 _TYPE_WORDS = {
     "number": r"숫자|\d+(?:\.\d+)?\s*초",
     "timing": r"타이밍|멈추|멈춘|순간|기다렸|카운트다운|정각|스톱워치",
-    "rhythm": r"박자|춤|댄스|바운스|리듬|비트|안무|스텝|들썩",
-    "obstacle": r"피하|피해|장애물|노동|알바|출근|월요일|반복 (?:작업|동작)|퇴근",
+    "rhythm": r"박자|춤|댄스|바운스|리듬|비트|안무|스텝|들썩|반복\s*동작",  # 규격 5절: 반복 동작 밈은 tap_rush
+    "obstacle": r"피하|피해|장애물|노동|알바|출근|월요일|반복\s*작업|퇴근",
 }
 
 
@@ -129,25 +132,28 @@ def _fmt(sec: float) -> str:
 
 
 def convert_target(mtype: str, suggestion: float | None) -> dict[str, Any]:
-    """설계 3절: number=숫자를 초로, timing=그 순간까지의 길이, format=10.00초. 3~15초로 맞추고 이유를 남긴다."""
+    """설계 3절: number=숫자를 초로(7초까지), timing=그 순간까지의 길이(5초까지), format=기본값.
+    라운드당 3~5초(숫자 밈 7초)로 맞추고 이유를 남긴다. `default`가 True면 밈이 정한 값이 아니라
+    대표값이므로 하루 판은 첫날 3·4·5초 계단을 쓴다."""
     if mtype in ("rhythm", "obstacle"):
         what = "bpm" if mtype == "rhythm" else "speed"
-        return {"seconds": None, "ms": None, "clamped": False,
-                "reason": f"{'박자·춤' if mtype == 'rhythm' else '피하기·반복 노동'} 밈이라 목표 시간 대신 틀 파라미터({what})로 제안"}
+        return {"seconds": None, "ms": None, "clamped": False, "default": False,
+                "reason": f"{'박자·춤·반복 동작' if mtype == 'rhythm' else '피하기·반복 노동'} 밈이라 목표 시간 대신 틀 파라미터({what})로 제안"}
     if mtype == "format":
-        return {"seconds": DEFAULT_SEC, "ms": int(DEFAULT_SEC * 1000), "clamped": False,
-                "reason": f"형식·문구 밈이라 기본값 {_fmt(DEFAULT_SEC)}초(문구만 사용)"}
+        return {"seconds": DEFAULT_SEC, "ms": int(DEFAULT_SEC * 1000), "clamped": False, "default": True,
+                "reason": f"형식·문구 밈이라 기본 {_fmt(DEFAULT_SEC)}초(문구만 사용), 하루 판은 첫날 3·4·5초 계단"}
     label = "숫자 자체가 웃음 포인트라 그 숫자를 초로 바꿈" if mtype == "number" else \
         "기다렸다 터지는 순간까지의 길이를 목표로 함"
     if suggestion is None:
-        return {"seconds": DEFAULT_SEC, "ms": int(DEFAULT_SEC * 1000), "clamped": False,
-                "reason": f"{label}: 제안 값이 없어 기본값 {_fmt(DEFAULT_SEC)}초로 둠"}
+        return {"seconds": DEFAULT_SEC, "ms": int(DEFAULT_SEC * 1000), "clamped": False, "default": True,
+                "reason": f"{label}: 제안 값이 없어 기본 {_fmt(DEFAULT_SEC)}초(하루 판은 첫날 3·4·5초 계단)"}
+    hi = float(NUMBER_MEME_MAX_S) if mtype == "number" else MAX_SEC
     sec, reason, clamped = suggestion, f"{label}({_fmt(suggestion)}초)", False
-    if sec < MIN_SEC or sec > MAX_SEC:
-        near = MIN_SEC if sec < MIN_SEC else MAX_SEC
-        reason += (f", 라운드당 {MIN_SEC:g}~{MAX_SEC:g}초 범위 밖이라 가장 가까운 {_fmt(near)}초로 맞춤")
+    if sec < MIN_SEC or sec > hi:
+        near = MIN_SEC if sec < MIN_SEC else hi
+        reason += (f", 라운드당 {MIN_SEC:g}~{hi:g}초 범위 밖이라 가장 가까운 {_fmt(near)}초로 맞춤")
         sec, clamped = near, True
-    return {"seconds": sec, "ms": int(round(sec * 1000)), "clamped": clamped, "reason": reason}
+    return {"seconds": sec, "ms": int(round(sec * 1000)), "clamped": clamped, "default": False, "reason": reason}
 
 
 def safety_reasons(m: Meme) -> list[str]:
@@ -189,8 +195,9 @@ def _public(items: list[dict[str, Any]]) -> list[dict[str, Any]]:
 
 
 def run_memes(memes: list[Meme], fetch: Fetch, weights: dict[str, Any] | None = None,
-              top_n: int = 5) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+              top_n: int = 5, now: datetime | None = None) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
     w = weights or load_weights()
+    now = now or datetime.now(timezone.utc)  # 7일 넘은 온라인 근거는 절반만 반영
     kept: list[tuple[float, Meme, dict, dict, Any, list]] = []
     rejected: list[dict[str, Any]] = []
     for m in memes:
@@ -201,7 +208,7 @@ def run_memes(memes: list[Meme], fetch: Fetch, weights: dict[str, Any] | None = 
         if reasons:
             rejected.append({"name": m.name, "kind": "meme", "reasons": reasons})
             continue
-        pop = compute_popularity(m.online, m.community, m.fading, m.astroturf_suspect, w)
+        pop = compute_popularity(m.online, m.community, m.fading, m.astroturf_suspect, w, now)
         ip = ip_assessment(m, w)
         score = round(max(0.0, pop.total - ip["penalty"]), 2)
         kept.append((score, m, ip, convert_target(m.type, m.target_seconds_suggestion), pop,
@@ -213,9 +220,10 @@ def run_memes(memes: list[Meme], fetch: Fetch, weights: dict[str, Any] | None = 
         fph = frame_params_hint(m.type, f"{m.summary} {m.game_hint}")
         card_hint = {"type": m.type, "targetMs": tgt["ms"], "targetReason": tgt["reason"]}
         if tgt["seconds"] is not None:
-            est = expected_session_s(ROUNDS, tgt["seconds"])
-            card_hint.update({"rounds": ROUNDS, "expectedSessionS": round(est, 2),
-                              "sessionInRange": session_in_range(est)})
+            targets = round_targets_s(ROUNDS, None if tgt["default"] else tgt["seconds"])
+            est = expected_session_s(targets)
+            card_hint.update({"rounds": ROUNDS, "roundTargetsMs": [int(round(t * 1000)) for t in targets],
+                              "expectedSessionS": round(est, 2), "sessionInRange": session_in_range(est)})
         if fph:
             card_hint["frameParamsHint"] = fph
         ranked.append({

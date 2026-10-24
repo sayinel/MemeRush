@@ -120,12 +120,105 @@ def test_ingest_cli_roundtrip_and_pipeline_skips_needs_review(tmp_path):
     assert len(ranked) == 2 and "needs_review" in rej[0]["reasons"][0]
 
 
-GURU = Path(r"C:\work\_ops\burn4\guru_memes_out.txt")
+GURU = Path(__file__).parent / "fixtures" / "guru_memes_out.txt"  # 저장소 안 시험 자료(상대 경로)
 
 
-@pytest.mark.skipif(not GURU.exists(), reason="조사 본문 파일 없음")
 def test_real_guru_text_parses():
+    assert GURU.exists()
     items = parse_text(GURU.read_text(encoding="utf-8"), "meme")
     assert len(items) >= 6
     ok = [i for i in items if not i["needs_review"]]
     assert len(ok) >= 6 and all(i["online"] and i["summary"] for i in ok)
+
+
+# ---------- 리뷰 반영: 절 단위 부정 판정(안전·저작권·유행 지남·조작 의심) ----------
+
+def _meme(**lines):
+    label = {"safety": "안전", "ip": "저작권·상표 위험 요소", "fading": "시들해지는 신호", "astroturf": "인위적 바이럴 의심"}
+    body = "".join(f"* **{label[k]}**: {v}\n" for k, v in lines.items())
+    txt = ("### 1. 밈\n* **이름**: 밈\n* **밈 내용 한 줄**: 짧은 영상 문구.\n"
+           "* **온라인 인기도 근거**: TikTok 조회수 100만 회\n" + body)
+    return parse_text(txt, "meme")[0]
+
+
+def test_safety_line_with_both_found_and_none_clauses_is_flagged():
+    m = _meme(safety="특정인 조롱 요소 있음, 성적 암시 없음")
+    assert m["safety_flags"] == ["특정인 조롱 요소 있음"]   # 없음 절은 플래그가 아님
+    from discovery.memes import Meme, safety_reasons
+    assert safety_reasons(Meme.from_dict(m)) and "특정인 조롱" in safety_reasons(Meme.from_dict(m))[0]
+
+
+@pytest.mark.parametrize("line", ["없음", "해당 없음", "특이사항 없음.", "조롱 요소 없음, 성적 암시 없음", "혐오 없음 및 약물 없음"])
+def test_safety_line_all_none_is_not_flagged(line):
+    assert _meme(safety=line)["safety_flags"] == []
+
+
+def test_safety_mixed_clauses_other_separators():
+    assert _meme(safety="성적 암시 없음; 약물 암시 있음")["safety_flags"] == ["약물 암시 있음"]
+    assert _meme(safety="혐오 없음 (다만 조롱 요소 있음)")["safety_flags"] == ["다만 조롱 요소 있음"]  # 괄호 안 판정도 절로 본다
+
+
+def test_ip_risk_clauses_ignore_none_clauses():
+    m = _meme(ip="음원 사용, 상표 없음")
+    assert m["ip_risks"] == ["음원 사용"]
+    from discovery.memes import Meme, ip_assessment
+    from discovery.scoring import load_weights
+    a = ip_assessment(Meme.from_dict(m), load_weights())
+    assert a["categories"] == ["음원"] and a["penalty"] == 10   # "상표 없음"이 상표 감점으로 세어지지 않음
+    assert _meme(ip="음원 없음, 상표 없음, 실존 인물 없음")["ip_risks"] == []
+    assert _meme(ip="위험 없음")["ip_risks"] == []
+
+
+def test_fading_and_astroturf_by_clause():
+    assert _meme(fading="검색량 감소 있음, 광고 없음")["fading"] is True
+    assert _meme(fading="특이사항 없음")["fading"] is False
+    assert _meme(fading="광고 없음에도 불구하고 반응이 줄어듦")["fading"] is True   # "없음"이 들어 있어도 줄 전체가 없음이 아니다
+    assert _meme(astroturf="의심 정황 있음, 광고 없음")["astroturf_suspect"] is True
+    assert _meme(astroturf="의심 없음")["astroturf_suspect"] is False
+    assert _meme(astroturf="조작 의심 아님, 확인되지 않음")["astroturf_suspect"] is False
+
+
+# ---------- 숫자 추출 ----------
+
+@pytest.mark.parametrize("seg,vals", [
+    ("1,000개", [1000]), ("3만 개", [30_000]), ("12,345위", []), ("30%", []), ("3배", []), ("15초", []),
+    ("조회 1,000개 중 30% 가 3배 늘어 15초 만에 12,345위", [1000]),
+    ("2,560만 회 이상, 1.5억 회", [25_600_000, 150_000_000]),
+    ("3개 플랫폼에서 2만 건", [20_000]),
+    ("1,00", []), ("3, 4 회", [3, 4]),   # 3자리 묶음이 아닌 조각은 읽지 않음(잘못 읽느니 건너뜀)
+])
+def test_extract_amounts_units_and_exclusions(seg, vals):
+    assert extract_amounts(seg) == vals
+
+
+# ---------- 점수 유형 ----------
+
+def _game(score_line):
+    txt = ("### 1. 게임A\n* **이름**: 게임A\n* **규칙**: 탭해서 멈춘다\n* **조작**: 탭\n* **한 판 길이**: 15초\n"
+           + (f"* **점수**: {score_line}\n" if score_line is not None else "")
+           + "* **온라인 인기도 근거**: YouTube 조회수 300만 회\n* **출처 이름과 주소**: 어딘가 (https://x.test/a)\n")
+    return parse_text(txt, "game")[0]
+
+
+@pytest.mark.parametrize("line", ["숫자 하나", "클리어 시간", "생존 시간(초)", "횟수", "높이 기록", "점수가 숫자로 나옴"])
+def test_score_line_with_number_description_passes(line):
+    assert _game(line)["traits"]["score_type"] == "single_number"
+
+
+@pytest.mark.parametrize("line", ["여러 지표를 합친 복합 점수", "결과는 유형 문구로 나옴", "등급(S, A, B)"])
+def test_score_line_with_multiple_or_text_result_is_unclear(line):
+    assert _game(line)["traits"]["score_type"] == "unclear"
+
+
+def test_missing_score_line_is_left_empty_not_assumed_single_number():
+    t = _game(None)["traits"]
+    assert "score_type" not in t or t.get("inferred")  # 줄이 없으면 만들어 채우지 않음(추론이면 inferred 표시)
+
+
+def test_repeat_motion_meme_type_is_rhythm_not_obstacle():
+    txt = ("### 1. 밈\n* **이름**: 밈\n* **밈 내용 한 줄**: 짧은 영상 문구.\n* **밈 유형**: 반복 동작\n"
+           "* **온라인 인기도 근거**: TikTok 조회수 100만 회\n"
+           "### 2. 밈2\n* **이름**: 밈2\n* **밈 내용 한 줄**: 짧은 영상 문구.\n* **밈 유형**: 반복 노동\n"
+           "* **온라인 인기도 근거**: TikTok 조회수 100만 회\n")
+    a, b = parse_text(txt, "meme")
+    assert a["type"] == "rhythm" and b["type"] == "obstacle"

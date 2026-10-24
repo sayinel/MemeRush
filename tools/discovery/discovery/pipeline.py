@@ -6,7 +6,7 @@ from datetime import datetime, timezone
 from typing import Any, Iterable
 
 from . import rules
-from .config import MAX_SESSION_S, MIN_SESSION_S, ROUND_SLACK_S
+from .config import FINAL_RESULT_S, MAX_SESSION_S, MIN_SESSION_S, ROUND_INTRO_S, ROUND_REACT_S
 from .link_check import Fetch, check_link
 from .models import Candidate, Signal
 from .popularity import background_line, compute_popularity, verify_links
@@ -62,7 +62,7 @@ def run_pipeline(signals: list[Signal], fetch: Fetch, weights: dict[str, Any] | 
                                          "outline_trace, merge_drop) 중 가까운 것이 없음"]})
             continue
         has_pop = bool(s.online or s.community)  # 없으면 옛 신호 강도 계산(하위 호환)
-        pop = compute_popularity(s.online, s.community, s.fading, s.astroturf_suspect, w)
+        pop = compute_popularity(s.online, s.community, s.fading, s.astroturf_suspect, w, now)
         res = score_signal(s, w, ip_terms, now, pop if has_pop else None)
         reasons = list(res.fail_reasons)
         if res.ip_penalty >= w["ip_drop_at"]:
@@ -169,7 +169,7 @@ def render_markdown(cands: list[Candidate]) -> str:
     for c in cands:
         mark = " ✅선택됨" if c.picked else ""
         lines += [
-            f"## {c.rank}. {c.name} — {c.score}점{mark}" + ("  [샘플 자료]" if c.sample else ""),
+            f"## {c.rank}. {c.name} - {c.score}점{mark}" + ("  [샘플 자료]" if c.sample else ""),
             f"- 규칙: {c.rule_one_line}",
             f"- 연결된 틀: {c.frame or '없음'}" + (f" ({c.frame_reason})" if c.frame_reason else ""),
             f"- 한 판 {f'{c.session_length}초' if c.session_length else '미기재(틀 기본값)'} / "
@@ -201,10 +201,12 @@ def render_memes_markdown(memes: list[dict[str, Any]]) -> str:
         h = m["meme_card_hint"]
         tgt = f"{h['targetMs'] / 1000:.2f}초" if h["targetMs"] is not None else \
             f"없음(틀 파라미터 제안 {json.dumps(h.get('frameParamsHint', {}))})"
-        lines += [f"## {m['rank']}. {m['name']} ({m['type']}) — {m['score']}점" + ("  [샘플 자료]" if m["sample"] else ""),
-                  f"- 목표 시간(라운드당): {tgt} — {h['targetReason']}",
+        lines += [f"## {m['rank']}. {m['name']} ({m['type']}) - {m['score']}점" + ("  [샘플 자료]" if m["sample"] else ""),
+                  f"- 목표 시간(라운드당): {tgt} ({h['targetReason']})",
                   *([f"- 한 판 예상 길이: {h['expectedSessionS']:g}초 "
-                     f"({h['rounds']}라운드 x (목표 {h['targetMs'] / 1000:g}초 + 여유 {ROUND_SLACK_S}초)) — "
+                     f"({h['rounds']}라운드 x (소개 {ROUND_INTRO_S}초 + 목표 + 반응 {ROUND_REACT_S}초), "
+                     f"라운드별 목표 {'·'.join(f'{t / 1000:g}' for t in h['roundTargetsMs'])}초, "
+                     f"마지막 결과 {FINAL_RESULT_S}초): "
                      + (f"{MIN_SESSION_S}~{MAX_SESSION_S}초 안" if h["sessionInRange"]
                         else f"⚠ {MIN_SESSION_S}~{MAX_SESSION_S}초 밖")]
                     if h.get("expectedSessionS") is not None else []),

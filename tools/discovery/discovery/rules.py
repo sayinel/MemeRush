@@ -23,16 +23,23 @@ def load_ip_terms(path: Path | None = None) -> dict[str, list[str]]:
     return json.loads((path or _DIR / "ip_terms.json").read_text(encoding="utf-8"))
 
 
+def term_in(term: str, text: str) -> bool:
+    """영문·숫자 용어는 단어 경계로 비교한다('sonic'은 'ultrasonic'에, 'bts'는 'debts'에 걸리지 않음).
+    한글 용어는 조사가 붙으므로 부분 일치."""
+    t, s = term.lower(), text.lower()
+    if re.fullmatch(r"[a-z0-9 ]+", t):
+        return re.search(r"(?<![a-z0-9])" + re.escape(t) + r"(?![a-z0-9])", s) is not None
+    return t in s
+
+
 def find_ip_hits(sig: Signal, ip_terms: dict[str, list[str]]) -> list[dict[str, str]]:
     """각 hit: category, term, where('rule'=notes 안, 'name'=이름만)."""
-    name_l, notes_l = sig.name.lower(), sig.notes.lower()
     hits = []
     for cat, terms in ip_terms.items():
         for t in terms:
-            tl = t.lower()
-            if tl in notes_l:
+            if term_in(t, sig.notes):
                 hits.append({"category": cat, "term": t, "where": "rule"})
-            elif tl in name_l:
+            elif term_in(t, sig.name):
                 hits.append({"category": cat, "term": t, "where": "name"})
     return hits
 

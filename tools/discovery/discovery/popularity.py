@@ -8,7 +8,7 @@ from __future__ import annotations
 import math
 import re
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Any
 
 from .evidence import num
@@ -21,6 +21,7 @@ DEFAULTS: dict[str, Any] = {
     "breadth_base": 0.4, "breadth_per_community": 0.2, "counter_penalty_max": 4,
     "consensus_factors": {"1": 0.7, "2": 0.9, "3": 1.0},
     "fading_penalty": 10, "astroturf_penalty": 15,
+    "decay_days": 7, "decay_factor": 0.5,  # 측정 시각이 7일을 넘은 온라인 근거는 절반만 반영(weights.json 최상위 값)
 }
 
 
@@ -39,13 +40,42 @@ def parse_time(s: Any) -> datetime | None:
     return dt if dt.tzinfo else dt.replace(tzinfo=timezone.utc)
 
 
+def measured_end(s: Any) -> datetime | None:
+    """측정 시각의 가장 늦은 가능 시각. '2026-10'처럼 달·해 단위면 그 기간의 마지막 날 끝으로 본다
+    (기간 전체가 7일을 넘었을 때만 오래된 값으로 보기 위해)."""
+    at = parse_time(s)
+    if at is None:
+        return None
+    t = s.strip()
+    if re.fullmatch(r"\d{4}", t):
+        return at.replace(year=at.year + 1) - timedelta(seconds=1)
+    if re.fullmatch(r"\d{4}-\d{2}", t):
+        nxt = at.replace(year=at.year + 1, month=1) if at.month == 12 else at.replace(month=at.month + 1)
+        return nxt - timedelta(seconds=1)
+    return at
+
+
+def is_stale(measured_at: Any, now: datetime | None, c: dict[str, Any]) -> bool:
+    """측정 시각이 decay_days(기본 7일)를 넘었나. 시각을 모르거나 now가 없으면 False(판단하지 않음)."""
+    if now is None:
+        return False
+    at = measured_end(measured_at)
+    if at is None:
+        return False
+    if now.tzinfo is None:
+        now = now.replace(tzinfo=timezone.utc)
+    return (now - at) > timedelta(days=c["decay_days"])
+
+
 def _log_scale(x: float, cap: float) -> float:
     """0~10: log10(1+x)를 log10(1+cap)에 대한 비율로."""
     return 10 * math.log10(1 + max(0.0, min(x, cap))) / math.log10(1 + cap)
 
 
 def _cfg(w: dict[str, Any] | None) -> dict[str, Any]:
-    return {**DEFAULTS, **((w or {}).get("popularity") or {})}
+    w = w or {}
+    top = {k: w[k] for k in ("decay_days", "decay_factor") if k in w}
+    return {**DEFAULTS, **top, **(w.get("popularity") or {})}
 
 
 def _norm(s: str) -> str:
@@ -69,20 +99,25 @@ def velocity_factor(e: dict[str, Any], c: dict[str, Any]) -> float:
     return c["velocity_min"] + c["velocity_span"] * scale
 
 
-def online_item_score(e: dict[str, Any], c: dict[str, Any]) -> float:
+def online_item_score(e: dict[str, Any], c: dict[str, Any], now: datetime | None = None) -> float:
     tier_pts = 2.0 * (e.get("tier") or 1)                 # 1~5 → 2~10
     v = num(e.get("value_approx")) or 0.0
     base = 0.5 * tier_pts + 0.5 * _log_scale(v, c["online_value_cap"]) if v > 0 else 0.5 * tier_pts
-    return min(10.0, base * velocity_factor(e, c))
+    score = min(10.0, base * velocity_factor(e, c))
+    if is_stale(e.get("measured_at"), now, c):            # 7일 초과: 절반
+        score *= c["decay_factor"]
+    return score
 
 
-def score_online(items: list[dict[str, Any]], c: dict[str, Any]) -> tuple[float, str]:
+def score_online(items: list[dict[str, Any]], c: dict[str, Any], now: datetime | None = None) -> tuple[float, str]:
     if not items:
         return 0.0, "온라인 인기도 근거 없음"
-    best = max(online_item_score(e, c) for e in items)
+    best = max(online_item_score(e, c, now) for e in items)
     plats = {_norm(e.get("platform", "")) for e in items}
     bonus = min(c["extra_platform_bonus_cap"], c["extra_platform_bonus"] * (len(plats) - 1))
-    return min(10.0, best + bonus), ""
+    stale = sum(is_stale(e.get("measured_at"), now, c) for e in items)
+    note = f"온라인 근거 {stale}건이 측정 {c['decay_days']}일 초과: {c['decay_factor']:g}배로 반영" if stale else ""
+    return min(10.0, best + bonus), note
 
 
 # ---- 커뮤니티 ----
@@ -162,9 +197,10 @@ class PopularityResult:
 
 def compute_popularity(online: list[dict[str, Any]], community: list[dict[str, Any]],
                        fading: bool = False, astroturf_suspect: bool = False,
-                       w: dict[str, Any] | None = None) -> PopularityResult:
+                       w: dict[str, Any] | None = None, now: datetime | None = None) -> PopularityResult:
+    """now가 있으면 측정 시각이 7일을 넘은 온라인 근거는 절반만 반영한다(실제 점수 경로는 항상 now를 넘긴다)."""
     c = _cfg(w)
-    on, on_note = score_online(online, c)
+    on, on_note = score_online(online, c, now)
     co, co_note = score_community(community, c)
     cons = consensus(online, community, c)
     fp = float(c["fading_penalty"]) if fading else 0.0

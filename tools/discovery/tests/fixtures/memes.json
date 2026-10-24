@@ -3,7 +3,7 @@
   "memes": [
     {"name": "6 7", "type": "number", "summary": "숫자 6과 7만 말하는 것이 웃음 포인트인 학교 유행 문구",
      "since": "2025-09", "target_seconds_suggestion": 6.7, "safety_flags": [], "ip_risks": [],
-     "_note": "가상 자료. 독립 출처 4곳, 큰 규모",
+     "_note": "가상 자료. 독립 출처 4곳, 큰 규모. 숫자 밈 6.7초는 7초 안이라 보정 없음",
      "online": [
        {"platform": "TikTok", "metric": "조회수", "value_approx": 2000000000, "tier": 5, "since": "2025-09",
         "measured_at": "2026-10-20", "source_name": "TikTok 해시태그 집계", "source_url": "https://memes.example.test/ev/67-tiktok",
@@ -17,7 +17,7 @@
         "counter_view": "이제 지겹다는 반응도 많음"}]},
     {"name": "Wait for it", "type": "timing", "summary": "기다리다가 마지막에 터지는 순간이 웃음 포인트인 영상 형식",
      "since": "2026-09", "target_seconds_suggestion": 22, "safety_flags": [], "ip_risks": [],
-     "_note": "가상 자료. 제안 22초는 15초 상한을 넘어 보정되어야 함",
+     "_note": "가상 자료. 제안 22초는 5초 상한을 넘어 5.00초로 보정되어야 함",
      "online": [
        {"platform": "YouTube Shorts", "metric": "조회수", "value_approx": 50000000, "tier": 5, "since": "2026-09",
         "measured_at": "2026-10-20", "source_name": "Shorts 집계"},
@@ -27,7 +27,7 @@
        {"community": "Reddit r/memes", "mentions": 400, "upvotes_approx": 30000, "sentiment": "positive", "independent": true}]},
     {"name": "Nobody: / Me:", "type": "format", "summary": "아무도 안 물었는데 나만 하는 행동을 두 줄로 보여 주는 문구 형식",
      "since": "2024-05", "target_seconds_suggestion": 4, "safety_flags": [], "ip_risks": [],
-     "_note": "가상 자료. 형식 밈은 제안 값과 상관없이 10.00초",
+     "_note": "가상 자료. 형식 밈은 제안 값과 상관없이 대표값 4.00초(하루 판은 첫날 3·4·5초)",
      "online": [
        {"platform": "TikTok", "metric": "조회수", "value_approx": 8000000, "tier": 4, "since": "2024-05",
         "measured_at": "2026-10-20", "source_name": "TikTok 집계"}],

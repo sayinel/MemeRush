@@ -20,7 +20,7 @@ def infer_controls(text: str) -> list[str]:
 
 def infer_session_seconds(*texts: str) -> float | None:
     """앞 글부터 처음 나오는 5초 이상 숫자. 범위('30~60초')는 위쪽 값(판 길이 한도 검사에 보수적).
-    통과 여부(config.MIN_SESSION_S~MAX_SESSION_S)는 scoring.required_failures가 본다."""
+    통과 여부(원본 게임 상한 config.MAX_ORIGINAL_GAME_S)는 scoring.required_failures가 본다."""
     for t in texts:
         for m in _SESSION.finditer(t or ""):
             hi = float(m.group(2) or m.group(1))

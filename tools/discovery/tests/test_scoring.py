@@ -33,8 +33,8 @@ def test_weights_from_file_sum_to_100_without_link_trust():
 
 
 @pytest.mark.parametrize("traits_patch,word", [
-    ({"session_seconds": 61}, "초"),
-    ({"session_seconds": 29}, "초"),
+    ({"session_seconds": 31}, "초"),
+    ({"session_seconds": 60}, "초"),
     ({"controls": ["keyboard"]}, "조작"),
     ({"controls": ["tap", "keyboard"]}, "조작"),
     ({"score_type": "unclear"}, "숫자 하나"),
@@ -44,6 +44,20 @@ def test_required_criteria_fail_gives_zero(traits_patch, word):
     r = score_signal(sig(traits=t), W, IP, NOW)
     assert not r.passed and r.total == 0
     assert any(word in x for x in r.fail_reasons)
+
+
+@pytest.mark.parametrize("secs", [5, 15, 20, 25, 29, 30])
+def test_short_original_games_pass_with_full_length_points(secs):
+    # 원본 게임 길이는 상한(30초)만 둔다: 짧은 게임(예: 20초 Stickman Hook)은 탈락하지 않는다
+    t = sig().traits | {"session_seconds": secs}
+    r = score_signal(sig(traits=t), W, IP, NOW)
+    assert r.passed and not r.fail_reasons
+    assert r.parts["session_length"] == pytest.approx(15)
+
+
+def test_session_over_30_fails_but_30_passes():
+    assert score_signal(sig(traits=sig().traits | {"session_seconds": 30}), W, IP, NOW).passed
+    assert not score_signal(sig(traits=sig().traits | {"session_seconds": 30.5}), W, IP, NOW).passed
 
 
 def test_ip_penalty_rule_vs_name_only():
@@ -85,8 +99,8 @@ def test_signal_strength_uses_popularity_total_out_of_100():
 
 
 def test_length_and_ease_partial_points():
-    r = score_signal(sig(traits={"session_seconds": 60, "controls": ["tap", "swipe"],
+    r = score_signal(sig(traits={"session_seconds": 30, "controls": ["tap", "swipe"],
                                  "score_type": "single_number", "impl_ease": 3}), W, IP, NOW)
     assert r.parts["impl_ease"] == pytest.approx(18)
-    assert r.parts["session_length"] == pytest.approx(7.5)
+    assert r.parts["session_length"] == pytest.approx(15)
     assert r.parts["control_simplicity"] == pytest.approx(12)

@@ -37,17 +37,20 @@ def test_convert_format_is_always_default_round_target():
         assert t["ms"] == DEFAULT_ROUND_TARGET_S * 1000 and "4.00" in t["reason"]
 
 
-@pytest.mark.parametrize("mtype,sug,ms", [("number", 2.5, 3000), ("number", 0.1, 3000), ("timing", 22, 5000),
-                                          ("number", 3, 3000), ("timing", 5, 5000), ("number", 5.01, 5000)])
-def test_target_clamped_to_round_range_with_reason(mtype, sug, ms):
+@pytest.mark.parametrize("mtype,sug,ms,clamped", [
+    ("number", 2.5, 3000, True), ("number", 0.1, 3000, True), ("timing", 22, 5000, True),
+    ("number", 3, 3000, False), ("timing", 5, 5000, False),
+    ("number", 5.01, 5010, False), ("number", 6.7, 6700, False), ("number", 7, 7000, False),  # 숫자 밈은 7초까지
+    ("number", 7.01, 7000, True), ("timing", 5.01, 5000, True)])                              # 그 밖은 5초까지
+def test_target_clamped_to_round_range_with_reason(mtype, sug, ms, clamped):
     t = convert_target(mtype, sug)
     assert t["ms"] == ms
-    assert t["clamped"] == (sug not in (3, 5)) and ("범위 밖" in t["reason"]) == t["clamped"]
+    assert t["clamped"] is clamped and ("범위 밖" in t["reason"]) is clamped
 
 
 def test_missing_suggestion_falls_back_to_default_with_reason():
     t = convert_target("number", None)
-    assert t["ms"] == DEFAULT_ROUND_TARGET_S * 1000 and "제안 값이 없어" in t["reason"]
+    assert t["ms"] == DEFAULT_ROUND_TARGET_S * 1000 and "제안 값이 없어" in t["reason"] and t["default"] is True
 
 
 @pytest.mark.parametrize("flag,cat", [("특정인 조롱", "특정인 조롱"), ("hate speech", "혐오"), ("혐오 표현", "혐오"),
@@ -82,16 +85,24 @@ def test_fixture_type_conversions_and_hints():
     _, (ranked, _) = _run()
     by = {m["name"]: m for m in ranked}
     h67 = by["6 7"]["meme_card_hint"]
-    assert h67["type"] == "number" and h67["targetMs"] == 5000 and "범위 밖" in h67["targetReason"]
-    assert by["Wait for it"]["meme_card_hint"]["targetMs"] == 5000 and "범위 밖" in by["Wait for it"]["meme_card_hint"]["targetReason"]
-    assert by["2 5"]["meme_card_hint"]["targetMs"] == 3000
-    assert by["Nobody: / Me:"]["meme_card_hint"]["targetMs"] == 4000
+    # "6 7"은 6.7초: 숫자 밈은 7초까지라 잘리지 않는다(PR #18)
+    assert h67["type"] == "number" and h67["targetMs"] == 6700 and "범위 밖" not in h67["targetReason"]
+    assert h67["roundTargetsMs"] == [6700, 6700, 6700]
+    assert h67["expectedSessionS"] == 38.1 and h67["sessionInRange"] is True   # 3 x (2+6.7+3) + 3
+    w = by["Wait for it"]["meme_card_hint"]
+    assert w["targetMs"] == 5000 and "범위 밖" in w["targetReason"] and w["roundTargetsMs"] == [5000] * 3
+    assert w["expectedSessionS"] == 33 and w["sessionInRange"] is True          # 3 x (2+5+3) + 3
+    t25 = by["2 5"]["meme_card_hint"]
+    assert t25["targetMs"] == 3000 and t25["expectedSessionS"] == 27 and t25["sessionInRange"] is False
+    nobody = by["Nobody: / Me:"]["meme_card_hint"]  # 형식 밈: 목표 시간을 주지 않으므로 첫날 3·4·5초
+    assert nobody["targetMs"] == 4000 and nobody["roundTargetsMs"] == [3000, 4000, 5000]
+    assert nobody["expectedSessionS"] == 30 and nobody["sessionInRange"] is True
     for m in ranked:
         ctx = m["meme_context"]
         assert set(ctx) <= {"summary", "since", "url"} and ctx["summary"] and ctx["since"]
-        assert set(m["meme_card_hint"]) == {"type", "targetMs", "targetReason", "rounds", "expectedSessionS",
-                                            "sessionInRange"}
-        assert 3000 <= m["meme_card_hint"]["targetMs"] <= 5000
+        assert set(m["meme_card_hint"]) == {"type", "targetMs", "targetReason", "rounds", "roundTargetsMs",
+                                            "expectedSessionS", "sessionInRange"}
+        assert 3000 <= m["meme_card_hint"]["targetMs"] <= 7000
     assert by["6 7"]["meme_context"]["url"] == "https://memes.example.test/ev/67-tiktok"
 
 
@@ -140,7 +151,9 @@ def test_run_writes_today_md_with_combo(tmp_path):
     first = today.split("### 조합 1:")[1]
     plan = json.loads(first.split("```json")[1].split("```")[0])
     assert plan["frame"] == "timing_stop" and plan["seed"] == "2026-10-24" and plan["id"] == "2026-10-24"
-    assert plan["meme"]["summary"] and plan["frameParams"]["targetMs"] == 5000
+    assert plan["meme"]["summary"]
+    assert plan["frameParams"] == {"rounds": 3, "targetMs": [6700, 6700, 6700], "visibleMs": 1500}
+    assert not {"rounds", "scoreRule", "expectedSessionS", "sessionInRange"} & set(plan)  # 메타는 하루 판 파일 밖
     assert "### 조합 1: timing_stop × 6 7" in today
     ms = json.loads((out / "memes.json").read_text(encoding="utf-8"))
     assert len(ms) == 5
