@@ -9,6 +9,8 @@ const nextConfig: NextConfig = {
     "/**": ["./content/challenges/*.json"],
     // The OG card embeds the worker sprite; public/ is served by the CDN and isn't traced by default.
     "/api/og/**": ["./public/game/worker_smug.png"],
+    // The result video composes the game sprites (and bg_win/bg_lose once they exist) into each scene.
+    "/api/videos": ["./public/game/**/*"],
   },
   turbopack: {
     rules: {
