@@ -13,8 +13,8 @@ Meme Rush는 매번 같은 게임을 내지 않는다. 그날 뜨는 인기 게�
 
 | 항목 | 규격 |
 |---|---|
-| 한 판 길이 | 30초 이하(권장 10~30초). 시작 후 0.5초 안에 재시작 가능 |
-| 점수 | 정수 하나. `scoreDirection`으로 낮을수록 좋음(`asc`)인지 높을수록 좋음(`desc`)인지 선언. 표시 문구는 틀이 정함(예: "0.034s off", "42 taps") |
+| 한 판 길이 | 30~60초(권장 3라운드, 라운드 목표 시간 3~5초). 시작 후 0.5초 안에 재시작 가능. 초 수치는 플레이하며 바뀔 수 있음 |
+| 점수 | 라운드별 점수를 `scoreRule`(기본 `sum`, 오차 합산)로 합친 정수 하나. `scoreDirection`으로 낮을수록 좋음(`asc`)인지 높을수록 좋음(`desc`)인지 선언. 표시 문구는 틀이 정함(예: "0.034s off", "42 taps") |
 | 하루 같은 판 | 같은 날은 모두 같은 파라미터와 같은 `seed`로 플레이해 공정하게 비교 |
 | 조작 | 탭·누르고 있기·스와이프만. 입력은 `pointerdown`/`pointermove`/`pointerup`, 측정은 `performance.now()` |
 | 서버 시각 | 시작과 종료 요청의 서버 시각(DB `now()`)이 기준. 클라이언트 측정값이 서버 경과 시간보다 길거나 틀이 정한 범위 밖이면 거부 |
@@ -32,14 +32,18 @@ Meme Rush는 매번 같은 게임을 내지 않는다. 그날 뜨는 인기 게�
 interface GameFrame<P> {
   id: string;                    // 예: "timing_stop"
   scoreDirection: "asc" | "desc";
-  maxDurationMs: number;         // 30000 이하
+  rounds: number;                // 한 판의 라운드 수, 기본 3
+  scoreRule: "sum";              // 라운드 점수 합산 규칙. 오차 합산이면 낮을수록 좋음
+  maxDurationMs: number;         // 60000 이하 (한 판 전체)
   paramsSchema: ZodSchema<P>;    // content/challenges/{id}.json 의 frameParams 검증
   start(params: P, seed: string, ctx: FrameContext): void;  // 한 판 시작
   onInput(e: PointerEvent): void;
-  finish(): { score: number; display: string };            // 점수와 표시 문구
-  validate(r: { score: number }, serverElapsedMs: number, params: P): boolean;
+  finish(): { roundScores: number[]; score: number; display: string };  // 라운드별 점수, 합산 점수, 표시 문구
+  validate(r: { roundScores: number[]; score: number }, serverElapsedMs: number, params: P): boolean;  // 라운드 수, 각 점수 범위, 합산 일치를 확인
 }
 ```
+
+`score`는 `roundScores`를 `scoreRule`로 합친 값이어야 하고, 서버는 합이 맞지 않으면 거부한다. 라운드 수가 1인 틀도 같은 모양을 쓴다(`roundScores`에 값 하나).
 
 ## 4. 틀 라이브러리 v1
 
@@ -47,12 +51,14 @@ interface GameFrame<P> {
 
 | 틀 id | 규칙(한 줄) | 점수 | 파라미터 | 서버 검증 | 난이도 | 잘 맞는 밈 |
 |---|---|---|---|---|---|---|
-| `timing_stop` | 숨겨진 타이머를 목표 시간에 맞춰 한 번 탭해 멈춘다 | 오차 ms, 낮을수록 | `targetMs`, `visibleMs` | 1~30초 범위, 서버 경과보다 길면 거부 | 낮음 | 숫자 밈, 타이밍 밈 |
-| `tap_rush` | 제한 시간 동안 박자나 표시에 맞춰 최대한 많이 탭 | 성공 탭 수, 높을수록 | `durationMs`, `bpm`, `seed` | 초당 탭 수 상한(예: 12) | 낮음 | 리듬·댄스 밈, 반복 동작 밈 |
-| `swipe_dodge` | 좌우로 밀어 떨어지는 장애물을 피하고 오래 버틴다 | 생존 시간 ms 또는 통과 수 | `speed`, `gap`, `seed` | 생존 시간이 서버 경과를 넘지 못함 | 중간 | 일상 노동·장애물 밈 |
-| `gauge_stop` | 움직이는 게이지가 목표 구간에 있을 때 탭 | 목표 구간 중심과의 거리 점수 | `zoneStart`, `zoneEnd`, `speed`, `rounds` | 라운드 수와 점수 범위 | 낮음 | 타이밍 밈, 낚시·착륙류 |
-| `outline_trace` | 손가락으로 외곽선을 따라가며 벗어나지 않는다 | 정확도 점수 또는 완주 시간 | `shape`, `tolerance`, `seed` | 완주 시간 하한 | 중간 | 챌린지형 밈 |
-| `merge_drop` | 같은 것끼리 합쳐 큰 것을 만든다 | 누적 점수 | `seed`, `boardSize` | 점수 상한 | 높음 | 합성·진화 밈 |
+| `timing_stop` | 숨겨진 타이머를 목표 시간에 맞춰 한 번 탭해 멈춘다 | 라운드별 오차 ms의 합, 낮을수록 | `rounds`(기본 3), `targetMs`(라운드별, 각 3000~5000), `visibleMs` | 라운드별 3~5초 범위, 전체가 서버 경과(60초 이하)보다 길면 거부 | 낮음 | 숫자 밈, 타이밍 밈 |
+| `tap_rush` | 제한 시간 동안 박자나 표시에 맞춰 최대한 많이 탭 | 라운드별 성공 탭 수의 합, 높을수록 | `rounds`, `durationMs`(라운드당 약 10초), `bpm`, `seed` | 초당 탭 수 상한(예: 12) | 낮음 | 리듬·댄스 밈, 반복 동작 밈 |
+| `swipe_dodge` | 좌우로 밀어 떨어지는 장애물을 피하고 오래 버틴다 | 라운드별 생존 시간 ms 또는 통과 수의 합 | `rounds`, `roundCapMs`(라운드당 15초 이하), `speed`, `gap`, `seed` | 생존 시간이 서버 경과를 넘지 못함 | 중간 | 일상 노동·장애물 밈 |
+| `gauge_stop` | 움직이는 게이지가 목표 구간에 있을 때 탭 | 라운드별 목표 구간 중심과의 거리의 합 | `zoneStart`, `zoneEnd`, `speed`, `rounds` | 라운드 수와 점수 범위 | 낮음 | 타이밍 밈, 낚시·착륙류 |
+| `outline_trace` | 손가락으로 외곽선을 따라가며 벗어나지 않는다 | 라운드별 정확도 점수 또는 완주 시간의 합 | `rounds`(모양 하나당 한 라운드, 약 10초), `shape`, `tolerance`, `seed` | 완주 시간 하한 | 중간 | 챌린지형 밈 |
+| `merge_drop` | 같은 것끼리 합쳐 큰 것을 만든다 | 누적 점수(`rounds` 1, 60초 제한 한 판) | `seed`, `boardSize` | 점수 상한 | 높음 | 합성·진화 밈 |
+
+틀마다 한 판이 30~60초에 들어오는지 위 표에서 점검했다. `merge_drop`만 3라운드로 나누기 어려워 한 라운드 60초로 둔다. 나머지는 3라운드 합산을 기본으로 한다.
 
 MVP는 `timing_stop` 하나만 구현한다([MVP_SCOPE.md](MVP_SCOPE.md)). 단 구현은 위 인터페이스 모양으로 만들어, 다음 틀을 파일 추가로 붙일 수 있게 한다.
 
@@ -73,16 +79,17 @@ MVP는 `timing_stop` 하나만 구현한다([MVP_SCOPE.md](MVP_SCOPE.md)). 단 �
   "id": "2026-10-24",
   "title": "MemeRush Daily #001",
   "frame": "timing_stop",
-  "frameParams": { "targetMs": 6700, "visibleMs": 3000 },
+  "frameParams": { "rounds": 3, "targetMs": [3000, 4000, 5000], "visibleMs": 1500 },
   "seed": "2026-10-24",
   "meme": { "...": "밈 카드(MEME_GAME_DESIGN.md 4절)" }
 }
 ```
 
-기존 `targetMs`, `visibleMs`는 `frameParams`로 옮긴다. `frame`이 없으면 `timing_stop`으로 읽어 지금 파일과 호환한다.
+기존 `targetMs`, `visibleMs`는 `frameParams`로 옮긴다. `targetMs`는 라운드별 배열이고 길이가 `rounds`와 같다. 숫자 하나면 모든 라운드에 같은 값을 쓴다. `rounds`가 없으면 3으로 읽는다. `frame`이 없으면 `timing_stop`으로 읽어 지금 파일과 호환한다.
 
 ## 7. 남은 결정
 
 - 첫 번째 확장 틀을 `tap_rush`와 `gauge_stop` 중 무엇으로 할지(둘 다 낮음 난이도).
 - 틀 인터페이스를 MVP 코드에 처음부터 넣을지(추천) 아니면 두 번째 틀을 만들 때 분리할지.
+- 초 수치(라운드 수, 라운드별 목표 시간 3~5초, 한 판 30~60초)는 플레이하며 조정한다.
 - 틀마다 서버 검증 상한값(예: 초당 탭 수)을 어떤 값으로 둘지.
