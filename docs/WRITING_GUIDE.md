@@ -83,7 +83,7 @@ OG 설명   "30 seconds. 3 rounds. Beat my 0.087s."
 적용: 발표자료, 제출 양식의 한 줄 소개, README 첫 줄, 마케팅 글.
 값:
 ```text
-틀(시작값)   Meme Rush turns today's meme into a 30-second game you challenge friends to.
+틀(시작값)   Today's meme becomes a 30-second game for friends.   (8단어)
 금지 단어    next-generation / revolutionizing / disrupting / paradigm / synergy / "Uber for X"
              AI-powered platform처럼 무엇인지 말하지 않는 표현
 근거 표기    사례 수치에는 출처 이름을 붙인다 / 확인 못 한 것은 "unverified"
