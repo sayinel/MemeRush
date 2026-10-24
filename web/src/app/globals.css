@@ -1,26 +1,51 @@
 @import "tailwindcss";
 
+/* Exact family name "Anton" so the Phaser canvas can use it too (GameCanvas waits for it). */
+@font-face {
+  font-family: "Anton";
+  src: url("/fonts/Anton-Regular.ttf") format("truetype");
+  font-display: swap;
+}
+
+/* Service screen tokens (docs/SERVICE_SCREEN_GUIDE.md 2절). Game colors live in Phaser code. */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --sky: #3eaef5;
+  --sky-light: #80e3fe;
+  --panel: #4cc0f7;
+  --row: #a3e8fa;
+  --navy: #1c5692;
+  --ink-blue: #0f3a73;
+  --gold: #fede25;
+  --hot: #ffc531;
+  --bronze: #f49e57;
+  --silver: #d8dfea;
+  --green: #17803f;
+  --red: #c93a52;
+  --warn-text: #7a5200;
+  --warn-bg: #fff1cf;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
+  --color-sky: var(--sky);
+  --color-sky-light: var(--sky-light);
+  --color-panel: var(--panel);
+  --color-row: var(--row);
+  --color-navy: var(--navy);
+  --color-ink-blue: var(--ink-blue);
+  --color-gold: var(--gold);
+  --color-hot: var(--hot);
+  --color-bronze: var(--bronze);
+  --color-silver: var(--silver);
+  --color-green: var(--green);
+  --color-red: var(--red);
+  --color-warn-text: var(--warn-text);
+  --color-warn-bg: var(--warn-bg);
   --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --font-display: "Anton", Impact, sans-serif;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: linear-gradient(to bottom, var(--sky-light), var(--sky));
+  color: var(--ink-blue);
+  font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
 }
