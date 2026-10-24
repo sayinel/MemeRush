@@ -1,3 +1,4 @@
+import { jsonError } from "@/lib/api";
 import { getChallenge } from "@/lib/challenge";
 import { bestErrorMs, globalRank } from "@/lib/ranking";
 import { currentPlayer } from "@/lib/session";
@@ -10,16 +11,17 @@ export async function GET(request: Request) {
   if (!player) return Response.json({ leagues: [] });
 
   const best = getChallenge(challengeId) ? await bestErrorMs(player.id, challengeId) : null;
-  const { data: memberships } = await supabaseAdmin()
+  const { data: memberships, error } = await supabaseAdmin()
     .from("league_members")
-    .select("league_id, leagues(owner_id, players(nickname))")
+    .select("league_id, leagues(owner_id, owner:players!owner_id(nickname))")
     .eq("player_id", player.id);
+  if (error) return jsonError(500, error.message);
 
   const leagues = (memberships ?? []).map((m) => {
-    const league = m.leagues as unknown as { owner_id: string; players: { nickname: string } | null } | null;
+    const league = m.leagues as unknown as { owner_id: string; owner: { nickname: string } | null } | null;
     return {
       leagueId: m.league_id as string,
-      ownerNickname: league?.players?.nickname ?? "",
+      ownerNickname: league?.owner?.nickname ?? "",
       isOwner: league?.owner_id === player.id,
     };
   });
