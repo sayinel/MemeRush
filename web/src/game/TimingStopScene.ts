@@ -1,5 +1,6 @@
 import * as Phaser from "phaser";
 import type { Challenge } from "@/lib/challenge";
+import { fillCaption, formatClock, parseLabel, pickCaption } from "./captions";
 import {
   GAME_HEIGHT as H,
   GAME_WIDTH as W,
@@ -57,20 +58,6 @@ const CONFETTI_TINTS = [C.gold, C.hot, C.red, C.green, C.sky, C.white, C.mascot]
 type Phase = "boot" | "intro" | "starting" | "play" | "reaction" | "submitting" | "final" | "done" | "error";
 type Caption = { top: string; bottom: string };
 type Pt = { x: number; y: number };
-
-function parseLabel(label: string): number {
-  const [h = 0, m = 0, s = 0] = label.split(":").map(Number);
-  return ((h * 60 + m) * 60 + s) * 1000;
-}
-
-function formatClock(ms: number, withCs = true): string {
-  const total = Math.max(0, Math.floor(ms));
-  const h = Math.floor(total / 3600000);
-  const m = Math.floor(total / 60000) % 60;
-  const s = Math.floor(total / 1000) % 60;
-  const base = `${h}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
-  return withCs ? `${base}.${String(Math.floor(total / 10) % 100).padStart(2, "0")}` : base;
-}
 
 function starPoints(cx: number, cy: number, outer: number, inner: number, n: number, rot = -Math.PI / 2): Pt[] {
   const pts: Pt[] = [];
@@ -376,9 +363,7 @@ export class TimingStopScene extends Phaser.Scene {
   private playFinal(result: FinishResult) {
     const run = this.run;
     this.phase = "final";
-    const { meme } = this.challenge;
-    const variant = result.outcome === "lose" ? result.outcomeVariant : null;
-    const caption: Caption = result.outcome === "win" ? meme.win : (variant && meme.lose[variant]) || meme.lose;
+    const caption: Caption = pickCaption(this.challenge, result);
 
     this.setCaption(this.capTop, "");
     this.setCaption(this.capBottom, "");
@@ -386,7 +371,7 @@ export class TimingStopScene extends Phaser.Scene {
     this.tweens.add({ targets: this.button, alpha: 0, scale: 0.4, duration: 200, ease: "Quad.In" });
 
     if (result.outcome === "win") this.finalWin(result);
-    else if (variant === "early") this.finalGrabbed(result);
+    else if (result.outcomeVariant === "early") this.finalGrabbed(result);
     else this.finalBuried(result);
 
     this.time.delayedCall(350, () => {
@@ -750,7 +735,7 @@ export class TimingStopScene extends Phaser.Scene {
         g,
         this.txt(0, -104, "MEETING INVITE", 40, { strokeThickness: 0 }),
         this.txt(0, 0, "QUICK SYNC?", 92, { color: hex(C.ink), strokeThickness: 0 }),
-        this.txt(0, 92, "FRI · 5:00 PM · 2 HRS", 38, { color: hex(C.navy), strokeThickness: 0 }),
+        this.txt(0, 92, `TODAY · ${this.meetingTime()} · 2 HRS`, 38, { color: hex(C.navy), strokeThickness: 0 }),
       ]);
     } else if (key === boss) {
       c.add(this.makeBoss(false).setScale(1.7));
@@ -1020,17 +1005,14 @@ export class TimingStopScene extends Phaser.Scene {
   }
 
   private fillTemplate(s: string, result: FinishResult): string {
+    return fillCaption(this.challenge, s, { ...result, roundElapsedMs: this.elapsed });
+  }
+
+  // The meeting lands exactly on the last round's target time (h:mm), so it reads right for any day file.
+  private meetingTime() {
     const { frameParams, meme } = this.challenge;
-    const errs = this.elapsed.map((e, i) => Math.abs(e - frameParams.targetMs[i]));
-    // Highlight round: most accurate on win, worst on lose (docs/MEME_GAME_DESIGN.md §5).
-    const pick = errs.reduce((best, e, i) => ((result.outcome === "win" ? e < errs[best] : e > errs[best]) ? i : best), 0);
-    const stop = this.elapsed[pick] ?? 0;
-    const stopLabel = formatClock(parseLabel(meme.theme.rounds[pick].startLabel) + stop);
-    const rounds = meme.theme.rounds;
-    return s
-      .replaceAll("{result}", `${(result.errorMs / 1000).toFixed(3)}s off`)
-      .replaceAll("{stopLabel}", stopLabel)
-      .replaceAll("{nearLabel}", rounds[rounds.length - 1].startLabel);
+    const last = meme.theme.rounds.length - 1;
+    return formatClock(parseLabel(meme.theme.rounds[last].startLabel) + frameParams.targetMs[last], false).slice(0, -3);
   }
 
   private startMs() {

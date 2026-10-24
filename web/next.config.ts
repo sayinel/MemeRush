@@ -5,6 +5,12 @@ const nextConfig: NextConfig = {
   serverExternalPackages: ["ffmpeg-static"],
   outputFileTracingIncludes: {
     "/api/**": ["./node_modules/ffmpeg-static/ffmpeg", "./assets/fonts/**/*"],
+    // lib/challenge.ts reads day files from disk at runtime.
+    "/**": ["./content/challenges/*.json"],
+    // The OG card embeds the worker sprite; public/ is served by the CDN and isn't traced by default.
+    "/api/og/**": ["./public/game/worker_smug.png"],
+    // The result video composes the game sprites and the bg_win/bg_lose backgrounds into each scene.
+    "/api/videos": ["./public/game/**/*", "./assets/video/**/*"],
   },
   turbopack: {
     rules: {

@@ -203,21 +203,27 @@ PLACEHOLDERS = ("{result}", "{stopLabel}", "{nearLabel}", "{error}")
 
 
 def make_cards(brief: dict[str, Any], combo: dict[str, Any], library: list[str], client: Any,
-               feedback: Optional[list[str]] = None) -> list[dict[str, Any]]:
+               feedback: Optional[list[str]] = None, max_new: int = MAX_NEW_KEYS) -> list[dict[str, Any]]:
     params = combo["plan"]["frameParams"]
     rounds = int(params.get("rounds", 3))
     prompt = (
         f"Write {CARD_OPTIONS} different meme card options for today's game.\n"
         f"Story brief:\n{json.dumps(brief, ensure_ascii=False, indent=2)}\n\n"
         f"Game: frame {combo['frame']}, {rounds} rounds, round targets {params.get('targetMs')} ms. "
-        f"Each round has a label (UPPERCASE, <=30 chars), a clock startLabel shown before it hides (<=10 chars), "
+        f"Each round has a label (UPPERCASE, <=30 chars), a clock startLabel h:mm:ss shown before it hides (e.g. 4:59:57), "
         f"and a hider sprite key that covers the clock. theme.rounds must have exactly {rounds} items.\n"
         "win = Perfect; lose.early = tapped too early; lose.late = tapped too late; lose.top/bottom = generic loss.\n"
         f"Placeholders you may use: {', '.join(PLACEHOLDERS)} ({{result}} renders like '0.087s off').\n"
         f"hope: <=30 chars, UPPERCASE, shown just before the final round. prompt: <={PROMPT_MAX} chars, sentence case. "
         f"share: <={SHARE_MAX} chars, must contain {{result}}, no nickname, never reveals the target time.\n"
-        f"Existing sprite keys: {', '.join(sorted(set(library) | set(CODE_DRAWN_KEYS)))}."
+        f"Existing sprite keys: {', '.join(sorted(set(library) | set(CODE_DRAWN_KEYS)))}.\n"
+        f"theme.background names a scene and the game loads the image bg_<name>, so write the name without 'bg_'. "
+        f"Existing backgrounds: {', '.join(_backgrounds(library))}."
     )
+    if max_new == 0:
+        # 자동 발행: 그림을 기다리지 않도록 이미 있는 그림만 쓴다(AUTO_GAME_GENERATION_SCENARIO 3절 6단계 생략).
+        prompt += ("\nUse ONLY the existing sprite keys above for every sprite field and prop. Do not introduce any new key. "
+                   f"Each round's hider and theme.goal must be one of: {', '.join(_hiders(library))} (hiders may also be the boss key).")
     if feedback:
         prompt += "\n\nYour previous options broke these rules - fix them:\n- " + "\n- ".join(feedback)
     return ask_json(client, CARD_SYSTEM, prompt, CARD_SCHEMA)["options"]
@@ -267,8 +273,9 @@ def validate_card(card: dict[str, Any], rounds: int) -> list[str]:
     if len(card["theme"]["rounds"]) != rounds:
         problems.append(f"theme.rounds has {len(card['theme']['rounds'])} items, need {rounds}")
     for i, r in enumerate(card["theme"]["rounds"]):
-        if len(r["startLabel"]) > 10:
-            problems.append(f"rounds[{i}].startLabel longer than 10 chars: {r['startLabel']!r}")
+        # The game counts up from this as a wall clock, so it must parse as h:mm:ss (web/src/lib/challenge.ts).
+        if not re.fullmatch(r"\d{1,2}:\d{2}:\d{2}", r["startLabel"]):
+            problems.append(f"rounds[{i}].startLabel must be a clock like 4:59:57: {r['startLabel']!r}")
     blob = json.dumps(card, ensure_ascii=False).lower()
     for term in _ip_terms():
         pattern = rf"\b{re.escape(term.lower())}\b" if term.isascii() else re.escape(term)
@@ -280,26 +287,52 @@ def validate_card(card: dict[str, Any], rounds: int) -> list[str]:
     return problems
 
 
-def library_problems(card: dict[str, Any], library: list[str]) -> list[str]:
-    """그림 라이브러리 기준 규칙: 확정 주인공, 새 그림 키 상한."""
+def _backgrounds(library: list[str]) -> list[str]:
+    return sorted({k[3:] for k in library if k.startswith("bg_")} | {"office"})
+
+
+# 게임 화면의 UI 그림: 무대 소품(방해물, 목적지)으로 쓰면 화면에 같은 그림이 둘 보인다.
+UI_KEYS = ("timer_panel", "clock_button", "banner_gold")
+
+
+def _hiders(library: list[str]) -> list[str]:
+    # 소품은 그림이 있거나 게임이 직접 그리는 것만 제대로 보인다(그 밖은 글자 상자로 대신 그려짐).
+    return sorted((set(library) | {"email_pile", "meeting_card"})
+                  - {k for k in library if k.startswith(("bg_", "worker_"))} - set(UI_KEYS))
+
+
+def library_problems(card: dict[str, Any], library: list[str], max_new: int = MAX_NEW_KEYS) -> list[str]:
+    """그림 라이브러리 기준 규칙: 확정 주인공, 배경 이름, 새 그림 키 상한(0이면 모든 키가 실제로 그려져야 함)."""
     problems = []
+    t = card["theme"]
+    if t["background"].startswith("bg_"):
+        problems.append(f"theme.background is a scene name without 'bg_' (the game adds it): {t['background']!r}")
     if card["theme"]["player"] != PLAYER_KEY:
         problems.append(f"theme.player must be {PLAYER_KEY!r} (the confirmed mascot), got {card['theme']['player']!r}")
     new = [k for k in sprite_keys(card) if not _covered(k, library) and k not in CODE_DRAWN_KEYS]
-    if len(new) > MAX_NEW_KEYS:
-        problems.append(f"{len(new)} new sprite keys (max {MAX_NEW_KEYS}): {', '.join(new)}")
+    if len(new) > max_new:
+        problems.append(f"{len(new)} new sprite keys (max {max_new}): {', '.join(new)}")
+    if max_new == 0:
+        if t["background"] not in _backgrounds(library) and not t["background"].startswith("bg_"):
+            problems.append(f"theme.background {t['background']!r} has no image (use one of {', '.join(_backgrounds(library))})")
+        if t["goal"] not in _hiders(library):
+            problems.append(f"theme.goal {t['goal']!r} is not a stage prop (use one of {', '.join(_hiders(library))})")
+        for i, r in enumerate(t["rounds"]):
+            if r["hider"] not in _hiders(library) and r["hider"] != t["boss"]:
+                problems.append(f"rounds[{i}].hider {r['hider']!r} has no image (use one of {', '.join(_hiders(library))})")
     return problems
 
 
-def make_card_file(brief: dict[str, Any], combo: dict[str, Any], library: list[str], client: Any) -> dict[str, Any]:
-    """후보 3개를 만들고 검사한다. 위반이 있으면 한 번만 다시 쓰게 한다."""
+def make_card_file(brief: dict[str, Any], combo: dict[str, Any], library: list[str], client: Any,
+                   max_new: int = MAX_NEW_KEYS) -> dict[str, Any]:
+    """후보 3개를 만들고 검사한다. 위반이 있으면 한 번만 다시 쓰게 한다. max_new=0이면 기존 그림만."""
     rounds = int(combo["plan"]["frameParams"].get("rounds", 3))
-    check = lambda o: validate_card(o, rounds) + library_problems(o, library)
-    options = make_cards(brief, combo, library, client)
+    check = lambda o: validate_card(o, rounds) + library_problems(o, library, max_new)
+    options = make_cards(brief, combo, library, client, max_new=max_new)
     problems = [check(o) for o in options]
     if any(problems):
         flat = [f"option {i + 1}: {p}" for i, ps in enumerate(problems) for p in ps]
-        options = make_cards(brief, combo, library, client, feedback=flat)
+        options = make_cards(brief, combo, library, client, feedback=flat, max_new=max_new)
         problems = [check(o) for o in options]
     return {"challengeId": combo["plan"]["id"], "frame": combo["frame"], "meme": brief["meme"],
             "options": [{"index": i + 1, "card": o, "problems": p, "ok": not p}

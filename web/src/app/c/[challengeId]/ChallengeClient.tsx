@@ -4,6 +4,7 @@ import dynamic from "next/dynamic";
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import type { Challenge } from "@/lib/challenge";
 import type { FinishResult } from "@/game/types";
+import { WIN_MAX_TOTAL_ERROR_MS } from "@/lib/timing";
 
 const GameCanvas = dynamic(() => import("@/game/GameCanvas"), { ssr: false });
 
@@ -47,12 +48,26 @@ function friendly(e: unknown): string {
 }
 
 const seconds = (ms: number) => `${(ms / 1000).toFixed(3)}s`;
-const DAILY_NO = "#001";
 
 const RESULT_LINE: Record<string, string> = { win: "Perfect.", early: "Too early.", late: "Too late." };
 const resultKey = (r: FinishResult) => (r.outcome === "win" ? "win" : (r.outcomeVariant ?? "late"));
 
-// --- Service-screen building blocks (SERVICE_SCREEN_GUIDE 4·5·9절) ---
+// Art from web/public/game/manifest.json (shared with the game). Missing keys fall back to code-drawn art,
+// so new files from the art pipeline show up without code changes (docs/SIMON_REQUESTS.md 1-1절).
+type Art = (key: string) => string | null;
+
+function useArt(): Art {
+  const [files, setFiles] = useState<Record<string, string>>({});
+  useEffect(() => {
+    fetch("/game/manifest.json")
+      .then((r) => (r.ok ? r.json() : {}))
+      .then((m: Record<string, string>) => setFiles(m))
+      .catch(() => setFiles({}));
+  }, []);
+  return useCallback((key: string) => (files[key] ? `/game/${files[key]}` : null), [files]);
+}
+
+// --- Service-screen building blocks (ADMIN_UX_GUIDE 4·5·9절) ---
 
 function PrimaryButton({ children, onClick, disabled }: { children: ReactNode; onClick: () => void; disabled?: boolean }) {
   return (
@@ -82,14 +97,158 @@ function Panel({ children, className = "" }: { children: ReactNode; className?: 
   );
 }
 
-function RankBadge({ label, rank, tone }: { label: string; rank: number | null | undefined; tone: "gold" | "hot" }) {
+const pillClass =
+  "flex min-h-11 flex-1 items-center justify-center rounded-full border-[3px] border-white bg-navy px-4 font-title text-lg text-white shadow-[0_3px_0_var(--navy)] active:translate-y-[3px] active:shadow-none disabled:opacity-50";
+
+type VideoState =
+  | { kind: "making" }
+  | { kind: "ready"; url: string; downloadUrl: string; file: File | null; shareUrl: string | null }
+  | { kind: "failed"; cardUrl: string | null };
+
+// Result video (MVP_SCOPE 6절 공유, 7절 영상): made as soon as the hub shows a best, previewed inline, then shared as
+// a file or downloaded. The file and the public link are fetched up front: awaiting them inside the tap handler
+// makes iOS drop the user gesture and reject navigator.share. If rendering fails, offer the result card instead.
+// The parent keys this by the best record, so a new best remounts it and makes a new video.
+function VideoPanel({ challengeId, dailyNo, bestErrorMs }: { challengeId: string; dailyNo: string; bestErrorMs: number }) {
+  const [state, setState] = useState<VideoState>({ kind: "making" });
+  const text = `Meme Rush ${dailyNo} | ${seconds(bestErrorMs)} off\nCan you beat it?`;
+
+  useEffect(() => {
+    let live = true;
+    // Public link: ref only, no league (AC-17).
+    const link = api<{ url: string; referralId: string }>("/api/referrals", { method: "POST", body: { challengeId, invite: false } });
+    api<{ url: string; downloadUrl: string; type: string }>("/api/videos", { method: "POST", body: { challengeId } })
+      .then(async (v) => {
+        const [file, ref] = await Promise.all([
+          fetch(v.url)
+            .then((r) => (r.ok ? r.blob() : Promise.reject(new Error(`HTTP ${r.status}`))))
+            .then((b) => new File([b], `meme-rush-${challengeId}.mp4`, { type: v.type }))
+            .catch(() => null),
+          link.catch(() => null),
+        ]);
+        if (live) setState({ kind: "ready", url: v.url, downloadUrl: v.downloadUrl, file, shareUrl: ref?.url ?? null });
+      })
+      .catch(async () => {
+        const ref = await link.catch(() => null);
+        if (live) setState({ kind: "failed", cardUrl: ref ? `/api/og/${ref.referralId}` : null });
+      });
+    return () => {
+      live = false;
+    };
+  }, [challengeId]);
+
+  const event = (type: string) => api("/api/events", { method: "POST", body: { type, challengeId } }).catch(() => {});
+
+  if (state.kind === "making") {
+    return <p className="py-3 text-center font-title text-lg text-ink-blue">Making your video…</p>;
+  }
+  if (state.kind === "failed") {
+    return state.cardUrl ? (
+      <a href={state.cardUrl} download={`meme-rush-${challengeId}.png`} className={pillClass}>
+        Save result card
+      </a>
+    ) : null;
+  }
+
+  const file = state.file;
+  const canShareFile = !!file && typeof navigator !== "undefined" && !!navigator.canShare?.({ files: [file] });
+  async function shareVideo() {
+    if (!file) return;
+    try {
+      await navigator.share({ files: [file], text: state.kind === "ready" && state.shareUrl ? `${text}\n${state.shareUrl}` : text });
+      event("native_share_invoked");
+    } catch {
+      // Cancelled or refused: Save video stays available.
+    }
+  }
+
   return (
-    <div
-      className={`flex h-24 w-24 -rotate-6 flex-col items-center justify-center rounded-full border-4 border-white shadow-[0_3px_0_var(--navy)] ${tone === "gold" ? "bg-gold" : "bg-hot"}`}
-    >
-      <span className="text-xs font-bold tracking-wide text-ink-blue">{label}</span>
-      <span className="font-title text-3xl leading-none text-ink-blue">{rank != null ? `#${rank}` : "–"}</span>
+    <div className="flex flex-col items-center gap-3">
+      <video src={state.url} playsInline muted autoPlay loop className="w-40 rounded-[14px] border-4 border-white shadow-[0_0_0_3px_var(--navy)]" />
+      <div className="flex w-full gap-2">
+        {canShareFile && (
+          <button onClick={shareVideo} className={pillClass}>
+            Share result
+          </button>
+        )}
+        <a href={state.downloadUrl} download onClick={() => event("video_downloaded")} className={pillClass}>
+          Save video
+        </a>
+      </div>
     </div>
+  );
+}
+
+function RankBadge({ kind, rank, art }: { kind: "world" | "friends"; rank: number | null | undefined; art: Art }) {
+  const img = art(kind === "world" ? "badge_world" : "badge_friends");
+  const label = kind === "world" ? "WORLD" : "FRIENDS";
+  return (
+    <div className="relative flex h-28 w-28 shrink-0 items-center justify-center">
+      {img ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={img} alt="" className="absolute inset-0 h-full w-full object-contain" />
+      ) : kind === "world" ? (
+        <>
+          <span className="absolute left-0 top-7 h-10 w-9 -rotate-[25deg] rounded-[50%_10%_50%_50%] border-[3px] border-white bg-gold shadow-[0_3px_0_var(--navy)]" />
+          <span className="absolute right-0 top-7 h-10 w-9 rotate-[25deg] rounded-[10%_50%_50%_50%] border-[3px] border-white bg-gold shadow-[0_3px_0_var(--navy)]" />
+          <span className="absolute inset-3 rounded-full border-4 border-white bg-gold shadow-[0_3px_0_var(--navy)]" />
+        </>
+      ) : (
+        <>
+          <span className="absolute inset-3 rounded-full border-4 border-white bg-hot shadow-[0_3px_0_var(--navy)]" />
+          <span className="absolute top-1 flex gap-0.5">
+            {[0, 1, 2].map((i) => (
+              <span key={i} className="h-5 w-5 rounded-full border-2 border-white bg-mascot" />
+            ))}
+          </span>
+        </>
+      )}
+      <span className="relative flex flex-col items-center leading-none">
+        <span className="text-[11px] font-bold tracking-wide text-ink-blue">{label}</span>
+        <span className="font-title text-3xl text-ink-blue">{rank != null ? `#${rank}` : "–"}</span>
+      </span>
+    </div>
+  );
+}
+
+function Ribbon({ text, art }: { text: string; art: Art }) {
+  const img = art("banner_gold");
+  return (
+    <div className="relative flex h-14 w-64 items-center justify-center">
+      {img ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={img} alt="" className="absolute inset-0 h-full w-full object-contain" />
+      ) : (
+        <span className="absolute inset-0 border-[3px] border-white bg-gold shadow-[0_3px_0_var(--navy)] [clip-path:polygon(0_0,100%_0,94%_50%,100%_100%,0_100%,6%_50%)]" />
+      )}
+      <span className="relative font-title text-2xl text-[#7a5200]">{text}</span>
+    </div>
+  );
+}
+
+function Hero({ win, art }: { win: boolean; art: Art }) {
+  const img = art(win ? "hero_win" : "hero_lose") ?? art(win ? "worker_smug" : "worker_crying");
+  const trophy = win && !art("hero_win") ? art("trophy") : null;
+  if (!img) return <div className="h-36 w-36" />;
+  return (
+    <div className="relative h-36 w-36 shrink-0">
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src={img} alt="" className="h-full w-full object-contain drop-shadow-[0_4px_0_rgba(28,86,146,0.35)]" />
+      {trophy && (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={trophy} alt="" className="absolute -right-4 bottom-0 h-16 w-16 object-contain" />
+      )}
+    </div>
+  );
+}
+
+function CloudsFooter({ art }: { art: Art }) {
+  const img = art("clouds_footer");
+  return img ? (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img src={img} alt="" className="pointer-events-none fixed inset-x-0 bottom-0 z-0 mx-auto w-full max-w-md" />
+  ) : (
+    <div className="pointer-events-none fixed inset-x-0 bottom-0 z-0 h-32 bg-[radial-gradient(circle_at_10%_100%,#fff_0_38px,transparent_39px),radial-gradient(circle_at_35%_110%,#fff_0_56px,transparent_57px),radial-gradient(circle_at_65%_105%,#fff_0_48px,transparent_49px),radial-gradient(circle_at_92%_100%,#fff_0_44px,transparent_45px)]" />
   );
 }
 
@@ -101,23 +260,39 @@ function Avatar({ name }: { name: string }) {
   );
 }
 
-function Medal({ rank }: { rank: number }) {
+function Medal({ rank, art }: { rank: number; art: Art }) {
   if (rank > 3) return <span className="w-8 text-center font-title text-lg text-ink-blue">{rank}</span>;
   const tone = rank === 1 ? "bg-gold text-[#7a5200]" : rank === 2 ? "bg-silver text-ink-blue" : "bg-bronze text-ink-blue";
+  const medal = art(rank === 1 ? "medal_gold" : rank === 2 ? "medal_silver" : "medal_bronze");
+  const crown = art("crown");
   return (
     <span className="relative flex w-8 justify-center">
-      {rank === 1 && <span className="absolute -top-3 text-sm">👑</span>}
-      <span className={`flex h-7 w-7 items-center justify-center rounded-full border-2 border-white font-title ${tone}`}>{rank}</span>
+      {rank === 1 &&
+        (crown ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={crown} alt="" className="absolute -top-4 h-4 w-5 object-contain" />
+        ) : (
+          <span className="absolute -top-3 text-sm">👑</span>
+        ))}
+      {medal ? (
+        <span className="relative flex h-8 w-8 items-center justify-center font-title text-ink-blue">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={medal} alt="" className="absolute inset-0 h-full w-full object-contain" />
+          <span className="relative">{rank}</span>
+        </span>
+      ) : (
+        <span className={`flex h-7 w-7 items-center justify-center rounded-full border-2 border-white font-title ${tone}`}>{rank}</span>
+      )}
     </span>
   );
 }
 
-function RankRow({ row }: { row: Row }) {
+function RankRow({ row, art }: { row: Row; art: Art }) {
   return (
     <li
       className={`flex items-center gap-2 rounded-[14px] border-[3px] border-white px-2 py-1.5 shadow-[0_0_0_2px_var(--panel)] ${row.isMe ? "bg-hot" : "bg-row"}`}
     >
-      <Medal rank={row.rank} />
+      <Medal rank={row.rank} art={art} />
       <Avatar name={row.nickname} />
       <span className="min-w-0 flex-1 truncate font-bold text-ink-blue">
         {row.nickname}
@@ -128,16 +303,18 @@ function RankRow({ row }: { row: Row }) {
   );
 }
 
-function Header() {
-  return <p className="font-title text-sm tracking-widest text-white [text-shadow:0_2px_0_var(--navy)]">MEME RUSH · DAILY {DAILY_NO}</p>;
+function Header({ dailyNo }: { dailyNo: string }) {
+  return <p className="font-title text-sm tracking-widest text-white [text-shadow:0_2px_0_var(--navy)]">MEME RUSH · DAILY {dailyNo}</p>;
 }
 
 export default function ChallengeClient({
   challenge,
+  dailyNo,
   refId,
   leagueToken,
 }: {
   challenge: Challenge;
+  dailyNo: string;
   refId: string | null;
   leagueToken: string | null;
 }) {
@@ -156,6 +333,7 @@ export default function ChallengeClient({
   const [friendsBoard, setFriendsBoard] = useState<Board | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const attemptIdRef = useRef<string | null>(null);
+  const art = useArt();
   const challengeId = challenge.id;
 
   const isMember = (leagueId: string | undefined, leagues: League[]) =>
@@ -288,7 +466,7 @@ export default function ChallengeClient({
       });
       // WRITING_GUIDE 6절: Wordle-style, no nickname, no target time.
       const best = me.bestErrorMs != null ? `${seconds(me.bestErrorMs)} off` : "";
-      const text = `Meme Rush ${DAILY_NO} | ${best}\nCan you beat it?`;
+      const text = `Meme Rush ${dailyNo} | ${best}\nCan you beat it?`;
       if (res.leagueId && res.leagueId !== activeLeagueId) {
         setActiveLeagueId(res.leagueId);
         setMe((prev) =>
@@ -360,7 +538,7 @@ export default function ChallengeClient({
   if (stage === "intro") {
     return (
       <main className="mx-auto flex min-h-dvh w-full max-w-md flex-col items-center gap-5 px-5 pb-28 pt-8 text-center">
-        <Header />
+        <Header dailyNo={dailyNo} />
         <h1 className="meme-caption text-[52px]">{challenge.title}</h1>
         <p className="max-w-xs text-base font-bold text-ink-blue">{challenge.meme.prompt}</p>
         {invite && (
@@ -412,19 +590,23 @@ export default function ChallengeClient({
         ? `${seconds(friendsBoard.gapMs)} ahead of #2`
         : `${seconds(friendsBoard.gapMs)} behind #1`
       : null;
+  const bestIsWin = me.bestErrorMs != null && me.bestErrorMs <= WIN_MAX_TOTAL_ERROR_MS;
 
   return (
     <main className="mx-auto flex min-h-dvh w-full max-w-md flex-col gap-4 px-5 pb-28 pt-6">
-      <header className="flex flex-col items-center gap-1 text-center">
-        <Header />
+      <CloudsFooter art={art} />
+      <header className="relative z-10 flex flex-col items-center gap-1 text-center">
+        <Header dailyNo={dailyNo} />
         <p className="meme-caption meme-caption-sm text-3xl">{challenge.title}</p>
-        <p className="score-number mt-2 text-6xl">{me.bestErrorMs != null ? `${seconds(me.bestErrorMs)} off` : "No record yet"}</p>
+        {me.bestErrorMs != null && <Ribbon text={bestIsWin ? "Perfect" : "So close"} art={art} />}
+        <p className="score-number text-6xl">{me.bestErrorMs != null ? `${seconds(me.bestErrorMs)} off` : "No record yet"}</p>
         <p className="text-sm font-bold text-ink-blue">{me.nickname}&apos;s best today</p>
       </header>
 
-      <div className="flex justify-center gap-6">
-        <RankBadge label="WORLD" rank={me.globalRank} tone="gold" />
-        <RankBadge label="FRIENDS" rank={friendsBoard?.myRank} tone="hot" />
+      <div className="relative z-10 flex items-end justify-center gap-1">
+        <RankBadge kind="world" rank={me.globalRank} art={art} />
+        <Hero win={bestIsWin} art={art} />
+        <RankBadge kind="friends" rank={friendsBoard?.myRank} art={art} />
       </div>
 
       {needsJoin && invite && (
@@ -440,7 +622,7 @@ export default function ChallengeClient({
         </button>
       )}
 
-      <Panel>
+      <Panel className="relative z-10">
         <div className="mb-3 grid grid-cols-2 gap-2" role="tablist">
           {(["global", "friends"] as const).map((t) => (
             <button
@@ -461,20 +643,26 @@ export default function ChallengeClient({
         ) : (
           <ol className="space-y-1.5">
             {board!.rows.map((r, i) => (
-              <RankRow key={`${r.nickname}-${i}`} row={r} />
+              <RankRow key={`${r.nickname}-${i}`} row={r} art={art} />
             ))}
             {myGlobalOutside && (
-              <RankRow row={{ nickname: me.nickname ?? "", errorMs: me.bestErrorMs ?? 0, rank: me.globalRank!, isMe: true }} />
+              <RankRow art={art} row={{ nickname: me.nickname ?? "", errorMs: me.bestErrorMs ?? 0, rank: me.globalRank!, isMe: true }} />
             )}
           </ol>
         )}
         {tab === "friends" && gapText && <p className="mt-2 text-center font-title text-lg text-ink-blue">{gapText}</p>}
       </Panel>
 
+      {me.bestErrorMs != null && (
+        <Panel className="relative z-10">
+          <VideoPanel key={me.bestErrorMs} challengeId={challengeId} dailyNo={dailyNo} bestErrorMs={me.bestErrorMs} />
+        </Panel>
+      )}
+
       {error && <p className="rounded-[14px] bg-warn-bg px-3 py-2 text-center text-sm font-bold text-warn-text">{error}</p>}
       {notice && <p className="text-center font-bold text-ink-blue">{notice}</p>}
 
-      <div className="flex justify-center gap-8">
+      <div className="relative z-10 flex justify-center gap-8">
         <TextLink onClick={() => share(false)} disabled={busy}>
           Copy link
         </TextLink>
@@ -483,7 +671,7 @@ export default function ChallengeClient({
         </TextLink>
       </div>
 
-      <div className="fixed inset-x-0 bottom-0 mx-auto w-full max-w-md px-5 pb-5">
+      <div className="fixed inset-x-0 bottom-0 z-20 mx-auto w-full max-w-md px-5 pb-5">
         <PrimaryButton onClick={() => share(true)} disabled={busy}>
           Challenge a Friend
         </PrimaryButton>

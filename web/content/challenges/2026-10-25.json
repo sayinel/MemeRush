@@ -1,0 +1,81 @@
+{
+  "id": "2026-10-25",
+  "title": "TOAST CAM",
+  "frame": "timing_stop",
+  "frameParams": {
+    "rounds": 3,
+    "targetMs": [
+      5000,
+      5000,
+      5000
+    ],
+    "visibleMs": 1500
+  },
+  "seed": "2026-10-25",
+  "meme": {
+    "name": "Wait for it",
+    "context": {
+      "summary": "기다리다가 마지막에 터지는 순간이 웃음 포인트인 영상 형식",
+      "url": ""
+    },
+    "prompt": "Film the toaster and stop the clip the instant the toast jumps.",
+    "theme": {
+      "background": "office",
+      "player": "worker",
+      "boss": "boss",
+      "goal": "confetti_star",
+      "rounds": [
+        {
+          "label": "TAKE 1: COZY SLIPPERS ON",
+          "startLabel": "6:59:55",
+          "hider": "meeting_card"
+        },
+        {
+          "label": "TAKE 2: KITCHEN GOES QUIET",
+          "startLabel": "6:59:56",
+          "hider": "email_pile"
+        },
+        {
+          "label": "TAKE 3: DIRECTOR'S CUT",
+          "startLabel": "6:59:57",
+          "hider": "boss"
+        }
+      ]
+    },
+    "hope": "ONE TAKE FROM TOAST FAME",
+    "win": {
+      "top": "THE POP, PERFECTLY FRAMED",
+      "bottom": "STOPPED {result}. ICONIC.",
+      "props": [
+        "worker_smug",
+        "confetti_star",
+        "banner_gold"
+      ]
+    },
+    "lose": {
+      "top": "THE BREAD IS STILL BUFFERING",
+      "bottom": "{result}. ROLL AGAIN?",
+      "props": [
+        "worker_sweating",
+        "clock_button"
+      ],
+      "early": {
+        "top": "CUT. THE TOASTER KEEPS HUMMING",
+        "bottom": "A RIVETING CLIP OF NOTHING",
+        "props": [
+          "worker_deadpan",
+          "timer_panel"
+        ]
+      },
+      "late": {
+        "top": "THE TOAST FOUND ITS TARGET",
+        "bottom": "BONK. ROLL CREDITS ANYWAY",
+        "props": [
+          "worker_facepalm",
+          "poof"
+        ]
+      }
+    },
+    "share": "Toast cam result: {result}. Can you catch the pop?"
+  }
+}

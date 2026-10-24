@@ -73,6 +73,17 @@ uv run --python 3.11 --with httpx python -m discovery ingest --text <조사본.t
 - 틀별 파라미터(규격 4절): `timing_stop`(rounds, targetMs, visibleMs), `tap_rush`(rounds, durationMs 라운드당 약 10초, bpm), `swipe_dodge`(rounds, roundCapMs 15초 이하, speed, gap), `gauge_stop`(zoneStart, zoneEnd, speed, rounds), `outline_trace`(rounds 모양 하나당 한 라운드 약 10초, shape, tolerance), `merge_drop`(rounds 1, durationMs 60초, boardSize). 점수 방향은 timing_stop·gauge_stop이 asc(오차·거리 합), 나머지 desc.
 - **설정 위치: `discovery/config.py`** (MIN/MAX_SESSION_S, MAX_ORIGINAL_GAME_S, ROUNDS, ROUND_TARGET_RANGE_S, NUMBER_MEME_MAX_S, ROUND_INTRO_S, ROUND_REACT_S, FINAL_RESULT_S, FIRST_DAY_TARGETS_S). 초 수치는 여기서만 고친다.
 
+## 자동 발행 (밈 하나 → 프로덕션 새 판)
+같은 스톱워치 규칙에 새 밈의 이야기를 입혀 발행한다(`docs/AUTO_GAME_GENERATION_SCENARIO.md` L1). 어드민이 아래 명령을 차례로 부른다.
+```
+python -m discovery brief --combo N --out out/pipeline
+python -m discovery card --out out/pipeline --library-only     # 이미 있는 그림만: 그림 제작을 기다리지 않음
+python -m discovery publish --option N --out out/pipeline       # web/content/challenges/{날짜}.json
+python -m discovery ship --date YYYY-MM-DD --out out/pipeline   # 어드민 Publish 버튼
+```
+- `--library-only`: 모든 그림 키가 `web/public/game/manifest.json`에 있거나 게임이 직접 그리는 것이어야 통과. 배경은 `bg_` 없이 장면 이름(`office`), 방해물·목적지는 무대 소품만(게임 UI 그림 `timer_panel`·`clock_button`·`banner_gold` 제외).
+- `ship`: 하루 판 검사 → `gh api`로 `content/{날짜}-{시각}` 브랜치에 파일을 올리고 PR → Vercel 빌드 검사(하루 판 zod 검증 포함) 통과 대기 → 머지 → 프로덕션 `/api/challenges/{날짜}`가 새 제목을 돌려줄 때까지 대기 → `/c/{날짜}` 공개. 시연 노트북의 작업 폴더는 건드리지 않는다. 진행 상태는 한 줄씩 출력하고 `out/pipeline/ship.json`(`steps`: check, pr, build, merge, deploy, live 각각 waiting·running·done·error, `prUrl`, `liveUrl`, `error`)에 남긴다. 빌드가 실패하면 머지하지 않고 PR을 열어 둔다. 필요: `gh` 로그인(저장소 쓰기 권한).
+
 ## 소스 어댑터 추가
 1. `discovery/sources/<이름>.py`에 `collect(self) -> list[Signal]`을 가진 클래스를 만든다(`sources/__init__.py`의 `Source` 참고).
 2. 접속이 막히면 예외 대신 빈 목록을 돌려주고 실패를 기록해, 다른 소스가 계속 돌게 한다.
