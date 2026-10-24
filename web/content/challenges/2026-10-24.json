@@ -1,0 +1,33 @@
+{
+  "id": "2026-10-24",
+  "title": "FRIDAY 5PM — CLOCK OUT!",
+  "frame": "timing_stop",
+  "frameParams": { "rounds": 3, "targetMs": [3000, 4000, 5000], "visibleMs": 1500 },
+  "seed": "2026-10-24",
+  "meme": {
+    "name": "Friday 5PM",
+    "context": { "summary": "The universal countdown to clocking out on Friday.", "url": "" },
+    "prompt": "Clock out at exactly 5:00:00. Not a millisecond earlier.",
+    "theme": {
+      "background": "office",
+      "player": "worker",
+      "boss": "boss",
+      "goal": "door",
+      "rounds": [
+        { "label": "THE EMAIL", "startLabel": "4:59:57", "hider": "email_pile" },
+        { "label": "THE MEETING", "startLabel": "4:59:56", "hider": "meeting_card" },
+        { "label": "THE BOSS", "startLabel": "4:59:55", "hider": "boss" }
+      ]
+    },
+    "hope": "{nearLabel}… ALMOST FREE",
+    "win": { "top": "CLOCKED OUT {stopLabel}", "bottom": "WEEKEND UNLOCKED", "props": ["confetti"] },
+    "lose": {
+      "top": "SO CLOSE…",
+      "bottom": "{result}",
+      "props": [],
+      "early": { "top": "NOT SO FAST.", "bottom": "BACK TO YOUR DESK", "props": ["boss_grab"] },
+      "late": { "top": "QUICK SYNC?", "bottom": "MY WEEKEND IS GONE", "props": ["email", "calendar"] }
+    },
+    "share": "{result} in FRIDAY 5PM. Beat me:"
+  }
+}
