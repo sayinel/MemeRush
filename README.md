@@ -36,6 +36,23 @@ Each round a clock runs, then hides behind the day's meme. Tap once at the targe
 
 <sub>Concept art. Names and scores are placeholders.</sub>
 
+## Run the online demo
+
+No install needed. Open the live admin in any browser:
+
+**https://meme-rush-meme-rush.vercel.app/admin**
+
+1. **Home** shows this week's games (Monday "Cut the Dalgona" is already booked).
+2. **게임 등록** → pick the top topic, **Friday 5PM**. Automatic steps run between each choice.
+3. Pick one of the three copy options, then an image, then a publish day (Tuesday is preselected).
+4. **게임 제작 완료** → **발행하기** → confirm. The **발행 완료** screen shows the Telegram message players get; tap it to open the live game.
+
+Notes
+
+- **Sample data only.** The online admin is a demo mode (`ADMIN_DEMO=1` on Vercel): it runs on the sample data, never runs a command on the server and saves nothing but a small cookie.
+- **Your progress lives in your browser.** The cookie keeps each visitor's run separate, so several people can try it at once. To start over, click **게임 등록** again once a run is complete, or clear the site's cookies.
+- **Closing it.** Remove `ADMIN_DEMO` from the Vercel environment variables and redeploy; `/admin` then returns 404.
+
 ## Run the admin demo
 
 The admin is where a new daily game gets made: pick a trending meme, pick the copy and the image, pick a day, publish.
