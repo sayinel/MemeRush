@@ -1,6 +1,9 @@
 import { redirect } from "next/navigation";
-import { CURRENT_CHALLENGE_ID } from "@/lib/challenge";
+import { connection } from "next/server";
+import { currentChallengeId } from "@/lib/challenge";
 
-export default function Home() {
-  redirect(`/c/${CURRENT_CHALLENGE_ID}`);
+export default async function Home() {
+  // Pick today's challenge per request, not at build time.
+  await connection();
+  redirect(`/c/${currentChallengeId()}`);
 }

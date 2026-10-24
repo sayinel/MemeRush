@@ -118,6 +118,13 @@ def test_round_count_mismatch():
     assert any("need 3" in p for p in prod.validate_card(c, rounds=3))
 
 
+@pytest.mark.parametrize("label", ["6...7", "4:59", "T-3s", "4:59:57 PM"])
+def test_start_label_must_be_a_clock(label):
+    c = card()
+    c["theme"]["rounds"][0]["startLabel"] = label
+    assert any("startLabel must be a clock" in p for p in prod.validate_card(c, rounds=3))
+
+
 def test_make_card_file_retries_once_with_feedback():
     bad = card(hope="this caption is lowercase")
     client = FakeClient({"options": [bad, card(), card()]}, {"options": [card(), card(), card()]})

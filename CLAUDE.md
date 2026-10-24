@@ -28,5 +28,5 @@ Meme Rush is a hackathon MVP (5-hour build). Specs live in `docs/` and are the s
 ## Architecture notes
 
 - Next.js 16 (App Router). Its APIs differ from older versions; check `web/node_modules/next/dist/docs/` before using an unfamiliar API. Cache Components is turned off in `next.config.ts` on purpose.
-- Day files: `web/content/challenges/{id}.json`, validated by the zod schema in `web/src/lib/challenge.ts`. Add new days to the registry there.
+- Day files: `web/content/challenges/{id}.json`, validated by the zod schema in `web/src/lib/challenge.ts`. Every `YYYY-MM-DD.json` in that folder is loaded at startup (no registry to edit); today's challenge is the latest file not after today in KST, and the daily number (`#001`…) is the file's position in date order. A bad file fails the build.
 - All DB access goes through API routes using the service-role client in `web/src/lib/supabase.ts` (`server-only`). The browser never gets a Supabase key; every table has RLS on with no policies.

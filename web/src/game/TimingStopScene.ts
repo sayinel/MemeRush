@@ -750,7 +750,7 @@ export class TimingStopScene extends Phaser.Scene {
         g,
         this.txt(0, -104, "MEETING INVITE", 40, { strokeThickness: 0 }),
         this.txt(0, 0, "QUICK SYNC?", 92, { color: hex(C.ink), strokeThickness: 0 }),
-        this.txt(0, 92, "FRI · 5:00 PM · 2 HRS", 38, { color: hex(C.navy), strokeThickness: 0 }),
+        this.txt(0, 92, `TODAY · ${this.meetingTime()} · 2 HRS`, 38, { color: hex(C.navy), strokeThickness: 0 }),
       ]);
     } else if (key === boss) {
       c.add(this.makeBoss(false).setScale(1.7));
@@ -1031,6 +1031,13 @@ export class TimingStopScene extends Phaser.Scene {
       .replaceAll("{result}", `${(result.errorMs / 1000).toFixed(3)}s off`)
       .replaceAll("{stopLabel}", stopLabel)
       .replaceAll("{nearLabel}", rounds[rounds.length - 1].startLabel);
+  }
+
+  // The meeting lands exactly on the last round's target time (h:mm), so it reads right for any day file.
+  private meetingTime() {
+    const { frameParams, meme } = this.challenge;
+    const last = meme.theme.rounds.length - 1;
+    return formatClock(parseLabel(meme.theme.rounds[last].startLabel) + frameParams.targetMs[last], false).slice(0, -3);
   }
 
   private startMs() {

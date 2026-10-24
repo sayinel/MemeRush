@@ -210,7 +210,7 @@ def make_cards(brief: dict[str, Any], combo: dict[str, Any], library: list[str],
         f"Write {CARD_OPTIONS} different meme card options for today's game.\n"
         f"Story brief:\n{json.dumps(brief, ensure_ascii=False, indent=2)}\n\n"
         f"Game: frame {combo['frame']}, {rounds} rounds, round targets {params.get('targetMs')} ms. "
-        f"Each round has a label (UPPERCASE, <=30 chars), a clock startLabel shown before it hides (<=10 chars), "
+        f"Each round has a label (UPPERCASE, <=30 chars), a clock startLabel h:mm:ss shown before it hides (e.g. 4:59:57), "
         f"and a hider sprite key that covers the clock. theme.rounds must have exactly {rounds} items.\n"
         "win = Perfect; lose.early = tapped too early; lose.late = tapped too late; lose.top/bottom = generic loss.\n"
         f"Placeholders you may use: {', '.join(PLACEHOLDERS)} ({{result}} renders like '0.087s off').\n"
@@ -267,8 +267,9 @@ def validate_card(card: dict[str, Any], rounds: int) -> list[str]:
     if len(card["theme"]["rounds"]) != rounds:
         problems.append(f"theme.rounds has {len(card['theme']['rounds'])} items, need {rounds}")
     for i, r in enumerate(card["theme"]["rounds"]):
-        if len(r["startLabel"]) > 10:
-            problems.append(f"rounds[{i}].startLabel longer than 10 chars: {r['startLabel']!r}")
+        # The game counts up from this as a wall clock, so it must parse as h:mm:ss (web/src/lib/challenge.ts).
+        if not re.fullmatch(r"\d{1,2}:\d{2}:\d{2}", r["startLabel"]):
+            problems.append(f"rounds[{i}].startLabel must be a clock like 4:59:57: {r['startLabel']!r}")
     blob = json.dumps(card, ensure_ascii=False).lower()
     for term in _ip_terms():
         pattern = rf"\b{re.escape(term.lower())}\b" if term.isascii() else re.escape(term)

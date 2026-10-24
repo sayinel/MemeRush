@@ -48,7 +48,6 @@ function friendly(e: unknown): string {
 }
 
 const seconds = (ms: number) => `${(ms / 1000).toFixed(3)}s`;
-const DAILY_NO = "#001";
 
 const RESULT_LINE: Record<string, string> = { win: "Perfect.", early: "Too early.", late: "Too late." };
 const resultKey = (r: FinishResult) => (r.outcome === "win" ? "win" : (r.outcomeVariant ?? "late"));
@@ -222,16 +221,18 @@ function RankRow({ row, art }: { row: Row; art: Art }) {
   );
 }
 
-function Header() {
-  return <p className="font-title text-sm tracking-widest text-white [text-shadow:0_2px_0_var(--navy)]">MEME RUSH · DAILY {DAILY_NO}</p>;
+function Header({ dailyNo }: { dailyNo: string }) {
+  return <p className="font-title text-sm tracking-widest text-white [text-shadow:0_2px_0_var(--navy)]">MEME RUSH · DAILY {dailyNo}</p>;
 }
 
 export default function ChallengeClient({
   challenge,
+  dailyNo,
   refId,
   leagueToken,
 }: {
   challenge: Challenge;
+  dailyNo: string;
   refId: string | null;
   leagueToken: string | null;
 }) {
@@ -383,7 +384,7 @@ export default function ChallengeClient({
       });
       // WRITING_GUIDE 6절: Wordle-style, no nickname, no target time.
       const best = me.bestErrorMs != null ? `${seconds(me.bestErrorMs)} off` : "";
-      const text = `Meme Rush ${DAILY_NO} | ${best}\nCan you beat it?`;
+      const text = `Meme Rush ${dailyNo} | ${best}\nCan you beat it?`;
       if (res.leagueId && res.leagueId !== activeLeagueId) {
         setActiveLeagueId(res.leagueId);
         setMe((prev) =>
@@ -455,7 +456,7 @@ export default function ChallengeClient({
   if (stage === "intro") {
     return (
       <main className="mx-auto flex min-h-dvh w-full max-w-md flex-col items-center gap-5 px-5 pb-28 pt-8 text-center">
-        <Header />
+        <Header dailyNo={dailyNo} />
         <h1 className="meme-caption text-[52px]">{challenge.title}</h1>
         <p className="max-w-xs text-base font-bold text-ink-blue">{challenge.meme.prompt}</p>
         {invite && (
@@ -513,7 +514,7 @@ export default function ChallengeClient({
     <main className="mx-auto flex min-h-dvh w-full max-w-md flex-col gap-4 px-5 pb-28 pt-6">
       <CloudsFooter art={art} />
       <header className="relative z-10 flex flex-col items-center gap-1 text-center">
-        <Header />
+        <Header dailyNo={dailyNo} />
         <p className="meme-caption meme-caption-sm text-3xl">{challenge.title}</p>
         {me.bestErrorMs != null && <Ribbon text={bestIsWin ? "Perfect" : "So close"} art={art} />}
         <p className="score-number text-6xl">{me.bestErrorMs != null ? `${seconds(me.bestErrorMs)} off` : "No record yet"}</p>
