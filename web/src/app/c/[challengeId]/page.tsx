@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { getChallenge, listChallengeIds } from "@/lib/challenge";
+import { dailyNo, getChallenge, listChallengeIds } from "@/lib/challenge";
 import ChallengeClient from "./ChallengeClient";
 
 export function generateStaticParams() {
@@ -13,5 +13,5 @@ export default async function ChallengePage({ params, searchParams }: PageProps<
   const query = await searchParams;
   const ref = typeof query.ref === "string" ? query.ref : null;
   const league = typeof query.league === "string" ? query.league : null;
-  return <ChallengeClient challenge={challenge} refId={ref} leagueToken={league} />;
+  return <ChallengeClient challenge={challenge} dailyNo={dailyNo(challengeId)} refId={ref} leagueToken={league} />;
 }

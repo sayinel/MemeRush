@@ -5,6 +5,8 @@ const nextConfig: NextConfig = {
   serverExternalPackages: ["ffmpeg-static"],
   outputFileTracingIncludes: {
     "/api/**": ["./node_modules/ffmpeg-static/ffmpeg", "./assets/fonts/**/*"],
+    // lib/challenge.ts reads day files from disk at runtime.
+    "/**": ["./content/challenges/*.json"],
   },
   turbopack: {
     rules: {
