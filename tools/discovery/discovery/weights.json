@@ -1,0 +1,32 @@
+{
+  "impl_ease": 30,
+  "session_length": 15,
+  "score_simplicity": 20,
+  "control_simplicity": 15,
+  "signal_strength": 20,
+  "ip_rule_penalty": 30,
+  "ip_name_penalty": 10,
+  "ip_drop_at": 30,
+  "decay_days": 7,
+  "decay_factor": 0.5,
+  "strength_cap": 100000,
+  "popularity_max": 100,
+  "meme_ip_penalty_each": 10,
+  "meme_ip_penalty_cap": 30,
+  "popularity": {
+    "online_value_cap": 100000000,
+    "extra_platform_bonus": 0.5,
+    "extra_platform_bonus_cap": 1.5,
+    "velocity_min": 0.8,
+    "velocity_span": 0.4,
+    "velocity_rate_cap_log": 6,
+    "community_mention_cap": 100000,
+    "community_upvote_cap": 1000000,
+    "breadth_base": 0.4,
+    "breadth_per_community": 0.2,
+    "counter_penalty_max": 4,
+    "consensus_factors": {"1": 0.7, "2": 0.9, "3": 1.0},
+    "fading_penalty": 10,
+    "astroturf_penalty": 15
+  }
+}
