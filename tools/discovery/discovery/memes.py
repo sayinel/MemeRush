@@ -97,6 +97,9 @@ class Meme:
     review_reasons: list[str] = field(default_factory=list)
     issues: list[str] = field(default_factory=list)
     game_hint: str = ""
+    # CONTENT_PRODUCTION_LINE 2절: 유래·맥락과 사람들 반응(상세 요약 + 출처). 스토리 브리프의 재료
+    background: dict[str, Any] = field(default_factory=dict)
+    reactions: list[dict[str, Any]] = field(default_factory=list)
 
     @classmethod
     def from_dict(cls, d: dict[str, Any], sample: bool = False) -> "Meme":
@@ -117,7 +120,9 @@ class Meme:
             target_seconds_suggestion=num(d.get("target_seconds_suggestion")),
             sample=sample or is_sample(d.get("_note")),
             needs_review=truthy(d.get("needs_review")), review_reasons=list(d.get("review_reasons") or []),
-            issues=issues)
+            issues=issues,
+            background=dict(d.get("background") or {}),
+            reactions=[dict(r) for r in (d.get("reactions") or []) if isinstance(r, dict)])
 
 
 def load_memes(path: str | Path) -> list[Meme]:
@@ -238,6 +243,7 @@ def run_memes(memes: list[Meme], fetch: Fetch, weights: dict[str, Any] | None = 
             "meme_card_hint": card_hint, "frame_params_hint": fph,
             "link_info": {"items": links, "note": "정보 표시용. 점수·탈락에 쓰지 않음"},
             "background_line": background_line(ctx, pop.scores, pop.consensus),
+            "background": m.background, "reactions": m.reactions,
             "sample": m.sample,
         })
     for score, m, *_ in kept[top_n:]:

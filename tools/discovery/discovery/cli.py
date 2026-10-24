@@ -1,4 +1,4 @@
-"""명령줄: run / pick."""
+"""명령줄: run / pick / decide / ingest / brief / card / assets / publish."""
 from __future__ import annotations
 
 import argparse
@@ -16,6 +16,7 @@ from .pairing import best_frame_for_meme, build_combos, load_history, record_dec
 from .pipeline import (make_sim_fetch, render_markdown, render_memes_markdown, render_today,
                        run_pipeline)
 from .sources.file_source import FileSource
+from . import production as prod
 
 
 def _read_picks(out: Path) -> set[str]:
@@ -132,6 +133,75 @@ def cmd_pick(a: argparse.Namespace) -> int:
     return 0
 
 
+DEFAULT_MANIFEST = "../../web/public/game/manifest.json"  # tools/discovery에서 실행할 때의 그림 목록
+
+
+def _prod(fn):
+    """제작 라인 명령의 공통 오류 처리: 사람이 읽을 한 줄로 끝낸다."""
+    def run(a: argparse.Namespace) -> int:
+        try:
+            return fn(a)
+        except prod.ProductionError as e:
+            print(str(e), file=sys.stderr)
+            return 1
+    return run
+
+
+@_prod
+def cmd_brief(a: argparse.Namespace) -> int:
+    out = Path(a.out)
+    combo, meme = prod.pick_combo(out, a.combo)
+    brief = prod.make_brief(combo, meme, prod._client())
+    prod.write_json(out / "story_brief.json", {**brief, "combo": a.combo})
+    print(f"스토리 브리프: {combo['frame']} × {meme['name']} → {out / 'story_brief.json'}")
+    print(f"  premise: {brief['premise']}\n  twist: {brief['twist']}")
+    return 0
+
+
+@_prod
+def cmd_card(a: argparse.Namespace) -> int:
+    out = Path(a.out)
+    brief = prod.read_json(out / "story_brief.json")
+    combo, _ = prod.pick_combo(out, int(brief["combo"]))
+    library = prod.load_library(Path(a.manifest))
+    card_file = prod.make_card_file(brief, combo, library, prod._client())
+    prod.write_json(out / "card.json", card_file)
+    print(f"카드 후보 {len(card_file['options'])}개 → {out / 'card.json'}")
+    for o in card_file["options"]:
+        c = o["card"]
+        mark = "OK" if o["ok"] else "규칙 위반 " + str(len(o["problems"]))
+        print(f"  {o['index']}. [{mark}] {c['title']} | win: {c['win']['top']} / {c['win']['bottom']}")
+    return 0
+
+
+@_prod
+def cmd_assets(a: argparse.Namespace) -> int:
+    out = Path(a.out)
+    brief = prod.read_json(out / "story_brief.json")
+    card = prod.pick_option(prod.read_json(out / "card.json"), a.option)
+    req = prod.asset_requests(card, brief, prod.load_library(Path(a.manifest)))
+    prod.write_json(out / "asset_requests.json", req)
+    print(f"에셋 요청 {len(req['requests'])}건 → {out / 'asset_requests.json'}")
+    for r in req["requests"]:
+        print(f"  [{r['priority']}] {r['key']}: {r['note']}")
+    return 0
+
+
+@_prod
+def cmd_publish(a: argparse.Namespace) -> int:
+    out = Path(a.out)
+    brief = prod.read_json(out / "story_brief.json")
+    combo, meme = prod.pick_combo(out, int(brief["combo"]))
+    card = prod.pick_option(prod.read_json(out / "card.json"), a.option)
+    day = prod.day_file(card, combo, meme)
+    target = Path(a.to) / f"{day['id']}.json"
+    if target.exists() and not a.force:
+        raise prod.ProductionError(f"이미 있는 판입니다: {target} (덮어쓰려면 --force)")
+    prod.write_json(target, day)
+    print(f"하루 판 저장: {target} (앱 반영은 PR로 사람이 확인한 뒤)")
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(prog="discovery")
     sub = p.add_subparsers(dest="cmd", required=True)
@@ -156,5 +226,24 @@ def main(argv: list[str] | None = None) -> int:
     k.add_argument("--name", required=True)
     k.add_argument("--out", default="out")
     k.set_defaults(fn=cmd_pick)
+    b = sub.add_parser("brief", help="3단계: 고른 조합으로 스토리 브리프(Claude)")
+    b.add_argument("--combo", type=int, default=1, help="combos.json의 조합 번호(1~3)")
+    b.add_argument("--out", default="out")
+    b.set_defaults(fn=cmd_brief)
+    c = sub.add_parser("card", help="4단계: 브리프로 밈 카드 후보 3개(Claude) + 규칙 검사")
+    c.add_argument("--out", default="out")
+    c.add_argument("--manifest", default=DEFAULT_MANIFEST, help="게임 그림 목록(web/public/game/manifest.json)")
+    c.set_defaults(fn=cmd_card)
+    s5 = sub.add_parser("assets", help="5단계: 고른 카드에 필요한데 없는 그림 목록")
+    s5.add_argument("--option", type=int, required=True, help="card.json의 카드 번호")
+    s5.add_argument("--out", default="out")
+    s5.add_argument("--manifest", default=DEFAULT_MANIFEST)
+    s5.set_defaults(fn=cmd_assets)
+    pb = sub.add_parser("publish", help="7단계 준비: 고른 카드를 앱의 하루 판 파일로 저장")
+    pb.add_argument("--option", type=int, required=True)
+    pb.add_argument("--out", default="out")
+    pb.add_argument("--to", default="../../web/content/challenges", help="하루 판 파일 폴더")
+    pb.add_argument("--force", action="store_true")
+    pb.set_defaults(fn=cmd_publish)
     a = p.parse_args(argv)
     return a.fn(a)
