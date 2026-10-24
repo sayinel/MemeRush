@@ -9,11 +9,17 @@ export async function GET() {
   try {
     const mp4 = await renderVideo({
       background: "0x29BAF5",
-      captions: [
-        { text: "4:59:55… ALMOST FREE", from: 0, to: 3, y: "middle" },
-        { text: "QUICK SYNC?", from: 3, to: 7, y: "top" },
-        { text: "MY WEEKEND IS GONE", from: 7, to: 10, y: "bottom" },
-        { text: "0.087s off · BEAT ME!", from: 7, to: 10, y: "middle", size: 56 },
+      scenes: [
+        { from: 0, to: 3, lines: [{ text: "4:59:55… ALMOST FREE", y: "middle" }] },
+        { from: 3, to: 7, lines: [{ text: "QUICK SYNC?", y: "top" }] },
+        {
+          from: 7,
+          to: 10,
+          lines: [
+            { text: "0.087s off · BEAT ME!", y: "middle", size: 56 },
+            { text: "MY WEEKEND IS GONE", y: "bottom" },
+          ],
+        },
       ],
     });
     return new Response(new Uint8Array(mp4), {
