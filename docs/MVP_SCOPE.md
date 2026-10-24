@@ -20,11 +20,11 @@ PRD에서 비어 있거나 절마다 어긋나던 항목, 게임이 바뀌면서
 
 | 항목 | 결정 | 관련 PRD |
 |---|---|---|
-| 게임 규칙 | 시작하면 시계가 흐르고, 처음 3초만 보인 뒤 화면 안의 사건(첫 게임은 보스가 막아섬)으로 가려짐. 목표 시간에 맞춰 화면을 한 번 탭해 멈춤. 연출은 [게임 디자인](MEME_GAME_DESIGN.md) 4절 | §3.3, §8.1 |
-| 목표 시간 | 하루 하나, 모두 같음. 밈 카드가 정함(3–15초, 형식·문구 밈이면 10.00초) | §8.1 |
-| 기록 | 오차(ms) = \|멈춘 시각 − 목표 시간\|. 낮을수록 좋음. 표시는 "0.034s off" | §8.1 |
-| 재도전 | 무제한. 실패하면 0.5초 안에 다시 시작. 그날의 공식 기록은 최저 오차 | §8.2 |
-| 측정·검증 | 클라이언트가 탭 시각을 재고, 서버가 오차를 계산. 서버는 시작~종료 요청 사이의 서버 시간보다 긴 측정값과 1–30초 범위 밖의 값을 거부. 두 시각은 모두 DB `now()`로 기록(서버리스 인스턴스 간 시계 차이 회피). 클라이언트 측정값을 서버 시간보다 짧게 조작하는 것은 막지 못함 — 알려진 한계로 둠 | §8.2, FR-G03 |
+| 게임 규칙 | 한 판은 3라운드([틀 규격](GAME_FRAME_SPEC.md) 2절). 라운드마다 시계가 흐르고, 처음 1.5초만 보인 뒤 화면 안의 사건(첫 게임은 메일 더미 → 회의 초대 → 보스)으로 가려짐. 목표 시간에 맞춰 화면을 한 번 탭해 멈춤. 라운드 사이에는 짧은 반응 연출. 한 판 30초 이상(첫날 30초). 연출은 [게임 디자인](MEME_GAME_DESIGN.md) 4절 | §3.3, §8.1 |
+| 목표 시간 | 하루 하나, 모두 같음. 라운드별 3–5초(숫자 밈은 7초까지), 하루 판 파일의 `frameParams.targetMs` 배열이 정함(첫날은 3·4·5초) | §8.1 |
+| 기록 | 세 라운드 오차(ms)의 합 = Σ\|멈춘 시각 − 목표 시간\|. 낮을수록 좋음. 표시는 "0.087s off" | §8.1 |
+| 재도전 | 무제한. 끝나면 0.5초 안에 처음(1라운드)부터 다시 시작. 그날의 공식 기록은 합산 오차가 가장 낮은 판 | §8.2 |
+| 측정·검증 | 클라이언트가 라운드별 탭 시각을 재고, 서버가 라운드별 오차와 합을 계산. 서버는 측정값이 정확히 3개가 아니거나, 하나라도 1–15초 범위 밖이거나, 세 측정값의 합이 시작~종료 요청 사이의 서버 시간보다 길면 거부. 두 시각은 모두 DB `now()`로 기록(서버리스 인스턴스 간 시계 차이 회피). 클라이언트 측정값을 서버 시간보다 짧게 조작하는 것은 막지 못함 — 알려진 한계로 둠 | §8.2, FR-G03 |
 | 동점 | 같은 순위(1, 1, 3). 표시 순서는 먼저 기록한 사람이 위 | — |
 | 기록 차이 | 1위와의 오차 차이. 내가 1위면 2위보다 앞선 차이 | FR-C04 |
 | 랭킹 | Global과 Friends 두 랭킹을 모두 보여 줌. Global은 전체 플레이어 상위 50 + 내 순위(50위 밖이어도 표시), CDN 캐시 5초. Friends는 내가 속한 리그의 리더보드(화면 표시 이름이 Friends, 내부 이름이 리그) | §3.4, §14.2 |
@@ -38,7 +38,7 @@ PRD에서 비어 있거나 절마다 어긋나던 항목, 게임이 바뀌면서
 | 결과 화면의 리그 | URL의 리그 → 내가 만든 리그 → 참여한 첫 리그 순으로 하나를 표시 | §3.4 |
 | 링크 | 공개: `/c/{challengeId}?ref={referralId}` · 리그 초대: 같은 주소 + `&league={inviteToken}` | §5.2, §9.2 |
 | 미리보기 | OG 생성에 `league` 파라미터를 쓰지 않음. 공유한 사람 본인 기록만 표시하고 닉네임·리그 정보는 넣지 않음 | AC-17 |
-| 결과 종류 | 오차 100ms 이하 `win`(Perfect), 넘으면 `lose`. `lose`는 빠르면 `early`(Too Early), 늦으면 `late`(Too Late)로 나눔. 서버가 정하고, 결과 화면 연출과 영상이 이 종류를 따름 | §3.5, §9.3 |
+| 결과 종류 | 합산 오차 300ms 이하 `win`(Perfect), 넘으면 `lose`. `lose`는 오차가 가장 컸던 라운드가 빨랐으면 `early`(Too Early), 늦었으면 `late`(Too Late). 서버가 정하고, 결과 화면 연출과 영상이 이 종류를 따름. 라운드 사이의 반응 연출은 라운드마다 따로(100ms 이하 NICE, 빠름, 늦음) | §3.5, §9.3 |
 | 영상 생성 | 동기 처리. 요청 하나에서 렌더링 → 업로드 → URL 반환. 렌더링이 15초를 넘으면 그때 비동기로 전환. 최고 기록이 바뀌면 새로 만듦 | §10.4 |
 | DB 접근 | 모든 DB 접근은 Next.js API에서 service role 키로 함. 클라이언트에는 Supabase 키를 두지 않음. 모든 테이블에 RLS를 켜고 정책은 만들지 않음 | AC-18 |
 | 통신 | 웹소켓 없이 REST만. 종료 응답에 내 순위를 같이 담음 | — |
@@ -64,7 +64,7 @@ PRD에서 비어 있거나 절마다 어긋나던 항목, 게임이 바뀌면서
 하루 판 파일 형식은 [GAME_FRAME_SPEC.md](GAME_FRAME_SPEC.md) 6절, 그 안의 밈 카드(`meme`)는 [MEME_GAME_DESIGN.md](MEME_GAME_DESIGN.md) 6절을 따릅니다. 서버가 쓰는 값은 아래와 같습니다.
 
 - `frame`: MVP는 `timing_stop`만 지원
-- `frameParams.targetMs`: 목표 시간, `frameParams.visibleMs`: 시계가 보이는 시간
+- `frameParams.rounds`: 라운드 수(3), `frameParams.targetMs`: 라운드별 목표 시간 배열(길이 = `rounds`), `frameParams.visibleMs`: 라운드마다 시계가 보이는 시간
 - `meme.win`·`meme.lose`(`early`·`late` 갈래 포함): 결과별 두 줄 자막과 소품, `meme.hope`·`meme.share`: 영상과 공유 문구
 - 서버 로딩 시 zod로 검증
 
@@ -72,7 +72,7 @@ PRD에서 비어 있거나 절마다 어긋나던 항목, 게임이 바뀌면서
 
 - 측정은 `performance.now()`로 하고, 이벤트는 `click`이 아니라 `pointerdown`을 씁니다. `click`은 손가락을 뗀 뒤에 발생해서 누른 순간보다 늦습니다.
 - 탭 영역에 `touch-action: manipulation`을 줘서 더블탭 확대 판정으로 인한 지연을 없앱니다.
-- 타이머는 시작 API 응답을 받은 순간부터 잽니다. 화면 표시(`requestAnimationFrame`)는 보여 주기용이고 측정에 쓰지 않습니다.
+- 1라운드 타이머는 시작 API 응답을 받은 순간부터, 2·3라운드 타이머는 라운드 소개가 끝나는 순간부터 잽니다. 서버에는 라운드별 경과 시간만 보냅니다. 화면 표시(`requestAnimationFrame`)는 보여 주기용이고 측정에 쓰지 않습니다.
 
 ## 4. DB
 
@@ -113,8 +113,9 @@ create table attempts (
   referral_id text references referrals(id),   -- null이면 일반 유입
   started_at timestamptz not null default now(),
   finished_at timestamptz,
-  elapsed_ms int,                              -- 클라이언트 측정값
-  error_ms int,                                -- 서버 계산값
+  round_elapsed_ms int[],                      -- 라운드별 클라이언트 측정값
+  round_error_ms int[],                        -- 라운드별 오차, 서버 계산값
+  error_ms int,                                -- 라운드 오차의 합, 서버 계산값(순위 기준)
   outcome text,                                -- 'win' | 'lose', 서버 계산값
   outcome_variant text,                        -- timing_stop의 lose 갈래: 'early' | 'late'
   video_path text                              -- Storage 경로
@@ -125,7 +126,7 @@ create index attempts_ranking on attempts (challenge_id, error_ms) where error_m
 create view best_attempts with (security_invoker = true) as
 select distinct on (a.player_id, a.challenge_id)
   a.id, a.player_id, a.challenge_id, a.error_ms, a.finished_at,
-  a.elapsed_ms, a.outcome, a.outcome_variant, a.video_path, p.nickname
+  a.round_elapsed_ms, a.round_error_ms, a.outcome, a.outcome_variant, a.video_path, p.nickname
 from attempts a
 join players p on p.id = a.player_id
 where a.error_ms is not null
@@ -161,7 +162,7 @@ alter table events enable row level security;
 | POST | `/api/players` | `{ nickname }` | `{ nickname }` | 쿠키 발급. 쿠키가 있으면 닉네임만 갱신 |
 | GET | `/api/challenges/{id}` | — | 밈 카드 | `meme.context`는 빼도 됨 |
 | POST | `/api/attempts` | `{ challengeId, ref? }` | `{ attemptId }` | `started_at` 기록. 유효하지 않은 `ref`는 무시 |
-| POST | `/api/attempts/{attemptId}/finish` | `{ elapsedMs, leagueId? }` | `{ errorMs, bestErrorMs, isNewBest, globalRank, friendsRank, outcome, outcomeVariant }` | 내 시도이고 아직 끝나지 않았을 때만. 2절의 검증 규칙 적용. `friendsRank`는 `leagueId`(화면에 표시 중인 리그)가 있고 내가 멤버일 때만, 아니면 null |
+| POST | `/api/attempts/{attemptId}/finish` | `{ roundElapsedMs: number[3], leagueId? }` | `{ roundErrorsMs, errorMs, bestErrorMs, isNewBest, globalRank, friendsRank, outcome, outcomeVariant }` | 내 시도이고 아직 끝나지 않았을 때만. 2절의 검증 규칙 적용. `friendsRank`는 `leagueId`(화면에 표시 중인 리그)가 있고 내가 멤버일 때만, 아니면 null |
 | GET | `/api/me?challengeId=` | — | `{ nickname?, bestErrorMs?, globalRank?, leagues: [{ leagueId, ownerNickname, isOwner }] }` | 재방문 시 화면 결정. 쿠키 없으면 빈 값 |
 | GET | `/api/leaderboard?challengeId=` | — | `{ rows: [{ nickname, errorMs, rank }] }` | Global 상위 50. 모두에게 같은 응답이라 `Cache-Control: public, s-maxage=5`. 내 순위는 여기 넣지 않고 `/api/me`·finish 응답의 `globalRank`로 표시 |
 | GET | `/api/leagues/invites/{token}` | — | `{ leagueId, ownerNickname, memberCount }` | 인트로 화면 표시용 |
@@ -177,7 +178,7 @@ alter table events enable row level security;
 라우트는 `/c/[challengeId]` 하나이고, `/`는 여기로 리다이렉트합니다.
 
 1. **인트로**: 제목, 밈 카드의 `logline`, 정지된 장면이 흔들리며 캐릭터가 뛰어나오는 연출, 리그 초대면 "{owner}'s league" 표시, 쿠키가 없을 때만 닉네임 입력, 시작 버튼(리그 초대면 "Join & Play")
-2. **게임**: Phaser 캔버스, 화면 전체가 탭 영역. 시계가 처음 3초만 보이고 가려짐. 탭하면 결과 종류별 연출 뒤 오차·최고 기록·Global 순위·Friends 순위와 큰 Retry 버튼, "See results" 버튼
+2. **게임**: Phaser 캔버스, 화면 전체가 탭 영역. 라운드 소개(2초) → 시계가 1.5초 보이고 가려짐 → 탭 → 라운드 반응(3초)을 세 번. 세 라운드가 끝나면 결과 종류별 연출 뒤 오차·최고 기록·Global 순위·Friends 순위와 큰 Retry 버튼, "See results" 버튼
 3. **결과**: 최고 기록과 그 결과 종류의 연출 → 랭킹(Global | Friends 탭) → 영상(생성 → 미리보기 → 저장·공유) → 공유 버튼
 
 ### 주 버튼
@@ -251,7 +252,7 @@ PRD §13.6 이름을 그대로 쓰고, 8개만 기록합니다.
 | AC | 충족 방법 |
 |---|---|
 | 01 | 닉네임만 입력, 로그인 없음 |
-| 02, 03 | 한 판이 끝나면 서버가 오차를 계산해 `attempts`에 저장하고 응답 |
+| 02, 03 | 세 라운드가 끝나면 서버가 라운드별 오차와 합을 계산해 `attempts`에 저장하고 응답 |
 | 04 | "Challenge a Friend" → `/api/referrals` (`invite: true`) |
 | 05, 06 | `league` 토큰 → Join & Play → Friends 랭킹 |
 | 07 | 쿠키 + `/api/me` (같은 브라우저 기준) |
@@ -311,6 +312,6 @@ PR #2의 5단계(17:00, 사장님과 함께하는 선택 기록)가 MVP 실기�
 
 - **첫날의 밈**: 목표 시간과 화면·영상 문구가 여기서 정해집니다. 게임 화면 착수(1:15, 13:45) 전에 정해야 합니다. 발굴 로직 결과를 기다리기 어려우면 사람이 고릅니다.
 - **재도전 규칙**: 기본은 무제한 재도전에 최고 기록 인정입니다. PRD §8.2처럼 하루 한 번만 공식으로 치려면 `attempts`에 (player, challenge) 첫 기록만 인정하도록 바꿉니다.
-- **Perfect 기준**: 100ms는 가정입니다. 게임 화면이 붙으면(1:15–2:15) 몇 번 해 보고 조정합니다.
+- **Perfect 기준**: 합산 300ms, 라운드 반응 100ms는 가정입니다. 게임 화면이 붙으면(1:15–2:15) 몇 번 해 보고 조정합니다.
 - **언어**: 심사를 한국어로 하면 영어 대신 한국어로 바꿉니다. 영상에 한글을 넣으려면 한글 폰트가 필요합니다.
 - **렌더링 위치**: 1:15(13:45) 체크포인트 결과로 정합니다.
