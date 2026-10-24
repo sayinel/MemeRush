@@ -6,7 +6,13 @@ import "./globals.css";
 const jua = Jua({ weight: "400", subsets: ["latin"], variable: "--font-jua" });
 const notoSans = Noto_Sans({ weight: ["500", "700"], subsets: ["latin"], variable: "--font-noto" });
 
+// Absolute base for OG/Twitter image URLs: crawlers don't run JS and need full URLs.
+// Production uses the stable production domain; previews use their own deployment URL.
+const host =
+  process.env.VERCEL_ENV === "production" ? process.env.VERCEL_PROJECT_PRODUCTION_URL : process.env.VERCEL_URL;
+
 export const metadata: Metadata = {
+  metadataBase: new URL(host ? `https://${host}` : `http://localhost:${process.env.PORT ?? 3000}`),
   title: "MemeRush",
   description: "Play the Meme. Be the Meme. Beat Your Friends.",
 };
