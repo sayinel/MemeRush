@@ -2,6 +2,7 @@ import "server-only";
 import { execFile, type ChildProcess } from "node:child_process";
 import { promises as fs } from "node:fs";
 import path from "node:path";
+import { cookies } from "next/headers";
 import statusFixture from "../_fixtures/status.json";
 import picksFixture from "../_fixtures/picks.json";
 import topicsFixture from "../_fixtures/topics.json";
@@ -230,6 +231,41 @@ function freshSim(): Sim {
 }
 const sim = (): Sim => (g.__admSim ??= freshSim());
 
+// 온라인 시연(ADMIN_DEMO=1)은 서버가 여러 대로 나뉘어 메모리 상태가 오락가락하므로, 시연 상태를 쿠키에 담아 요청마다 되살린다.
+const SIM_COOKIE = "adm_sim";
+async function hydrateSim(): Promise<void> {
+  if (!adminDemo()) return;
+  const raw = (await cookies()).get(SIM_COOKIE)?.value;
+  let next: Sim | null = null;
+  if (raw) {
+    try {
+      const d = JSON.parse(Buffer.from(raw, "base64url").toString("utf8")) as { v: [string, string | null, string | null][]; c: string; m: string; p: Picks; r: Registered[] };
+      const base = freshSim();
+      if (Array.isArray(d.v) && d.v.length === base.status.steps.length) {
+        base.status.steps.forEach((st, i) => {
+          st.state = d.v[i][0] as typeof st.state;
+          st.startedAt = d.v[i][1];
+          st.endedAt = d.v[i][2];
+        });
+        base.status.current = d.c;
+        base.status.meme = d.m;
+        base.picks = d.p;
+        base.registered = d.r;
+        next = base;
+      }
+    } catch {
+      next = null;
+    }
+  }
+  g.__admSim = next ?? freshSim();
+}
+async function persistSim(): Promise<void> {
+  if (!adminDemo()) return;
+  const s = sim();
+  const body = { v: s.status.steps.map((x) => [x.state, x.startedAt ?? null, x.endedAt ?? null]), c: s.status.current, m: s.status.meme, p: s.picks, r: s.registered };
+  (await cookies()).set(SIM_COOKIE, Buffer.from(JSON.stringify(body), "utf8").toString("base64url"), { path: "/", httpOnly: true, sameSite: "lax", secure: process.env.VERCEL === "1", maxAge: 6 * 60 * 60 });
+}
+
 function enter(s: Sim, i: number, t: number) {
   const steps = s.status.steps;
   if (i >= steps.length) {
@@ -281,8 +317,10 @@ export async function readState(): Promise<AdminState> {
   const weekStart = weekStartDate();
   const sampleParts: string[] = [];
 
+  await hydrateSim();
   let status = adminDemo() ? null : normStatus(await readJson(path.join(PIPE, "status.json")));
   const isSim = status === null;
+  const simS = isSim ? sim() : null;
   if (isSim) {
     advance();
     status = sim().status;
@@ -296,7 +334,7 @@ export async function readState(): Promise<AdminState> {
     sampleParts.push("주제 후보");
   }
 
-  const picks = isSim ? sim().picks : normPicks(await readJson(path.join(PIPE, "picks.json")));
+  const picks = simS ? simS.picks : normPicks(await readJson(path.join(PIPE, "picks.json")));
 
   let copies = normCopies(await readJson(path.join(OUT, "card_candidates.json")));
   if (copies.length === 0) copies = normCopies(await readJson(path.join(OUT, "card.json"))).slice(0, 3);
@@ -318,7 +356,7 @@ export async function readState(): Promise<AdminState> {
     registered = normRegistered(registeredFixture, today, weekStart);
     sampleParts.push("예약 목록");
   }
-  if (isSim) registered = [...registered, ...sim().registered];
+  if (isSim) registered = [...registered, ...(simS?.registered ?? [])];
 
   const published = await readPublished();
 
@@ -398,7 +436,9 @@ export async function applyPick(kind: PickKind, value: unknown): Promise<void> {
   const v = validatePick(kind, value, st);
   const isSim = st.sampleParts.includes("진행 상태");
   if (isSim) {
+    await hydrateSim();
     const s = sim();
+    advance();
     const idx = s.status.steps.findIndex((x) => x.id === STEP_OF[kind]);
     const step = s.status.steps[idx];
     if (!step || step.state !== "waiting" || s.status.steps.slice(0, idx).some((x) => x.state !== "done")) {
@@ -408,6 +448,7 @@ export async function applyPick(kind: PickKind, value: unknown): Promise<void> {
     if (kind === "date") {
       s.picks.publishDate = v.value as string;
       enter(s, idx, now);
+      await persistSim();
       return;
     }
     if (kind === "topic") {
@@ -418,6 +459,7 @@ export async function applyPick(kind: PickKind, value: unknown): Promise<void> {
     step.state = "done";
     step.endedAt = new Date(now).toISOString();
     enter(s, idx + 1, now);
+    await persistSim();
     return;
   }
   const arg = kind === "image" ? `${PIPE_REL}/images/${v.value}` : String(v.value);
@@ -432,7 +474,9 @@ export async function applyRun(mode: RunMode): Promise<{ message: string }> {
 
   if (mode === "reimage") {
     if (isSim) {
+      await hydrateSim();
       const s = sim();
+      advance();
       const a = s.status.steps.findIndex((x) => x.id === "assets");
       const p = s.status.steps.findIndex((x) => x.id === "pick_image");
       if (s.status.steps[p]?.state !== "waiting") throw new AdminError("지금은 다시 요청할 수 없어요.", 409);
@@ -440,6 +484,7 @@ export async function applyRun(mode: RunMode): Promise<{ message: string }> {
       s.status.steps[p].state = "waiting";
       s.status.steps.slice(a, p).forEach((x) => (x.state = "waiting"));
       enter(s, a, Date.now());
+      await persistSim();
       return { message: "이미지를 다시 만들고 있어요." };
     }
     // 실행기에 되돌리기 명령이 아직 없어서 요청만 파일로 남긴다.
@@ -452,14 +497,18 @@ export async function applyRun(mode: RunMode): Promise<{ message: string }> {
   if (mode === "publish") {
     // 실행기에 발행 명령이 아직 없다. 샘플 모드에서만 모의 발행으로 상태를 바꾼다.
     if (!isSim) throw new AdminError("실제 발행 명령은 아직 연결되지 않았어요.", 501);
+    await hydrateSim();
+    advance();
     const reg = sim().registered.find((r) => r.publishDate === sim().picks.publishDate);
     if (!complete || !reg) throw new AdminError("아직 발행할 수 있는 상태가 아니에요.", 409);
     reg.status = "published";
+    await persistSim();
     return { message: "발행했어요." };
   }
   if (isSim) {
     if (mode === "new" && complete) {
       g.__admSim = freshSim();
+      await persistSim();
       return { message: "새 등록을 시작했어요." };
     }
     return { message: "이어서 진행해요." };
