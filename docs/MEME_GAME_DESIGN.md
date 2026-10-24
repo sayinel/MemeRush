@@ -8,7 +8,9 @@
 |---|---|---|---|
 | 밈 캐릭터·상황 | 직접 플레이 | 친구·글로벌 순위 | 웃긴 결과 영상 |
 
-MVP 범위는 [MVP_SCOPE.md](MVP_SCOPE.md)를 따릅니다.
+- MVP 범위: [MVP_SCOPE.md](MVP_SCOPE.md)
+- 게임 틀 공통 규격과 틀 라이브러리: [GAME_FRAME_SPEC.md](GAME_FRAME_SPEC.md)
+- 스타일과 에셋 형식: [챔피언 스타일](../art/champion/README.md), [ASSET_FORMATS.md](ASSET_FORMATS.md)
 
 ## 1. 핵심 원칙
 
@@ -18,31 +20,31 @@ MVP 범위는 [MVP_SCOPE.md](MVP_SCOPE.md)를 따릅니다.
 
 ## 2. 기본 구조
 
-**데일리 게임 = 게임 틀 × 오늘의 밈 카드**
+**오늘의 판 = 게임 틀 + 틀 파라미터 + 밈 카드** ([GAME_FRAME_SPEC.md](GAME_FRAME_SPEC.md) 1절)
 
-- **게임 틀**: 규칙과 조작. MVP의 틀은 **스톱워치 타이머 정지**입니다([게임 후보 조사](GAME_CANDIDATES.md) 1순위). 틀은 자주 바뀌지 않습니다.
-- **밈 카드**: 그날의 밈을 틀에 맞춘 설정. 무대·캐릭터·목표 시간·결과 연출과 문구를 정합니다. 이 카드를 만드는 AI를 **AI Meme-to-Game Director**라고 부릅니다.
+- **게임 틀**: 규칙과 조작. MVP의 틀은 `timing_stop`(숨겨진 타이머를 목표 시간에 맞춰 멈추기)입니다.
+- **밈 카드**: 그날의 밈을 틀에 맞춘 설정. 무대·캐릭터·문구·결과 연출을 정합니다. 틀과 독립이라 같은 카드를 다른 틀에도 얹을 수 있습니다. 이 카드를 만드는 AI를 **AI Meme-to-Game Director**라고 부릅니다.
 - **그래픽 자산은 미리 만든 라이브러리에서 고릅니다.** AI는 그림을 그리지 않고 테마 선택과 콘텐츠 구성만 맡습니다. 시연 완성 가능성을 높이기 위한 제한입니다.
 
-스톱워치는 규칙이 탭 한 번이라 설명이 필요 없고, 남는 시간을 모두 캐릭터와 연출에 쓸 수 있습니다. 규칙은 단순하게, 화면은 요란하게 만듭니다.
+`timing_stop`은 규칙이 탭 한 번이라 설명이 필요 없고, 남는 시간을 모두 캐릭터와 연출에 쓸 수 있습니다. 규칙은 단순하게, 화면은 요란하게 만듭니다.
 
 ## 3. 비주얼 스타일과 게임 틀 로드맵
 
 ### 스타일: Hyper-Casual × Meme Chaos
 
 - 복잡한 3D보다 커다란 캐릭터, 단순한 터치 조작, 과장된 반응, 폭발적인 이펙트
-- 참고: Fruit Ninja(손가락 한 번에 시원한 액션과 즉각적인 피드백), Vampire Survivors(단순한 조작에 많은 오브젝트·충돌·이펙트)
-- 참고 게임의 조작감과 시각적 쾌감만 참고하고, 그래픽은 새로 만든 오리지널 캐릭터와 밈 세계관으로 그립니다. 스타일은 [아트 후보](../art/README.md)(PR #3) 중에서 고릅니다.
+- 기준 스타일은 Simon님이 확정한 [챔피언 스타일](../art/champion/README.md)입니다. 굵은 윤곽과 밝은 하늘 위에 밈의 문법을 더합니다: 반응 짤처럼 과장한 표정, 두꺼운 흰 테두리 스티커, 굵은 위아래 두 줄 자막, 엉뚱한 소품.
+- 참고 게임: Fruit Ninja(손가락 한 번에 시원한 액션과 즉각적인 피드백), Vampire Survivors(단순한 조작에 많은 오브젝트·충돌·이펙트). 조작감과 시각적 쾌감만 참고하고 그래픽은 모두 오리지널로 그립니다.
 
 ### 게임 틀 로드맵
 
+틀 id와 규격은 [GAME_FRAME_SPEC.md](GAME_FRAME_SPEC.md) 4절의 틀 라이브러리를 따릅니다.
+
 | 순서 | 틀 | 플레이 | 상태 |
 |---|---|---|---|
-| 1 | **스톱워치 타이머 정지** | 목표 시간에 맞춰 한 번 탭 | **MVP** |
-| 2 | Meme Survival + Smash 연출 | 보스가 던지는 오브젝트를 한 손가락 드래그로 20초 동안 피함. 맞으면 찌그러지며 튕겨 나감 | 다음 틀 |
-| 3 | Meme Physics | 물체를 던져 연쇄 슬랩스틱 유발 | 보류. 안정적인 물리 연출을 만들기 어려움 |
-
-같은 밈 카드(무대·캐릭터·문구)를 다른 틀에도 얹을 수 있도록, 카드 형식은 틀과 무관한 부분과 틀 전용 부분을 나눕니다(6절).
+| 1 | `timing_stop` | 목표 시간에 맞춰 한 번 탭 | **MVP** |
+| 2 | `swipe_dodge` + 충돌 연출 | Meme Survival: 보스가 던지는 오브젝트를 피하며 버팀. 맞으면 찌그러지며 튕겨 나감 | 확장 후보 |
+| — | Meme Physics | 물체를 던져 연쇄 슬랩스틱 유발 | 보류. 안정적인 물리 연출을 만들기 어려움 |
 
 ## 4. 첫 게임: FRIDAY 5PM — CLOCK OUT! (Daily #001)
 
@@ -59,34 +61,35 @@ MVP 범위는 [MVP_SCOPE.md](MVP_SCOPE.md)를 따릅니다.
         [ CLOCK OUT ]  ← 화면 어디든 탭
 ```
 
-화면 콘셉트 예시입니다. 실제 구현에서는 이모지 대신 애니메이션 스프라이트를 씁니다.
+화면 콘셉트 예시입니다. 실제 화면은 챔피언 스타일의 스프라이트로 그립니다.
 
 ### 규칙
 
 | 항목 | 값 |
 |---|---|
+| 틀 | `timing_stop`, `frameParams: { targetMs: 10000, visibleMs: 3000 }` |
 | 조작 | 화면을 한 번 탭 |
 | 목표 | 시계가 4:59:50에서 출발해 정확히 5:00:00이 되는 순간(10.00초 뒤)에 탭 |
 | 시계 숨김 | 처음 3초만 보이고, 보스가 걸어와 시계 앞을 막아섬. 타이머가 숨겨지는 이유를 화면 안의 사건으로 보여 줌 |
 | 기록 | 목표와의 오차(ms). 낮을수록 좋음 |
 | 재도전 | 0.5초 안에 다시 시작 |
 
-### 결과 세 가지
+### 결과: 성공 하나와 실패 두 갈래
 
-오차의 크기뿐 아니라 **빨랐는지 늦었는지**에 따라 다른 장면이 나옵니다. 같은 실패라도 이유가 달라서 결과가 더 웃기고, 다시 할 이유가 생깁니다.
+공통 규격의 성공(`win`)·실패(`lose`) 두 가지를 따르되, `timing_stop`에서는 실패를 **빨랐는지 늦었는지**로 한 번 더 나눕니다. 같은 실패라도 이유가 달라서 결과가 더 웃기고, 다시 할 이유가 생깁니다.
 
-| 결과 | 조건 | 연출 | 문구 예 |
+| 결과 | 조건 | 연출 | 두 줄 자막 예 |
 |---|---|---|---|
-| Perfect | 오차 100ms 이하 | 캐릭터가 문으로 슬라이딩 탈출, 색종이 폭발 | "CLOCKED OUT 5:00:00.03" · "WEEKEND UNLOCKED" |
-| Too Early | 100ms 넘게 빠름 | 보스가 뒷덜미를 잡아챔, 캐릭터 찌그러짐 | "NOT SO FAST." |
-| Too Late | 100ms 넘게 늦음 | "QUICK SYNC?" 회의 초대가 떨어져 캐릭터가 메일 더미에 파묻힘, 화면 흔들림 | "MY WEEKEND IS GONE" |
+| `win` (Perfect) | 오차 100ms 이하 | 캐릭터가 문으로 슬라이딩 탈출, 색종이 폭발, 우쭐한 표정 | "CLOCKED OUT 5:00:00.03" / "WEEKEND UNLOCKED" |
+| `lose` · `early` (Too Early) | 100ms 넘게 빠름 | 보스가 뒷덜미를 잡아챔, 캐릭터 찌그러짐, 억울한 표정 | "NOT SO FAST." / "BACK TO YOUR DESK" |
+| `lose` · `late` (Too Late) | 100ms 넘게 늦음 | "QUICK SYNC?" 회의 초대가 떨어져 메일 더미에 파묻힘, 화면 흔들림, 눈물 | "QUICK SYNC?" / "MY WEEKEND IS GONE" |
 
 ### 그래픽 연출
 
 | 이벤트 | 연출 |
 |---|---|
 | 게임 시작 | 정지된 사무실 장면이 흔들리더니 캐릭터들이 뛰어나옴 |
-| 대기 중 | 캐릭터가 발을 동동 구르고 땀을 흘림. 보스가 시계 쪽으로 걸어옴. 긴장감을 계속 보여 줌 |
+| 대기 중 | 캐릭터가 발을 동동 구르고 식은땀을 흘림. 보스가 시계 쪽으로 걸어옴. 긴장감을 계속 보여 줌 |
 | 탭 | 캐릭터가 문을 향해 튀어 나감 |
 | 결과 | 위 세 가지 중 하나를 과장된 애니메이션으로. 충돌 시 화면 흔들림·찌그러짐·파티클 |
 | 기록 갱신 | 화면 중앙에 커다란 기록과 연속 이펙트 |
@@ -95,58 +98,60 @@ MVP 범위는 [MVP_SCOPE.md](MVP_SCOPE.md)를 따릅니다.
 
 ## 5. 결과 영상: 플레이 하이라이트
 
-텍스트와 점수만 넣지 않고, 실제 플레이 장면을 재구성합니다. 게임을 모르는 사람도 캐릭터가 퇴근에 실패했다는 것을 이해하고, 친구의 기록과 순위를 보고 도전할 이유가 생겨야 합니다.
+텍스트와 점수만 넣지 않고, 실제 결과 장면을 재구성합니다. 게임을 모르는 사람도 캐릭터가 퇴근에 실패했다는 것을 이해하고, 친구의 기록과 순위를 보고 도전할 이유가 생겨야 합니다.
 
 ### 세 장면 구성 (9:16, 8–12초)
 
-| 장면 | Perfect | Too Early | Too Late |
+| 장면 | `win` | `lose` · `early` | `lose` · `late` |
 |---|---|---|---|
 | 1. 희망 | 😰 "4:59:57… ALMOST FREE" | 같음 | 같음 |
-| 2. 반전 | 🏃💨🚪 "CLOCKED OUT 5:00:00.03" | 👹✋ "NOT SO FAST." | 📩💥 "QUICK SYNC?" |
-| 3. 밈 결과 | 🎉 "WEEKEND UNLOCKED" · 순위 · "BEAT ME!" | 😵 "BACK TO YOUR DESK" · 순위 · "BEAT ME!" | 😭 "MY WEEKEND IS GONE" · 순위 · "BEAT ME!" |
+| 2. 반전 (자막 윗줄) | 🏃💨🚪 "CLOCKED OUT 5:00:00.03" | 👹✋ "NOT SO FAST." | 📩💥 "QUICK SYNC?" |
+| 3. 밈 결과 (자막 아랫줄) | 🎉 "WEEKEND UNLOCKED" · 순위 · "BEAT ME!" | 😵 "BACK TO YOUR DESK" · 순위 · "BEAT ME!" | 😭 "MY WEEKEND IS GONE" · 순위 · "BEAT ME!" |
 
-### 만드는 방법: 화면 녹화 대신 이벤트 재현
+### 만드는 방법: 화면 녹화 대신 장면 재현
 
-- 게임은 탭한 순간의 측정값(경과 시간)을 남기고, 서버가 오차와 결과(Perfect·Too Early·Too Late)를 정합니다.
-- 영상 템플릿이 게임과 같은 스프라이트로 세 장면을 다시 그립니다. 같은 그래픽 자산을 쓰므로 게임과 영상이 일관되고, 화면 녹화의 브라우저별 차이를 피할 수 있습니다.
-- 서버가 FFmpeg으로 장면 배경 위에 스프라이트와 문구를 시간에 맞춰 겹칩니다. 장면에 들어가는 값은 결과 종류, 멈춘 시각(예: 5:00:00.03), 오차, 순위입니다.
+- 게임은 탭한 순간의 측정값(경과 시간)을 남기고, 서버가 오차와 결과(`win`/`lose`, `timing_stop`이면 `early`/`late`)를 정합니다.
+- 서버가 FFmpeg으로 영상 배경(성공·실패 2장, `zoompan`) 위에 캐릭터 반응 스티커와 소품 스프라이트, 자막을 장면마다 겹칩니다. 게임과 같은 스프라이트를 쓰므로 게임과 영상이 일관되고, 화면 녹화의 브라우저별 차이를 피할 수 있습니다.
+- 장면에 들어가는 값은 결과, 멈춘 시각(예: 5:00:00.03), 오차, 순위입니다.
+- 배경과 스프라이트 형식은 [ASSET_FORMATS.md](ASSET_FORMATS.md)를 따릅니다. 배경의 위아래 25%는 자막 자리로 비웁니다.
 
 ## 6. 밈 카드 형식
 
-게임 설정 JSON(`content/challenges/{id}.json`)에 들어갑니다. 스프라이트는 자산 라이브러리의 키로 가리킵니다.
+하루 판 파일 `content/challenges/{id}.json`([GAME_FRAME_SPEC.md](GAME_FRAME_SPEC.md) 6절)의 `meme` 필드에 들어갑니다. 스프라이트는 자산 라이브러리의 키로 가리킵니다.
 
 ```json
 {
   "id": "2026-10-24",
-  "frame": "stopwatch",
   "title": "FRIDAY 5PM — CLOCK OUT!",
-  "logline": "Clock out at exactly 5:00:00. Not a millisecond earlier.",
+  "frame": "timing_stop",
+  "frameParams": { "targetMs": 10000, "visibleMs": 3000 },
+  "seed": "2026-10-24",
   "meme": {
     "name": "Friday 5PM",
-    "context": { "summary": "One or two sentences on the meme.", "url": "https://..." }
-  },
-  "theme": { "background": "office", "player": "worker", "boss": "boss", "goal": "door" },
-  "stopwatch": {
-    "targetMs": 10000,
-    "visibleMs": 3000,
-    "clock": { "startLabel": "4:59:50", "format": "wallclock" },
-    "hider": "boss"
-  },
-  "outcomes": {
-    "perfect": { "props": ["confetti"], "twist": "CLOCKED OUT {stopLabel}", "result": "WEEKEND UNLOCKED" },
-    "early":   { "props": ["boss_grab"], "twist": "NOT SO FAST.", "result": "BACK TO YOUR DESK" },
-    "late":    { "props": ["email", "calendar"], "twist": "QUICK SYNC?", "result": "MY WEEKEND IS GONE" }
-  },
-  "hope": "{nearLabel}… ALMOST FREE",
-  "share": "{result} {error}s off in FRIDAY 5PM. Beat me:"
+    "context": { "summary": "One or two sentences on the meme.", "url": "https://..." },
+    "prompt": "Clock out at exactly 5:00:00. Not a millisecond earlier.",
+    "theme": {
+      "background": "office", "player": "worker", "boss": "boss", "goal": "door",
+      "clock": { "startLabel": "4:59:50" }, "hider": "boss"
+    },
+    "hope": "{nearLabel}… ALMOST FREE",
+    "win":  { "top": "CLOCKED OUT {stopLabel}", "bottom": "WEEKEND UNLOCKED", "props": ["confetti"] },
+    "lose": {
+      "top": "SO CLOSE…", "bottom": "{result}", "props": [],
+      "early": { "top": "NOT SO FAST.", "bottom": "BACK TO YOUR DESK", "props": ["boss_grab"] },
+      "late":  { "top": "QUICK SYNC?", "bottom": "MY WEEKEND IS GONE", "props": ["email", "calendar"] }
+    },
+    "share": "{result} in FRIDAY 5PM. Beat me:"
+  }
 }
 ```
 
-- `meme`, `theme`, `outcomes`, `hope`, `share`는 틀과 무관한 부분이고, `stopwatch`는 틀 전용 부분입니다.
-- `{stopLabel}`은 멈춘 시각(예: 5:00:00.03), `{nearLabel}`은 3초 전 시각(예: 4:59:57), `{error}`는 오차입니다.
-- AI는 라이브러리에 있는 키만 고를 수 있습니다. 문구 한 줄은 30자 이하로, 영상과 모바일 화면에서 크게 보여야 합니다.
+- `win`/`lose`의 `top`·`bottom`은 챔피언 스타일의 위아래 두 줄 자막입니다. 결과 화면과 영상 2·3장면에 같은 문구가 나옵니다.
+- `lose.early`·`lose.late`는 `timing_stop` 전용 갈래입니다. 없으면 `lose`의 기본 문구를 씁니다. 그래서 갈래가 없는 다른 틀도 같은 카드 형식을 그대로 씁니다.
+- `{result}`는 틀이 만든 표시 문구(예: "0.034s off"), `{stopLabel}`은 멈춘 시각(예: 5:00:00.03), `{nearLabel}`은 3초 전 시각(예: 4:59:57)입니다.
+- AI는 라이브러리에 있는 키만 고를 수 있습니다. 자막 한 줄은 30자 이하로, 영상과 모바일 화면에서 크게 보여야 합니다.
 
-### 밈 유형별 목표 시간
+### 밈 유형별 목표 시간 (`timing_stop`)
 
 | 밈 유형 | 목표 시간 | 예시 |
 |---|---|---|
@@ -154,7 +159,7 @@ MVP 범위는 [MVP_SCOPE.md](MVP_SCOPE.md)를 따릅니다.
 | 타이밍 밈: 기다렸다 터지는 순간이 있음 | 그 순간까지의 길이 | 금요일 5시 → 4:59:50부터 10초 |
 | 형식·문구 밈: 정해진 말투나 구도 | 기본값 10.00초 | "Nobody: / Me:" |
 
-목표 시간은 3–15초로 제한합니다.
+목표 시간은 3–15초로 제한합니다. 밈 유형에 맞는 틀을 고르는 규칙은 [GAME_FRAME_SPEC.md](GAME_FRAME_SPEC.md) 5절을 따릅니다.
 
 ## 7. 지켜야 할 것
 
@@ -165,19 +170,19 @@ MVP 범위는 [MVP_SCOPE.md](MVP_SCOPE.md)를 따릅니다.
 ## 8. 구현 기술
 
 - **게임 장면**: [Phaser](https://docs.phaser.io/)(모바일 웹용 2D 게임 프레임워크). 스프라이트 애니메이션, 트윈, 파티클, 카메라 흔들림이 기본으로 들어 있어 4절의 연출을 짧은 코드로 만들 수 있습니다. Phaser는 브라우저에서만 돌므로 클라이언트 전용으로 불러옵니다.
-- **탭 측정**: 연출과 별개로, 측정은 [MVP_SCOPE.md](MVP_SCOPE.md) 3절의 탭 판정 규칙(`pointerdown`, `performance.now()`)을 따릅니다. 애니메이션 프레임에 측정을 맡기지 않습니다.
+- **틀 코드 구조**: [GAME_FRAME_SPEC.md](GAME_FRAME_SPEC.md) 3절의 `GameFrame` 인터페이스 모양을 따릅니다. 탭 측정은 연출과 분리해 `pointerdown`과 `performance.now()`로 하고, 애니메이션 프레임에 측정을 맡기지 않습니다.
 - **나머지 화면**: React(Next.js)로 홈, 순위, 결과 화면을 만들고 게임 장면만 Phaser 캔버스로 띄웁니다.
-- **결과 영상**: 5절의 이벤트 재현 방식, 서버 FFmpeg
+- **결과 영상**: 5절의 장면 재현 방식, 서버 FFmpeg
 
 ## 9. MVP 범위
 
 | 구분 | 목표 |
 |---|---|
-| 아트 | 사무실 배경 1장, 직장인 캐릭터(대기·달리기·잡힘·파묻힘·탈출), 보스(걷기·잡기), 시계, 문, 메일·회의 오브젝트 |
-| 게임 | 스톱워치 한 판, 탭 한 번, 결과 세 가지 |
+| 아트 | 게임: 사무실 배경, 직장인 캐릭터(대기·달리기·잡힘·파묻힘·탈출), 보스(걷기·잡기), 시계, 문, 메일·회의 소품. 영상: 성공·실패 배경 2장과 반응 스티커 |
+| 게임 | `timing_stop` 한 판, 탭 한 번, 결과 세 가지(`win`, `lose`·`early`, `lose`·`late`) |
 | 그래픽 | 2D 스프라이트, 트윈, 파티클, 화면 흔들림 |
 | 점수 | 오차(ms), Global·Friends 순위 |
-| 영상 | 결과 종류별 세 장면 하이라이트, 9:16 |
+| 영상 | 결과별 세 장면 하이라이트, 9:16 |
 | AI | 밈에 따라 무대·캐릭터·목표 시간·결과 연출을 설정. 첫날 카드는 손으로 쓰고, 생성기는 시간이 남으면 만듦 |
 | SNS | 모바일 링크 공유, MP4 다운로드 |
 
@@ -185,7 +190,7 @@ MVP 범위는 [MVP_SCOPE.md](MVP_SCOPE.md)를 따릅니다.
 
 | PRD v0.3 | 새 방향 |
 |---|---|
-| Meme Decoder 객관식 | 비주얼 밈 게임(MVP 틀은 스톱워치) |
+| Meme Decoder 객관식 | 비주얼 밈 게임(MVP 틀은 `timing_stop`) |
 | 질문·텍스트 중심 플레이 | 캐릭터·움직임·반응 중심 |
 | 30–60초 | 한 판 10초 안팎, 즉시 재도전 |
 | 정답에 따른 점수 | 목표 시간과의 오차 |
