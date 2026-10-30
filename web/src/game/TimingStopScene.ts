@@ -31,7 +31,7 @@ const FONT = '"Anton", Impact, "Arial Black", sans-serif';
 
 // Real art: /game/manifest.json maps texture key -> file in /game/. Only listed files load; any missing key
 // falls back to a code-drawn stand-in. Keys: {player}_{expression}, bg_{background}, {boss}_walk, {boss}_grab,
-// timer_panel, door, email_pile, meeting_card, clock_button, banner_gold, trophy, star, confetti, duck.
+// timer_panel, door, email_pile, meeting_card, clock_button, banner_gold, trophy, star, duck.
 const MANIFEST_KEY = "game_manifest";
 const ASSET_BASE = "/game/";
 type Expr = "deadpan" | "shocked" | "smug" | "crying" | "sweating" | "laughing" | "facepalm" | "proud" | "bored";
@@ -53,7 +53,6 @@ const CAP_TOP_Y = 245;
 const CAP_BOTTOM_Y = 1132;
 const RESULT_Y = 525;
 const WORKER_PX = 380; // displayed sprite box (sprites are square with feet near the bottom)
-const CONFETTI_TINTS = [C.gold, C.hot, C.red, C.green, C.sky, C.white, C.mascot];
 
 type Phase = "boot" | "intro" | "starting" | "play" | "reaction" | "submitting" | "final" | "done" | "error";
 type Caption = { top: string; bottom: string };
@@ -310,7 +309,6 @@ export class TimingStopScene extends Phaser.Scene {
       this.setFace("proud");
       this.tweens.add({ targets: this.worker, x: HOME.x + 40, y: HOME.y - 30, duration: 200, yoyo: true, hold: 700, ease: "Quad.Out" });
       this.starburst(480, 640, "NICE");
-      this.burst(360, 700, 28);
     } else if (err < 0) {
       if (h) this.tweens.add({ targets: h, y: -400, duration: 300, ease: "Quad.In" });
       this.setFace("facepalm");
@@ -436,24 +434,6 @@ export class TimingStopScene extends Phaser.Scene {
     this.stageFx.push(trophy);
     this.tweens.add({ targets: trophy, scale: 1, delay: 450, duration: 360, ease: "Back.Out" });
     this.tweens.add({ targets: trophy, angle: { from: -6, to: 6 }, delay: 800, duration: 500, yoyo: true, repeat: -1, ease: "Sine.InOut" });
-
-    this.burst(W / 2, RESULT_Y, 50);
-    const key = this.tex("confetti", "__confetti");
-    const rain = this.add.particles(0, -20, key, {
-      x: { min: 0, max: W },
-      speedY: { min: 250, max: 520 },
-      speedX: { min: -120, max: 120 },
-      rotate: { min: 0, max: 360 },
-      gravityY: 250,
-      lifespan: 3200,
-      quantity: 2,
-      frequency: 30,
-      maxAliveParticles: 120,
-      ...(key === "__confetti" ? { tint: CONFETTI_TINTS } : {}),
-    });
-    rain.setDepth(80);
-    this.stageFx.push(rain);
-    this.time.delayedCall(1600, () => rain.stop());
   }
 
   private finalGrabbed(result: FinishResult) {
@@ -536,7 +516,6 @@ export class TimingStopScene extends Phaser.Scene {
       g.generateTexture(key, w, h);
       g.destroy();
     };
-    gen("__confetti", 16, 10, (g) => g.fillStyle(C.white).fillRect(0, 0, 16, 10));
     gen("__drop", 40, 56, (g) => {
       g.fillStyle(C.white).fillCircle(20, 36, 18).fillTriangle(4, 30, 36, 30, 20, 0);
       g.fillStyle(C.sky).fillCircle(20, 36, 13).fillTriangle(9, 32, 31, 32, 20, 8);
@@ -925,7 +904,6 @@ export class TimingStopScene extends Phaser.Scene {
     this.tweens.killTweensOf(this.buttonCap);
     this.buttonCap.setPosition(0, 0).setScale(1);
     this.tweens.add({ targets: this.buttonCap, y: 14, scaleY: 0.82, duration: 70, yoyo: true, hold: 60, ease: "Quad.Out" });
-    this.burst(BUTTON.x, BUTTON.y - 60, 12);
   }
 
   private pill(x: number, y: number, w: number, text: string, color: number, fx = true) {
@@ -999,22 +977,6 @@ export class TimingStopScene extends Phaser.Scene {
       .setScale(0.2);
     this.stageFx.push(t);
     this.tweens.add({ targets: t, scale: 1, delay: 250, duration: 380, ease: "Back.Out" });
-  }
-
-  private burst(x: number, y: number, count: number) {
-    const key = this.tex("confetti", "__confetti");
-    const p = this.add.particles(x, y, key, {
-      speed: { min: 250, max: 650 },
-      angle: { min: 200, max: 340 },
-      rotate: { min: 0, max: 360 },
-      gravityY: 900,
-      lifespan: 1600,
-      emitting: false,
-      ...(key === "__confetti" ? { tint: CONFETTI_TINTS } : {}),
-    });
-    p.setDepth(80);
-    this.stageFx.push(p);
-    p.explode(count);
   }
 
   private fillTemplate(s: string, result: FinishResult): string {
