@@ -46,8 +46,9 @@ const NICE_MS = 100;
 const MIN_TAP_MS = 1000;
 const MAX_TAP_MS = 15000;
 
-const CLOCK = { x: R1.clock.x, y: R1.clock.y, w: R1.clock.w, h: R1.clock.h };
-const HOME = { x: R1.hero.x, y: R1.hero.y }; // worker feet
+// Panel center; w/h are the digit-box size the code-drawn fallback uses.
+const CLOCK = { x: R1.clock_panel.x, y: R1.clock_panel.y, w: R1.clock_digits.w, h: R1.clock_digits.h };
+const HOME = { x: R1.hero.x, y: R1.hero.y - R1.hero.h * 0.1 }; // worker feet (sprite origin is 90% down the box) // worker feet
 const BUTTON = { x: R1.button.x, y: R1.button.y };
 const DOOR = { x: 640, y: 822 };
 const FLOOR_Y = 955;
@@ -210,9 +211,9 @@ export class TimingStopScene extends Phaser.Scene {
     const target = this.startMs() + this.challenge.frameParams.targetMs[i];
     // The label already carries its take number ("TAKE 1: ..."), and the ROUND n/N chip is top left: no "ROUND n:" prefix.
     this.capTop.setY(R1.caption_top.y);
-    this.setCaption(this.capTop, rounds[i].label, R1.caption_top.h);
+    this.setCaption(this.capTop, rounds[i].label, R1.caption_top.font);
     this.capBottom.setY(R1.tap_at.y);
-    this.setCaption(this.capBottom, `TAP AT ${formatClock(target, false)}`);
+    this.setCaption(this.capBottom, `TAP AT ${formatClock(target, false)}`, R1.tap_at.font);
 
     this.setFace("laughing");
     this.tweens.add({ targets: this.worker, y: HOME.y - 26, duration: 180, yoyo: true, repeat: 3, ease: "Quad.Out" });
@@ -220,10 +221,17 @@ export class TimingStopScene extends Phaser.Scene {
 
     // Short ribbon in the free area right of the hero (the hero sits left, the stop button lower right); the
     // description goes in the gap between the top caption and the clock, so nothing covers the face or the button.
-    const card = this.makeBanner(i === 0 ? "GET READY" : "NEXT TAKE", 380).setScale(0.7).setPosition(W + 400, R1.ribbon.y).setDepth(25);
+    const card = this.makeBanner(i === 0 ? "GET READY" : "NEXT TAKE", 380, {
+      size: R1.ribbon_label.font,
+      x: R1.ribbon_label.x - R1.ribbon.x,
+      y: R1.ribbon_label.y - R1.ribbon.y,
+      fit: { w: R1.ribbon.w, h: R1.ribbon.h },
+    })
+      .setPosition(W + 400, R1.ribbon.y)
+      .setDepth(25);
     let prompt: Phaser.GameObjects.Text | null = null;
     if (i === 0) {
-      prompt = this.txt(R1.prompt_text.x, R1.prompt_text.y, this.challenge.meme.prompt, 26, { strokeThickness: 6, wordWrap: { width: R1.prompt_text.w }, align: "center" }).setDepth(60).setAlpha(0);
+      prompt = this.txt(R1.prompt_text.x, R1.prompt_text.y, this.challenge.meme.prompt, R1.prompt_text.font, { strokeThickness: 6, wordWrap: { width: R1.prompt_text.w }, align: "center" }).setDepth(60).setAlpha(0);
       this.tweens.add({ targets: prompt, alpha: 1, duration: 300 });
     }
     this.tweens.add({ targets: card, x: R1.ribbon.x, duration: 380, ease: "Back.Out" });
@@ -753,7 +761,8 @@ export class TimingStopScene extends Phaser.Scene {
     this.button = c;
     if (this.textures.exists("clock_button")) {
       const img = this.add.image(0, 0, "clock_button").setOrigin(0.5, 0.85);
-      img.setScale(180 / img.width);
+      this.fitImage(img, R1.button.w, R1.button.h); // contain, like the Figma frame
+      c.setY(BUTTON.y + (0.85 - 0.5) * img.displayHeight); // BUTTON is the art's box center; the sprite origin sits 85% down
       this.buttonCap = this.add.container(0, 0, [img]);
       c.add(this.buttonCap);
       return;
@@ -778,7 +787,7 @@ export class TimingStopScene extends Phaser.Scene {
     this.clockGroup = this.add.container(CLOCK.x, CLOCK.y).setDepth(10);
     const { w, h } = CLOCK;
     if (this.textures.exists("timer_panel")) {
-      this.clockGroup.add(this.add.image(0, 0, "timer_panel").setDisplaySize(w + 80, h + 60));
+      this.clockGroup.add(this.fitImage(this.add.image(0, 0, "timer_panel"), R1.clock_panel.w, R1.clock_panel.h));
     } else {
       const g = this.add.graphics();
       g.fillStyle(C.ink, 0.2).fillRoundedRect(-w / 2 - 14, -h / 2 - 2, w + 28, h + 28, 44);
@@ -795,7 +804,7 @@ export class TimingStopScene extends Phaser.Scene {
       const s = this.add.image(st.x - CLOCK.x, st.y - CLOCK.y, this.tex("star", "__star")).setDisplaySize(st.w, st.h).setAngle(side * 14);
       this.clockGroup.add(s);
     }
-    this.clockText = this.txt(0, 6, "", 108, { color: hex(C.gold), stroke: hex(C.ink), strokeThickness: 10 });
+    this.clockText = this.txt(R1.clock_digits.x - CLOCK.x, R1.clock_digits.y - CLOCK.y, "", R1.clock_digits.font, { color: hex(C.gold), stroke: hex(C.ink), strokeThickness: 10 });
     this.clockGroup.add(this.clockText);
   }
 
@@ -810,7 +819,7 @@ export class TimingStopScene extends Phaser.Scene {
   }
 
   private drawHud() {
-    this.roundText = this.pill(R1.badge_round.x, R1.badge_round.y, R1.badge_round.w, "", C.white, false);
+    this.roundText = this.pill(R1.badge_round.x, R1.badge_round.y, R1.badge_round.w, "", C.white, false, R1.badge_round.font);
     const cap = (y: number) =>
       this.txt(W / 2, y, "", 80, { strokeThickness: 16 })
         .setShadow(0, 6, hex(C.ink), 0, true, true)
@@ -913,11 +922,14 @@ export class TimingStopScene extends Phaser.Scene {
     return this.add.container(0, 0, [g]);
   }
 
-  private makeBanner(text: string, w: number): Phaser.GameObjects.Container {
+  private makeBanner(text: string, w: number, lab?: { size: number; x: number; y: number; fit?: { w: number; h: number } }): Phaser.GameObjects.Container {
     const c = this.add.container(0, 0);
-    const label = this.txt(0, 2, text, 66, { color: hex(C.white), stroke: hex(C.mascotLine), strokeThickness: 12 });
+    const label = this.txt(lab?.x ?? 0, lab?.y ?? 2, text, lab?.size ?? 66, { color: hex(C.white), stroke: hex(C.mascotLine), strokeThickness: 12 });
     if (this.textures.exists("banner_gold")) {
-      c.add([this.add.image(0, 0, "banner_gold").setDisplaySize(w + 160, 170), label]);
+      const art = this.add.image(0, 0, "banner_gold");
+      if (lab?.fit) this.fitImage(art, lab.fit.w, lab.fit.h);
+      else art.setDisplaySize(w + 160, 170);
+      c.add([art, label]);
       return c;
     }
     const g = this.add.graphics();
@@ -1029,12 +1041,17 @@ export class TimingStopScene extends Phaser.Scene {
     this.tweens.add({ targets: this.buttonCap, y: 14, scaleY: 0.82, duration: 70, yoyo: true, hold: 60, ease: "Quad.Out" });
   }
 
-  private pill(x: number, y: number, w: number, text: string, color: number, fx = true) {
+  // Scale an image to fit inside w x h keeping its aspect (Figma "fit").
+  private fitImage(img: Phaser.GameObjects.Image, w: number, h: number) {
+    return img.setScale(Math.min(w / img.width, h / img.height));
+  }
+
+  private pill(x: number, y: number, w: number, text: string, color: number, fx = true, font = 28) {
     const g = this.add.graphics({ x, y }).setDepth(70);
     g.fillStyle(C.white).fillRoundedRect(-w / 2, -24, w, 48, 24);
     g.fillStyle(C.navy).fillRoundedRect(-w / 2 + 4, -20, w - 8, 40, 20);
     g.fillStyle(C.white, 0.12).fillRoundedRect(-w / 2 + 12, -16, w - 24, 12, 6);
-    const t = this.txt(x, y + 1, text, 28, { color: hex(color), strokeThickness: 6 }).setDepth(71);
+    const t = this.txt(x, y + 1, text, font, { color: hex(color), strokeThickness: 6 }).setDepth(71);
     if (fx) this.stageFx.push(g, t);
     return t;
   }
