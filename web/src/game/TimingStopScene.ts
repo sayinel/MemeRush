@@ -456,6 +456,7 @@ export class TimingStopScene extends Phaser.Scene {
     }
     // The boss reads ~1.5x the worker's height (worker box is WORKER_PX tall); feet on the floor line.
     const boss = this.makeBoss(true, hasArt ? Math.round(WORKER_PX * 1.5) : 400, hasArt).setPosition(-300, FLOOR_Y + 15).setDepth(32);
+    if (hasArt) boss.setScale(-1, 1); // flipped: the pointing arm faces the direction of travel (right, toward the worker and the door)
     this.stageFx.push(boss);
     this.setFace("shocked");
     this.tweens.add({ targets: this.worker, x: 420, duration: 360, ease: "Quad.Out" });
