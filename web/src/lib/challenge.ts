@@ -81,9 +81,13 @@ export function listChallengeIds(): string[] {
   return ids;
 }
 
-// Daily number shown in the header and share text: #001 for the first published day.
+// Daily number shown in the header and share text: #001 for the first public day (TOAST CAM, 2026-10-25; product decision 2026-10-30).
+// Days before it are hackathon demo games and are not counted.
+const FIRST_PUBLIC_DAY = "2026-10-25";
 export function dailyNo(id: string): string {
-  return `#${String(ids.indexOf(id) + 1).padStart(3, "0")}`;
+  if (id < FIRST_PUBLIC_DAY) return "DEMO";
+  const n = ids.filter((d) => d >= FIRST_PUBLIC_DAY).indexOf(id) + 1;
+  return `#${String(n).padStart(3, "0")}`;
 }
 
 // Today's challenge by the Korean date: the latest day file not after today (the earliest if all are ahead).
