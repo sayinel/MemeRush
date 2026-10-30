@@ -6,10 +6,20 @@ import { ImageResponse } from "next/og";
 // Link preview card, 1200x630 (MVP_SCOPE 6절 미리보기). Look: SERVICE_UX_GUIDE (dark bg, fire orange, Anton).
 export const OG_SIZE = { width: 1200, height: 630 };
 
-const anton = readFile(path.join(process.cwd(), "assets/fonts/Anton-Regular.ttf"));
-const worker = readFile(path.join(process.cwd(), "public/game/worker_smug.png")).then(
-  (b) => `data:image/png;base64,${b.toString("base64")}`,
-);
+// public/ files are read from disk locally; on Cloudflare Workers (no disk) they come from the static-assets binding.
+async function publicFile(rel: string): Promise<Buffer> {
+  try {
+    return await readFile(path.join(process.cwd(), "public", rel));
+  } catch {
+    const { getCloudflareContext } = await import("@opennextjs/cloudflare");
+    const assets = getCloudflareContext().env.ASSETS;
+    const res = await assets.fetch(new Request(`https://assets.local/${rel}`));
+    if (!res.ok) throw new Error(`asset ${rel}: ${res.status}`);
+    return Buffer.from(await res.arrayBuffer());
+  }
+}
+const anton = () => publicFile("fonts/Anton-Regular.ttf");
+const worker = () => publicFile("game/worker_smug.png").then((b) => `data:image/png;base64,${b.toString("base64")}`);
 
 const C = { bg: "#140C09", bg2: "#1F130E", ink: "#FFF4E8", muted: "#BDB3AA", fire: "#FF6A2B", fireShadow: "#9A3A12", gold: "#FFB547" };
 
@@ -39,13 +49,13 @@ export async function ogImage(card: OgCard, headers?: Record<string, string>): P
         </div>
         <div style={{ display: "flex", flex: 1, alignItems: "center", justifyContent: "center" }}>
           {/* eslint-disable-next-line @next/next/no-img-element -- satori needs a plain img */}
-          <img src={await worker} width={380} height={380} alt="" />
+          <img src={await worker()} width={380} height={380} alt="" />
         </div>
       </div>
     ),
     {
       ...OG_SIZE,
-      fonts: [{ name: "Anton", data: await anton, weight: 400, style: "normal" }],
+      fonts: [{ name: "Anton", data: await anton(), weight: 400, style: "normal" }],
       headers,
     },
   );

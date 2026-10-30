@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { z } from "zod";
+import { bundledChallenges } from "./challenges.generated";
 
 const caption = z.object({
   top: z.string().max(30),
@@ -55,8 +56,8 @@ export type Challenge = z.infer<typeof challengeSchema>;
 const CONTENT_DIR = path.join(process.cwd(), "content/challenges");
 const DAY_FILE = /^(\d{4}-\d{2}-\d{2})\.json$/;
 
-function loadChallenges(): Map<string, Challenge> {
-  const entries = fs
+function loadFromDisk(): Challenge[] {
+  return fs
     .readdirSync(CONTENT_DIR)
     .map((name) => DAY_FILE.exec(name)?.[1])
     .filter((id): id is string => !!id)
@@ -64,10 +65,20 @@ function loadChallenges(): Map<string, Challenge> {
     .map((id) => {
       const c = challengeSchema.parse(JSON.parse(fs.readFileSync(path.join(CONTENT_DIR, `${id}.json`), "utf8")));
       if (c.id !== id) throw new Error(`${id}.json has id ${c.id}`);
-      return [id, c] as const;
+      return c;
     });
-  if (!entries.length) throw new Error(`no day files in ${CONTENT_DIR}`);
-  return new Map(entries);
+}
+
+function loadChallenges(): Map<string, Challenge> {
+  let list: Challenge[] = [];
+  try {
+    list = loadFromDisk();
+  } catch {
+    // No disk (Cloudflare Workers): use the files bundled at build time by scripts/gen-challenges.mjs.
+  }
+  if (!list.length) list = bundledChallenges.map((c) => challengeSchema.parse(c)).sort((x, y) => x.id.localeCompare(y.id));
+  if (!list.length) throw new Error(`no day files in ${CONTENT_DIR}`);
+  return new Map(list.map((c) => [c.id, c] as const));
 }
 
 const challenges = loadChallenges();
