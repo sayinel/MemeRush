@@ -34,7 +34,7 @@ const FONT = '"Anton", Impact, "Arial Black", sans-serif';
 // timer_panel, door, email_pile, meeting_card, clock_button, banner_gold, trophy, star, duck.
 const MANIFEST_KEY = "game_manifest";
 const ASSET_BASE = "/game/";
-type Expr = "deadpan" | "shocked" | "smug" | "crying" | "sweating" | "laughing" | "facepalm" | "proud" | "bored";
+type Expr = "deadpan" | "shocked" | "smug" | "crying" | "sweating" | "laughing" | "facepalm" | "proud" | "bored" | "dragged";
 
 const INTRO_MS = 2000;
 const REACTION_MS = 3000;
@@ -453,9 +453,10 @@ export class TimingStopScene extends Phaser.Scene {
       const door = this.add.image(DOOR.x + 40, DOOR.y, "door").setDisplaySize(170, 290).setDepth(20);
       this.stageFx.push(door);
     }
-    const boss = this.makeBoss(true).setPosition(-260, HOME.y - 120).setScale(0.85).setDepth(32);
+    const boss = this.makeBoss(true).setPosition(-260, HOME.y - 120).setScale(1.0).setDepth(32);
     this.stageFx.push(boss);
     this.setFace("shocked");
+    const hasArt = this.textures.exists(`${this.challenge.meme.theme.boss}_grab`);
     this.tweens.add({ targets: this.worker, x: 420, duration: 360, ease: "Quad.Out" });
     this.tweens.add({
       targets: boss,
@@ -466,15 +467,17 @@ export class TimingStopScene extends Phaser.Scene {
       onComplete: () => {
         if (run !== this.run) return;
         this.cameras.main.shake(140, 0.01);
-        const hand = this.makeHand().setPosition(this.worker.x - 40, this.worker.y - 300).setDepth(40);
+        // With real art the boss's own arm holds the worker, so the stand-in hand is hidden.
+        const hand = this.makeHand().setPosition(this.worker.x - 40, this.worker.y - 300).setDepth(40).setVisible(!hasArt);
         this.stageFx.push(hand);
+        this.setFace("dragged");
         this.squash(1.25, 0.72, 120, 1);
         // Held by the scruff: tilted, flailing while dragged right, off the screen edge (~1.4 s).
         this.time.delayedCall(450, () => {
           if (run !== this.run) return;
           this.setCaption(this.capBottom, "BACK TO YOUR DESK");
-          this.tweens.add({ targets: this.worker, angle: 22, duration: 200, ease: "Quad.Out" });
-          this.tweens.add({ targets: this.body, angle: { from: -8, to: 8 }, duration: 90, yoyo: true, repeat: -1 });
+          this.tweens.add({ targets: this.worker, angle: hasArt ? 4 : 22, duration: 200, ease: "Quad.Out" }); // the art is already tilted
+          this.tweens.add({ targets: this.body, angle: { from: -6, to: 6 }, duration: 90, yoyo: true, repeat: -1 });
           this.tweens.add({ targets: [boss, this.worker, hand], x: "+=820", duration: 1400, ease: "Sine.In" });
         });
       },
@@ -787,7 +790,7 @@ export class TimingStopScene extends Phaser.Scene {
     const c = this.add.container(0, 0);
     const key = `${this.challenge.meme.theme.boss}_${grab ? "grab" : "walk"}`;
     if (this.textures.exists(key)) {
-      c.add(this.add.image(0, -60, key).setDisplaySize(400, 400));
+      c.add(this.add.image(0, -60, key).setDisplaySize(350, 400)); // art is 700x800
       return c;
     }
     const g = this.add.graphics();
@@ -920,7 +923,10 @@ export class TimingStopScene extends Phaser.Scene {
 
   private setFace(expr: Expr) {
     const key = `${this.challenge.meme.theme.player}_${expr}`;
-    if (this.textures.exists(key)) this.body.setTexture(key);
+    if (this.textures.exists(key)) {
+      this.body.setTexture(key);
+      this.body.setScale(WORKER_PX / this.body.width); // faces may differ in canvas size (dragged is 700x800)
+    }
   }
 
   private squash(sx: number, sy: number, duration: number, repeat: number) {
