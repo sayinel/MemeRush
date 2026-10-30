@@ -22,8 +22,8 @@
 - 결과: Too Late, Too Early, 성공(Perfect/Nice), 3판 전부 실패(끌려가는 엔딩)
 - 랭킹
 - 이메일 입력(입력, 잘못된 주소, 보냄 완료)
-- 서버 오류·재시도(시안 아직 없음)
-- 메일 본문, 링크 미리보기 카드(시안 아직 없음)
+- 서버 오류·재시도(시안: https://claude.ai/artifact/RhbKU64UbAddPqtCprSNvb)
+- 메일 본문, 링크 미리보기 카드(시안: https://claude.ai/artifact/RhbKU64UbAddPqtCprSNvb)
 
 시안 정본(그린 것): https://claude.ai/artifact/4VSrrMm8Xou4TZKS9vSdBE (결과·랭킹), https://claude.ai/artifact/1HwQupRXkd3MFhTtMacUQz (이메일·Too Early·성공·최종 엔딩·시작)
 
