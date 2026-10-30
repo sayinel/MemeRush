@@ -21,5 +21,6 @@
   "poof": "poof.png",
   "boss_walk": "boss_walk.png",
   "boss_grab": "boss_grab.png",
-  "worker_dragged": "worker_dragged.png"
+  "worker_dragged": "worker_dragged.png",
+  "drag_combo": "drag_combo.png"
 }

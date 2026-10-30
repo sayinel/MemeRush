@@ -39,7 +39,7 @@ type Expr = "deadpan" | "shocked" | "smug" | "crying" | "sweating" | "laughing" 
 const INTRO_MS = 2000;
 const REACTION_MS = 3000;
 const FINAL_MS = 3000;
-const GRABBED_MS = 2900; // boss drags the worker out of frame, then the result screen takes over
+const GRABBED_MS = 3000; // boss drags the worker out of frame, then the result screen takes over
 const NICE_MS = 100;
 // Server rejects measurements outside 1–15 s (docs/MVP_SCOPE.md §2 측정·검증).
 const MIN_TAP_MS = 1000;
@@ -445,6 +445,22 @@ export class TimingStopScene extends Phaser.Scene {
     this.tweens.add({ targets: trophy, angle: { from: -6, to: 6 }, delay: 800, duration: 500, yoyo: true, repeat: -1, ease: "Sine.InOut" });
   }
 
+  // One composite sprite (boss + worker, drag_combo.png, already facing left) runs in from the right and drags
+  // the worker off the left edge. Height ~40% of the screen; the art keeps the 1.5x boss/worker ratio.
+  private finalGrabbedCombo(result: FinishResult, run: number) {
+    this.bigNumber(result, C.red, C.white);
+    this.worker.setAlpha(0); // the worker is part of the composite (resetStage restores him)
+    const img = this.add.image(W + 420, FLOOR_Y + 30, "drag_combo").setOrigin(0.5, 1).setDepth(40);
+    img.setScale((H * 0.4) / img.height);
+    this.stageFx.push(img);
+    this.tweens.add({ targets: img, y: "-=14", duration: 170, yoyo: true, repeat: -1, ease: "Sine.InOut" });
+    this.tweens.add({ targets: img, angle: { from: -2, to: 2 }, duration: 170, yoyo: true, repeat: -1 });
+    this.tweens.add({ targets: img, x: -420, duration: 2600, delay: 200, ease: "Sine.InOut" });
+    this.time.delayedCall(900, () => {
+      if (run === this.run) this.setCaption(this.capBottom, "BACK TO YOUR DESK");
+    });
+  }
+
   // Boss art path: the boss walks right (flipped art, pointing ahead) and holds the worker by the scruff with a
   // code-drawn arm; the worker trails behind on the left, leaning back with his feet off the floor.
   private finalGrabbedArt(result: FinishResult, run: number) {
@@ -501,6 +517,7 @@ export class TimingStopScene extends Phaser.Scene {
 
   private finalGrabbed(result: FinishResult) {
     const run = this.run;
+    if (this.textures.exists("drag_combo")) return this.finalGrabbedCombo(result, run);
     if (this.textures.exists(`${this.challenge.meme.theme.boss}_grab`)) return this.finalGrabbedArt(result, run);
     this.bigNumber(result, C.red, C.white);
     const hasArt = this.textures.exists(`${this.challenge.meme.theme.boss}_grab`);
