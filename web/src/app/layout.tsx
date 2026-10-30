@@ -10,9 +10,11 @@ const notoSans = Noto_Sans({ weight: ["500", "700"], subsets: ["latin"], variabl
 // Production uses the stable production domain; previews use their own deployment URL.
 const host =
   process.env.VERCEL_ENV === "production" ? process.env.VERCEL_PROJECT_PRODUCTION_URL : process.env.VERCEL_URL;
+// Cloudflare deploys: set SITE_HOST (e.g. memerush.example.workers.dev) so OG image URLs are absolute.
+const siteHost = process.env.SITE_HOST || host;
 
 export const metadata: Metadata = {
-  metadataBase: new URL(host ? `https://${host}` : `http://localhost:${process.env.PORT ?? 3000}`),
+  metadataBase: new URL(siteHost ? `https://${siteHost}` : `http://localhost:${process.env.PORT ?? 3000}`),
   title: "MemeRush",
   description: "Play the Meme. Be the Meme. Beat Your Friends.",
 };
