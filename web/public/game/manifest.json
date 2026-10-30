@@ -18,5 +18,8 @@
   "door": "door.png",
   "confetti_star": "confetti_star.png",
   "duck": "duck.png",
-  "poof": "poof.png"
+  "poof": "poof.png",
+  "boss_walk": "boss_walk.png",
+  "boss_grab": "boss_grab.png",
+  "worker_dragged": "worker_dragged.png"
 }
