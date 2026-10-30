@@ -167,20 +167,136 @@ function LangToggle({ lang, setLang, small }: { lang: Lang; setLang: (l: Lang) =
   );
 }
 
-// Placeholder for the email CTA: there is no email server yet, so this stores and sends nothing.
-function EmailModal({ t, onClose }: { t: Strings; onClose: () => void }) {
+// Email CTA (GAME_FLOW_SCENARIO 7절; screens_v2 input / wrong address / sent, screens_v3 save failed). Posts to the
+// temporary /api/subscribe. The address is never logged.
+function EmailScreen({
+  t,
+  lang,
+  dailyNo,
+  title,
+  art,
+  onAgain,
+  onRank,
+  onClose,
+}: {
+  t: Strings;
+  lang: Lang;
+  dailyNo: string;
+  title: string;
+  art: Art;
+  onAgain: () => void;
+  onRank: () => void;
+  onClose: () => void;
+}) {
+  const [email, setEmail] = useState("");
+  const [state, setState] = useState<"input" | "invalid" | "sending" | "failed" | "sent">("input");
+  const [invalidMsg, setInvalidMsg] = useState("");
+  const sprite = (key: string) => art(key) ?? `/game/${key}.png`;
+
+  async function submit() {
+    const v = email.trim();
+    if (!v.includes("@")) {
+      setInvalidMsg(t.emailNoAt);
+      return setState("invalid");
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)) {
+      setInvalidMsg(t.emailBad);
+      return setState("invalid");
+    }
+    setState("sending");
+    try {
+      const res = await fetch("/api/subscribe", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: v, lang, src: captureSrc() }),
+      });
+      setState(res.ok ? "sent" : "failed");
+    } catch {
+      setState("failed");
+    }
+  }
+
+  const bad = state === "invalid";
+  const failed = state === "failed";
+  /* eslint-disable @next/next/no-img-element */
   return (
-    <div className="rs-modal" role="dialog" aria-modal="true">
-      <div>
-        <p className="font-title text-[5.4cqw]">{t.emailTitle}</p>
-        <input type="email" placeholder={t.emailPlaceholder} aria-label={t.emailPlaceholder} />
-        <p className="text-[3.4cqw] font-bold opacity-80">{t.emailSoon}</p>
-        <button className="rs-go ghost" onClick={onClose}>
-          {t.emailClose}
-        </button>
-      </div>
+    <div className="rs-email" role="dialog" aria-modal="true" data-testid="email-screen" data-state={state}>
+      {state === "sent" ? (
+        <>
+          <div className="rs-cap" style={{ top: "30cqw", fontSize: "6.6cqw" }}>
+            {t.emailSent}
+          </div>
+          <img className="rs-hero" style={{ bottom: "46cqw", width: "46cqw" }} src={sprite("worker_smug")} alt="" />
+          <div className="rs-btns">
+            <button className="rs-go" onClick={onAgain}>
+              {t.emailAgain}
+            </button>
+            <button className="rs-go blue" onClick={onRank}>
+              {t.seeRank}
+            </button>
+          </div>
+        </>
+      ) : (
+        <>
+          <button className="rk-back" onClick={onClose}>
+            ‹ {lang === "ko" ? "순위" : "Ranking"}
+          </button>
+          <div className="rs-cap" style={{ top: "9cqw", fontSize: "8.4cqw" }}>
+            MEME RUSH <span style={{ color: "#ffd54a" }}>{dailyNo}</span>
+          </div>
+          {!failed && (
+            <div className="rs-cap" style={{ top: "20cqw", fontSize: "5.2cqw" }}>
+              {title}
+            </div>
+          )}
+          <img
+            className="rs-hero"
+            style={{ bottom: failed ? "62cqw" : bad ? "66cqw" : "54cqw", width: failed ? "56cqw" : bad ? "38cqw" : "48cqw" }}
+            src={sprite(failed ? "worker_facepalm" : "worker_sweating")}
+            alt=""
+          />
+          {!failed && (
+            <img
+              src={sprite("email_pile")}
+              alt=""
+              style={{ position: "absolute", left: "6cqw", bottom: bad ? "66cqw" : "56cqw", width: "17cqw", transform: "rotate(-8deg)" }}
+            />
+          )}
+          <form
+            className="rs-form"
+            noValidate
+            onSubmit={(e) => {
+              e.preventDefault();
+              if (state !== "sending") void submit();
+            }}
+          >
+            {failed && <div className="rs-errl">{t.emailFailed}</div>}
+            <input
+              type="email"
+              inputMode="email"
+              autoComplete="email"
+              value={email}
+              onChange={(e) => {
+                setEmail(e.target.value);
+                if (bad) setState("input");
+              }}
+              placeholder={t.emailInput}
+              aria-label={t.emailInput}
+              aria-invalid={bad || failed}
+              className={bad || failed ? "bad" : ""}
+            />
+            {bad && <div className="rs-errl">{invalidMsg}</div>}
+            <button type="submit" className="rs-go" disabled={state === "sending"}>
+              {state === "sending" ? t.emailSending : failed ? t.emailRetry : t.emailMe}
+            </button>
+            <p className="rk-help">{failed ? t.emailKeep : t.emailHelp}</p>
+            {!failed && <p className="rs-legal">{t.emailLegal}</p>}
+          </form>
+        </>
+      )}
     </div>
   );
+  /* eslint-enable @next/next/no-img-element */
 }
 
 const VERDICT: Record<string, string> = { win: "PERFECT", early: "TOO EARLY", late: "TOO LATE" };
@@ -557,7 +673,23 @@ export default function ChallengeClient({
               onRank={seeMyRank}
             />
           )}
-          {emailOpen && <EmailModal t={t} onClose={() => setEmailOpen(false)} />}
+          {emailOpen && (
+            <EmailScreen
+              t={t}
+              lang={lang}
+              dailyNo={dailyNo}
+              title={challenge.title}
+              art={art}
+              onAgain={() => {
+                setEmailOpen(false);
+                void start();
+              }}
+              onRank={() => {
+                setEmailOpen(false);
+              }}
+              onClose={() => setEmailOpen(false)}
+            />
+          )}
         </div>
         <SideInfoRight challengeId={challengeId} refresh={playKey + (last?.errorMs ?? 0)} t={t} onEmail={() => setEmailOpen(true)} />
       </main>
@@ -596,7 +728,24 @@ export default function ChallengeClient({
               {needsJoin && invite ? `Join ${invite.ownerNickname}'s league & play` : t.playNow}
             </button>
           </div>
-          {emailOpen && <EmailModal t={t} onClose={() => setEmailOpen(false)} />}
+          {emailOpen && (
+            <EmailScreen
+              t={t}
+              lang={lang}
+              dailyNo={dailyNo}
+              title={challenge.title}
+              art={art}
+              onAgain={() => {
+                setEmailOpen(false);
+                retry();
+              }}
+              onRank={() => {
+                setEmailOpen(false);
+                void seeMyRank();
+              }}
+              onClose={() => setEmailOpen(false)}
+            />
+          )}
         </div>
         <SideInfoRight challengeId={challengeId} refresh={playKey} t={t} onEmail={() => setEmailOpen(true)} />
       </main>
@@ -660,7 +809,23 @@ export default function ChallengeClient({
             </button>
           </div>
         </div>
-        {emailOpen && <EmailModal t={t} onClose={() => setEmailOpen(false)} />}
+        {emailOpen && (
+            <EmailScreen
+              t={t}
+              lang={lang}
+              dailyNo={dailyNo}
+              title={challenge.title}
+              art={art}
+              onAgain={() => {
+                setEmailOpen(false);
+                void start();
+              }}
+              onRank={() => {
+                setEmailOpen(false);
+              }}
+              onClose={() => setEmailOpen(false)}
+            />
+          )}
       </div>
     </main>
   );

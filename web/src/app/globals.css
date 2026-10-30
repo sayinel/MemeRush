@@ -161,3 +161,12 @@ body {
 .rs-modal input { height: 11cqw; border-radius: 9cqw; border: 0.6cqw solid #fff; background: #fff; color: #0f3a73; text-align: center; font: 700 4.2cqw var(--font-sans); }
 .rs-lang-sm { transform: scale(0.8); transform-origin: top right; opacity: 0.85; }
 .rs-line { position: absolute; left: 8cqw; right: 8cqw; text-align: center; color: #fff; font: 700 3.8cqw/1.4 var(--font-sans); text-shadow: 0 0 1.2cqw #000, 0 0 1.2cqw #000, 0 0.3cqw 0 #000; }
+
+/* Email screen (screens_v2/v3): sky backdrop, form pinned to the bottom. */
+.rs-email { position: absolute; inset: 0; z-index: 20; overflow: hidden; background: radial-gradient(ellipse at 50% 28%, #80d8ff 0%, #29b6f6 45%, #1b83d6 100%); }
+.rs-form { position: absolute; left: 6cqw; right: 6cqw; bottom: 5cqw; display: flex; flex-direction: column; gap: 2cqw; align-items: stretch; }
+.rs-form input { height: 12cqw; border-radius: 9cqw; border: 0.7cqw solid #1b3a8a; background: #fff; color: #0f3a73; padding: 0 5cqw; font: 600 4.4cqw var(--font-sans); }
+.rs-form input.bad { border-color: #d3343f; }
+.rs-errl { background: #fff; color: #c0262d; border-radius: 3cqw; padding: 1.6cqw 3cqw; font: 700 3.5cqw/1.3 var(--font-sans); }
+.rs-legal { color: #fff; text-align: center; font: 500 2.7cqw/1.4 var(--font-sans); opacity: 0.9; text-shadow: 0 0 1cqw rgb(0 0 0 / 0.5); }
+.rs-form .rk-help { text-shadow: 0 0 1cqw rgb(0 0 0 / 0.5); }
