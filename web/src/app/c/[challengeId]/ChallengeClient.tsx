@@ -249,19 +249,13 @@ function EmailScreen({
               {title}
             </div>
           )}
-          <img
-            className="rs-hero"
-            style={{ bottom: failed ? "62cqw" : bad ? "66cqw" : "54cqw", width: failed ? "56cqw" : bad ? "38cqw" : "48cqw" }}
-            src={sprite(failed ? "worker_facepalm" : "worker_sweating")}
-            alt=""
-          />
-          {!failed && (
-            <img
-              src={sprite("email_pile")}
-              alt=""
-              style={{ position: "absolute", left: "6cqw", bottom: bad ? "66cqw" : "56cqw", width: "17cqw", transform: "rotate(-8deg)" }}
-            />
-          )}
+          {/* Stage: hero and the paper pile share one box so they always move together; the form sits below it. */}
+          <div className="rs-stage">
+            <div className="rs-group" style={{ width: "44cqw" }}>
+              <img style={{ width: "100%", display: "block" }} src={sprite(failed ? "worker_facepalm" : "worker_sweating")} alt="" />
+              {!failed && <img className="rs-pile" src={sprite("email_pile")} alt="" />}
+            </div>
+          </div>
           <form
             className="rs-form"
             noValidate
@@ -270,7 +264,11 @@ function EmailScreen({
               if (state !== "sending") void submit();
             }}
           >
-            {failed && <div className="rs-errl">{t.emailFailed}</div>}
+            {/* One fixed slot above the input for both the wrong-address and the save-failed message,
+                so switching states never moves the input, button or hero. */}
+            <div className="rs-errl" role="alert" style={{ visibility: bad || failed ? "visible" : "hidden" }}>
+              {bad ? invalidMsg : failed ? t.emailFailed : " "}
+            </div>
             <input
               type="email"
               inputMode="email"
@@ -285,12 +283,13 @@ function EmailScreen({
               aria-invalid={bad || failed}
               className={bad || failed ? "bad" : ""}
             />
-            {bad && <div className="rs-errl">{invalidMsg}</div>}
             <button type="submit" className="rs-go" disabled={state === "sending"}>
               {state === "sending" ? t.emailSending : failed ? t.emailRetry : t.emailMe}
             </button>
             <p className="rk-help">{failed ? t.emailKeep : t.emailHelp}</p>
-            {!failed && <p className="rs-legal">{t.emailLegal}</p>}
+            <p className="rs-legal" style={{ visibility: failed ? "hidden" : "visible" }}>
+              {t.emailLegal}
+            </p>
           </form>
         </>
       )}
