@@ -128,6 +128,11 @@ body {
 .rs-snd-corner { top: auto; right: 3cqw; bottom: 2.4cqw; width: 9cqw; height: 9cqw; font-size: 4.4cqw; z-index: 30; }
 .rs-snd[aria-pressed="false"] { opacity: 0.7; }
 .rs-snd-sm { opacity: 0.85; width: 7cqw; height: 7cqw; font-size: 3.3cqw; right: 23cqw; }
+/* Music button sits to the left of the effects button; a slash marks it off. */
+.rs-mus { right: 34cqw; }
+.rs-snd-sm.rs-mus { right: 31cqw; }
+.rs-snd-corner.rs-mus { right: 14cqw; }
+.rs-mus[aria-pressed="false"]::before { content: ""; position: absolute; width: 70%; height: 0.55cqw; background: #fff; border-radius: 1cqw; transform: rotate(-45deg); box-shadow: 0 0 0 0.25cqw rgb(0 0 0 / 0.5); }
 .rs-lang button:first-child { border-radius: 9cqw 0 0 9cqw; }
 .rs-lang button:last-child { border-radius: 0 9cqw 9cqw 0; }
 /* Touch target >= 44px without changing the look: an invisible hit area around the small chips. */

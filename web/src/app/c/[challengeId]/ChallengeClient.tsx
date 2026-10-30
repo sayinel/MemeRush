@@ -6,7 +6,7 @@ import type { Challenge } from "@/lib/challenge";
 import type { FinishResult } from "@/game/types";
 import { fillCaption, pickCaption } from "@/game/captions";
 import { captureSrc, useLang, type Lang, type Strings } from "@/lib/i18n";
-import { onSoundChange, setSoundEnabled, soundEnabled, soundFeature } from "@/game/sfx";
+import { musicEnabled, onMusicChange, onSoundChange, setMusicEnabled, setSoundEnabled, soundEnabled, soundFeature } from "@/game/sfx";
 import SoundLab from "@/game/SoundLab";
 
 // Public demos can hide the email CTA entirely: build with NEXT_PUBLIC_HIDE_EMAIL=1.
@@ -199,17 +199,26 @@ function VideoPanel({ challengeId, dailyNo, bestErrorMs }: { challengeId: string
 
 function SoundToggle({ small, corner }: { small?: boolean; corner?: boolean }) {
   const [on, setOn] = useState(true);
+  const [music, setMusic] = useState(false);
   const [shown, setShown] = useState(false);
   useEffect(() => {
     setShown(soundFeature());
     setOn(soundEnabled());
-    return onSoundChange(setOn);
+    setMusic(musicEnabled());
+    const offs = [onSoundChange(setOn), onMusicChange(setMusic)];
+    return () => offs.forEach((off) => off());
   }, []);
   if (!shown) return null;
+  const pos = `${small ? " rs-snd-sm" : ""}${corner ? " rs-snd-corner" : ""}`;
   return (
-    <button className={`rs-snd${small ? " rs-snd-sm" : ""}${corner ? " rs-snd-corner" : ""}`} aria-pressed={on} aria-label={on ? "Sound on" : "Sound off"} onClick={() => setSoundEnabled(!on)}>
-      {on ? "🔊" : "🔇"}
-    </button>
+    <>
+      <button className={`rs-snd rs-mus${pos}`} aria-pressed={music} aria-label={music ? "Music on" : "Music off"} onClick={() => setMusicEnabled(!music)}>
+        🎵
+      </button>
+      <button className={`rs-snd${pos}`} aria-pressed={on} aria-label={on ? "Sound effects on" : "Sound effects off"} onClick={() => setSoundEnabled(!on)}>
+        {on ? "🔊" : "🔇"}
+      </button>
+    </>
   );
 }
 

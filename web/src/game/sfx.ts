@@ -1,12 +1,13 @@
 // Game sound: picked effect files plus a background loop, played through Web Audio (synthesized sounds are the fallback).
-// The audio context starts only after a tap (browser rule). Sound is OFF by default for everyone and the on/off choice is remembered per device;
-// a link with ?sound=1 is the test mode (sound on by default, sound lab panel on the left).
+// The audio context starts only after a tap (browser rule). Defaults for everyone: effects ON, music OFF, each with its own button and remembered per device.
+// A link with ?sound=1 is the test mode (music on by default, vibration on, sound lab panel on the left).
 type Name = "tap" | "go" | "nice" | "perfect" | "early" | "late" | "win" | "lose";
 
 const KEY = "mr_sound";
 const FEATURE_KEY = "mr_sound_feature";
 let ctx: AudioContext | null = null;
-let on = false;
+let on = true; // sound effects
+let musicOn = false; // background music
 // Public since 2026-10-31: the sound button is shown to everyone. `lab` marks the ?sound=1 test mode (remembered for the tab).
 let feature = true;
 let lab = false;
@@ -22,7 +23,9 @@ try {
 }
 try {
   const saved = localStorage.getItem(KEY);
-  on = saved ? saved === "on" : lab; // off for visitors until they tap the sound button; on in the test mode
+  on = saved ? saved === "on" : true;
+  const m = localStorage.getItem("mr_music");
+  musicOn = m ? m === "on" : lab; // music is off for visitors until they tap the music button; on in the test mode
 } catch {
   /* storage blocked: keep the default */
 }
@@ -50,11 +53,11 @@ let bgmHold = false;
 export function startBgm(force = false) {
   if (bgmHold && !force) return;
   if (force) bgmHold = false;
-  if (!feature || !on || !bgmId || bgmSrc || bgmLoading || bgmBuf === null) return;
+  if (!feature || !musicOn || !bgmId || bgmSrc || bgmLoading || bgmBuf === null) return;
   const c = ac();
   if (!c) return;
   const begin = (buf: AudioBuffer) => {
-    if (bgmSrc || !on) return;
+    if (bgmSrc || !musicOn) return;
     const g = c.createGain();
     g.gain.value = 0.22;
     const s = c.createBufferSource();
@@ -123,11 +126,31 @@ export function setSoundEnabled(v: boolean) {
     /* ignore */
   }
   listeners.forEach((fn) => fn(v));
-  if (!v) stopBgm();
-  if (v) {
-    play("go"); // a short blip so the player hears that sound is on
-    startBgm();
+  if (v) play("go"); // a short blip so the player hears that sound is on
+}
+
+export function musicEnabled(): boolean {
+  return musicOn;
+}
+
+const musicListeners = new Set<(v: boolean) => void>();
+export function onMusicChange(fn: (v: boolean) => void): () => void {
+  musicListeners.add(fn);
+  return () => musicListeners.delete(fn);
+}
+
+export function setMusicEnabled(v: boolean) {
+  musicOn = v;
+  try {
+    localStorage.setItem("mr_music", v ? "on" : "off");
+  } catch {
+    /* ignore */
   }
+  musicListeners.forEach((fn) => fn(v));
+  if (v) {
+    ac();
+    startBgm();
+  } else stopBgm();
 }
 
 function ac(): AudioContext | null {
@@ -175,7 +198,19 @@ function loadFiles(c: AudioContext) {
 }
 
 // `semis` raises a picked sound file by that many semitones (the tap climbs a step every round); the synthesized fallback ignores it.
+// Vibration (Android browsers only; iOS Safari has no vibration API). Test mode only until the team decides to ship it.
+const VIBE: Record<Name, number | number[]> = { go: 20, tap: 15, nice: [20, 30, 20], perfect: [30, 40, 30, 40, 80], early: [90, 50, 90], late: 120, win: [40, 40, 40, 40, 120], lose: 200 };
+function buzz(name: Name) {
+  if (!lab) return;
+  try {
+    navigator.vibrate?.(VIBE[name]);
+  } catch {
+    /* no vibration support */
+  }
+}
+
 export function play(name: Name, force = false, semis = 0) {
+  buzz(name);
   if (!force && (!feature || !on)) return;
   const c = ac();
   if (!c) return;
@@ -229,7 +264,7 @@ export function play(name: Name, force = false, semis = 0) {
 // Browsers keep audio locked until a tap, so wake it on the first touch anywhere instead of at the first sound.
 if (typeof window !== "undefined") {
   const wake = () => {
-    if (feature && on) {
+    if (feature && (on || musicOn)) {
       ac();
       startBgm(); // the music runs from the first touch and keeps going through results and retries
     }
@@ -309,6 +344,7 @@ export function labSetBgm(id: string) {
 export function labBgmPreview(on: boolean) {
   if (on) {
     feature = true;
+    setMusicEnabled(true);
     startBgm(true);
   } else stopBgm();
 }
