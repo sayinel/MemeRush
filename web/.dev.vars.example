@@ -6,3 +6,6 @@ NEXT_PUBLIC_HIDE_EMAIL=
 # Do NOT set LOCAL_PLAY / ADMIN_LOCAL / ADMIN_DEMO in production.
 NEXT_PUBLIC_MVP_URL=
 SITE_HOST=
+# D1 (Cloudflare) is a binding named DB in wrangler.jsonc, not an env var. Remote setup: create the DB, put its id in wrangler.jsonc, run npm run d1:migrate:remote.
+# HMAC secret for unsubscribe links (set as a secret in Cloudflare; any long random string). Value stays empty here.
+UNSUB_SECRET=

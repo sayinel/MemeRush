@@ -4,7 +4,7 @@
 import { promises as fs } from "node:fs";
 import path from "node:path";
 import { jsonError, readJson } from "@/lib/api";
-import { supabaseAdmin } from "@/lib/supabase";
+import { hasRemoteDb, supabaseAdmin } from "@/lib/supabase";
 
 const FILE = process.env.SUBSCRIBERS_FILE || path.join(process.cwd(), ".data", "subscribers.jsonl");
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -33,7 +33,7 @@ export async function POST(request: Request) {
   const src = typeof body?.src === "string" ? body.src.replace(/[^\w.-]/g, "").slice(0, 40) : null;
 
   try {
-    if (process.env.SUPABASE_URL) {
+    if (hasRemoteDb()) {
       // A duplicate address (unique violation 23505) counts as success.
       const { error } = await supabaseAdmin().from("email_subscribers").insert({ email, lang, source: src });
       if (error && error.code !== "23505") return jsonError(500, "could not save");

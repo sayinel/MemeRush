@@ -8,5 +8,13 @@
     "directory": ".open-next/assets",
     "binding": "ASSETS"
   },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "memerush",
+      "database_id": "REPLACE_WITH_REAL_ID",
+      "migrations_dir": "d1/migrations"
+    }
+  ],
   "observability": { "enabled": true }
 }
