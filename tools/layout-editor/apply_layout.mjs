@@ -1,11 +1,12 @@
-// usage: node apply_layout.mjs round1   -> reads out/layout_round1.json, rewrites web/src/game/layout_round1.ts
+// usage: node apply_layout.mjs <screen>  e.g. round1, intro, result_late, ranking, email_input ...   -> reads out/layout_round1.json, rewrites web/src/game/layout_round1.ts
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { rewriteLayoutTs } from "./lib_layoutTs.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
-const screen = process.argv[2];
+const ALIAS = { countdown: "round1" }; // same screen, same numbers
+const screen = ALIAS[process.argv[2]] ?? process.argv[2];
 if (!screen || !/^[a-z0-9_]+$/.test(screen)) {
   console.error("usage: node apply_layout.mjs <screen>   (e.g. round1)");
   process.exit(2);

@@ -1,0 +1,33 @@
+// 랭킹 layout (coordinates = the 720x1280 game frame 1:1; x,y = element CENTER; w,h = displayed size; font = px).
+// Measured from the running game (DOM getBoundingClientRect). NOT read by game code yet: the game still uses its own CSS/Phaser
+// values; this file only holds the same numbers for the layout editor (tools/layout-editor, apply_layout.mjs ranking).
+export const RANKING_LAYOUT = {
+  panel: { x: 360, y: 640, w: 720, h: 1280 },
+  btn_back: { x: 114.8, y: 45.5, w: 186.4, h: 54.9, font: 28.8 },
+  lang_toggle: { x: 637.8, y: 41.5, w: 121.2, h: 47, font: 23.8 },
+  trophy: { x: 68.4, y: 133.2, w: 64.8, h: 64.8 },
+  title: { x: 360, y: 133.2, w: 648, h: 64.8, font: 54.7 },
+  row1: { x: 360, y: 213.5, w: 648, h: 64.1 },
+  row1_rank: { x: 75.6, y: 213.5, w: 36, h: 41, font: 27.4 },
+  row1_name: { x: 336.3, y: 213.5, w: 456.7, h: 41, font: 27.4 },
+  row1_time: { x: 620.7, y: 213.5, w: 83.3, h: 41, font: 27.4 },
+  row2: { x: 360, y: 287.6, w: 648, h: 64.1 },
+  row2_rank: { x: 75.6, y: 287.6, w: 36, h: 41, font: 27.4 },
+  row2_name: { x: 336.3, y: 287.6, w: 456.7, h: 41, font: 27.4 },
+  row2_time: { x: 620.7, y: 287.6, w: 83.3, h: 41, font: 27.4 },
+  row3: { x: 360, y: 361.7, w: 648, h: 64.1 },
+  row3_rank: { x: 75.6, y: 361.7, w: 36, h: 41, font: 27.4 },
+  row3_name: { x: 336.3, y: 361.7, w: 456.7, h: 41, font: 27.4 },
+  row3_time: { x: 620.7, y: 361.7, w: 83.3, h: 41, font: 27.4 },
+  row4: { x: 360, y: 435.9, w: 648, h: 64.1 },
+  row4_rank: { x: 75.6, y: 435.9, w: 36, h: 41, font: 27.4 },
+  row4_name: { x: 336.3, y: 435.9, w: 456.7, h: 41, font: 27.4 },
+  row4_time: { x: 620.7, y: 435.9, w: 83.3, h: 41, font: 27.4 },
+  row5: { x: 360, y: 510, w: 648, h: 64.1 },
+  row5_rank: { x: 75.6, y: 510, w: 36, h: 41, font: 27.4 },
+  row5_name: { x: 336.3, y: 510, w: 456.7, h: 41, font: 27.4 },
+  row5_time: { x: 620.7, y: 510, w: 83.3, h: 41, font: 27.4 },
+  help: { x: 360, y: 1016.5, w: 509.1, h: 34.5, font: 23.8 },
+  btn_email: { x: 360, y: 1098.5, w: 648, h: 103.6, font: 40.3 },
+  btn_share: { x: 360, y: 1207.2, w: 648, h: 88, font: 34.6 },
+} as const;

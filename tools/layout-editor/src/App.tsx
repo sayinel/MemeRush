@@ -14,21 +14,18 @@ const r2 = (n: number) => Math.round(n * 100) / 100;
 const isGE = (s: unknown): s is GameElementShape => !!s && (s as GameElementShape).type === "game-element";
 const toGame = (s: GameElementShape): Vals => {
   const p = s.props;
-  const out: Vals = { x: r2(s.x + p.w / 2), y: r2(p.anchor === "bottom" ? s.y + p.h : s.y + p.h / 2), w: r2(p.w), h: r2(p.h) };
-  if (p.kind === "text") out.font = r2(p.font);
+  const out: Vals = { x: r2(s.x + p.w / 2), y: r2((p.def as { anchor?: string }).anchor === "bottom" ? s.y + p.h : s.y + p.h / 2), w: r2(p.w), h: r2(p.h) };
+  if (p.kind !== "image" && p.text !== "") out.font = r2(p.font);
   return out;
 };
 
 function build(editor: Editor, screen: ScreenDef, values: Record<string, Vals>) {
-  const bg = createShapeId("__bg");
-  editor.createShape({
-    id: bg,
-    type: "game-element",
-    x: 0,
-    y: 0,
-    isLocked: true,
-    props: { w: W, h: H, name: "__bg", kind: "image", src: `/game/${screen.bg}`, text: "", color: "#fff", stroke: 0, font: 0, bg: "none", anchor: "center" },
-  });
+  const base = { x: 0, y: 0, isLocked: true } as const;
+  if (screen.bg) {
+    editor.createShape({ id: createShapeId("__bg"), type: "game-element", ...base, props: { w: W, h: H, name: "__bg", kind: "image", src: `/game/${screen.bg}`, text: "", font: 0, def: {} } });
+  } else if (screen.bgCss) {
+    editor.createShape({ id: createShapeId("__bg"), type: "game-element", ...base, props: { w: W, h: H, name: "__bgcss", kind: "box", src: "", text: "", font: 0, def: { fill: screen.bgCss } } });
+  }
   for (const d of screen.elements) {
     const v = values[d.name];
     if (!v) continue;
@@ -44,11 +41,8 @@ function build(editor: Editor, screen: ScreenDef, values: Record<string, Vals>) 
         kind: d.kind,
         src: d.src ? `/game/${d.src}` : "",
         text: d.text ?? "",
-        color: d.color ?? "#fff",
-        stroke: d.stroke ?? 8,
-        font: v.font ?? 40,
-        bg: d.bg ?? "none",
-        anchor: d.anchor ?? "center",
+        font: v.font ?? 0,
+        def: JSON.parse(JSON.stringify(d)),
       },
     });
   }
@@ -96,7 +90,7 @@ function Panel({ editor, screen }: { editor: Editor; screen: ScreenDef }) {
   if (isGE(sel) && !sel.props.name.startsWith("__")) {
     const g = toGame(sel);
     const id = sel.id;
-    const bottom = sel.props.anchor === "bottom";
+    const bottom = (sel.props.def as { anchor?: string }).anchor === "bottom";
     body = (
       <>
         <h3 data-testid="sel-name">{sel.props.name}</h3>
@@ -104,7 +98,7 @@ function Panel({ editor, screen }: { editor: Editor; screen: ScreenDef }) {
         <NumField label="y" value={g.y} onCommit={(n) => upd(id, (s) => ({ y: bottom ? n - s.props.h : n - s.props.h / 2 }))} />
         <NumField label="w" value={g.w} onCommit={(n) => upd(id, (s) => ({ x: s.x + s.props.w / 2 - n / 2, props: { ...s.props, w: Math.max(1, n) } }))} />
         <NumField label="h" value={g.h} onCommit={(n) => upd(id, (s) => ({ y: bottom ? s.y + s.props.h - n : s.y + s.props.h / 2 - n / 2, props: { ...s.props, h: Math.max(1, n) } }))} />
-        {sel.props.kind === "text" && (
+        {sel.props.kind !== "image" && sel.props.text !== "" && (
           <>
             <NumField label="font" value={sel.props.font} onCommit={(n) => upd(id, (s) => ({ props: { ...s.props, font: Math.max(1, n) } }))} />
             <div className="row">
@@ -113,6 +107,7 @@ function Panel({ editor, screen }: { editor: Editor; screen: ScreenDef }) {
             </div>
           </>
         )}
+        {(sel.props.def as { note?: string }).note && <div className="hint">{(sel.props.def as { note?: string }).note}</div>}
         <div className="hint">x,y = {bottom ? "가로 중심, 세로 아래 끝(발바닥)" : "요소 중심"} (게임 좌표 720x1280). 화살표 키 1px, Shift+화살표 10px.</div>
       </>
     );
@@ -137,6 +132,7 @@ function Panel({ editor, screen }: { editor: Editor; screen: ScreenDef }) {
 }
 
 function ScreenEditor({ screen, picker }: { screen: ScreenDef; picker: React.ReactNode }) {
+  const lid = screen.layoutId ?? screen.id;
   const [editor, setEditor] = useState<Editor | null>(null);
   const [status, setStatus] = useState("불러오는 중...");
   const [count, setCount] = useState(0);
@@ -154,14 +150,15 @@ function ScreenEditor({ screen, picker }: { screen: ScreenDef; picker: React.Rea
       started.current = true;
       (window as unknown as Record<string, unknown>).__editor = ed;
       (async () => {
-        const [load, refList] = await Promise.all([fetch(`/api/load?screen=${screen.id}`).then((r) => r.json()), fetch("/api/refs").then((r) => r.json())]);
+        const [load, refList] = await Promise.all([fetch(`/api/load?screen=${lid}`).then((r) => r.json()), fetch("/api/refs").then((r) => r.json())]);
         const values: Record<string, Vals> = { ...load.initial, ...(load.saved ?? {}) };
         build(ed, screen, values);
         ed.clearHistory();
         setCount(screen.elements.filter((d) => ed.getShape(createShapeId(d.name))).length);
         setRefs(refList);
-        setRefName(refList[0] ?? "");
-        setStatus(load.saved ? "저장본을 불러왔습니다" : "layout_" + screen.id + ".ts 초기값");
+        const want = screen.id === "final_grabbed" ? "game_final_early.png" : screen.id === "round1" || screen.id === "countdown" ? "game_countdown.png" : `game_${screen.id}.png`;
+        setRefName(refList.includes(want) ? want : (refList[0] ?? ""));
+        setStatus(load.saved ? "저장본을 불러왔습니다" : "layout_" + lid + ".ts 초기값");
         for (const ms of [50, 400]) {
           await new Promise((r) => setTimeout(r, ms));
           ed.zoomToBounds({ x: -60, y: -40, w: W + 120, h: H + 80 }, { immediate: true, inset: 0 });
@@ -193,7 +190,7 @@ function ScreenEditor({ screen, picker }: { screen: ScreenDef; picker: React.Rea
       y: 0,
       isLocked: true,
       opacity,
-      props: { w: W, h: H, name: "__ref", kind: "image", src: `/refs/${encodeURIComponent(refName)}`, text: "", color: "#fff", stroke: 0, font: 0, bg: "none", anchor: "center" },
+      props: { w: W, h: H, name: "__ref", kind: "image", src: `/refs/${encodeURIComponent(refName)}`, text: "", font: 0, def: {} },
     });
     editor.bringToFront([id]);
   }, [editor, overlay, refName, count]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -206,8 +203,8 @@ function ScreenEditor({ screen, picker }: { screen: ScreenDef; picker: React.Rea
   const save = async () => {
     if (!editor) return;
     const data = collect(editor, screen);
-    const res = await fetch(`/api/save?screen=${screen.id}`, { method: "POST", body: JSON.stringify(data) }).then((r) => r.json());
-    setStatus(res.ok ? `저장됨 ${new Date().toLocaleTimeString("ko-KR")} (${res.count}개)` : "저장 실패: " + res.error);
+    const res = await fetch(`/api/save?screen=${lid}`, { method: "POST", body: JSON.stringify(data) }).then((r) => r.json());
+    setStatus(res.ok ? `저장됨 ${new Date().toLocaleTimeString("ko-KR")} (${res.count}개 → layout_${lid}.json)` : "저장 실패: " + res.error);
   };
 
   return (
@@ -252,10 +249,13 @@ function EditorGrab({ onEditor }: { onEditor: (e: Editor) => void }) {
 }
 
 export function App() {
-  const [id, setId] = useState(SCREENS[0].id);
+  const [id, setId] = useState(() => {
+    const q = new URLSearchParams(window.location.search).get("screen");
+    return SCREENS.some((s) => s.id === q) ? (q as string) : SCREENS[0].id;
+  });
   const screen = SCREENS.find((s) => s.id === id) ?? SCREENS[0];
   const picker = (
-    <select value={id} onChange={(e) => setId(e.target.value)} data-testid="screen-select">
+    <select value={id} onChange={(e) => { setId(e.target.value); history.replaceState(null, "", `?screen=${e.target.value}`); }} data-testid="screen-select">
       {SCREENS.map((s) => (
         <option key={s.id} value={s.id}>{s.id} ({s.label})</option>
       ))}

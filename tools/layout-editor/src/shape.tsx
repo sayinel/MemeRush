@@ -1,4 +1,4 @@
-import { BaseBoxShapeUtil, HTMLContainer, T, type RecordProps, type TLBaseShape } from "tldraw";
+import { BaseBoxShapeUtil, HTMLContainer, T, type JsonObject, type RecordProps, type TLBaseShape } from "tldraw";
 import { INK } from "../screens/types";
 
 // One custom shape for every game element: a picture or an outlined Anton text. Position/size = tldraw box
@@ -9,14 +9,11 @@ export type GameElementShape = TLBaseShape<
     w: number;
     h: number;
     name: string;
-    kind: string; // image | text
+    kind: string; // image | text | box
     src: string;
     text: string;
-    color: string;
-    stroke: number;
     font: number;
-    bg: string; // none | pill
-    anchor: string; // center | bottom
+    def: JsonObject; // the element definition from screens/<id>.ts (colors, stroke, font family ...)
   }
 >;
 
@@ -35,15 +32,12 @@ export class GameElementUtil extends BaseBoxShapeUtil<GameElementShape> {
     kind: T.string,
     src: T.string,
     text: T.string,
-    color: T.string,
-    stroke: T.number,
     font: T.number,
-    bg: T.string,
-    anchor: T.string,
+    def: T.jsonValue as never,
   };
 
   getDefaultProps(): GameElementShape["props"] {
-    return { w: 100, h: 100, name: "", kind: "image", src: "", text: "", color: "#ffffff", stroke: 8, font: 40, bg: "none", anchor: "center" };
+    return { w: 100, h: 100, name: "", kind: "image", src: "", text: "", font: 40, def: {} };
   }
 
   override canEdit() {
@@ -52,14 +46,27 @@ export class GameElementUtil extends BaseBoxShapeUtil<GameElementShape> {
 
   component(shape: GameElementShape) {
     const p = shape.props;
+    const d = p.def as Record<string, string | number | undefined>;
     if (p.kind === "image") {
       return (
         <HTMLContainer>
-          <img src={p.src} alt={p.name} draggable={false} style={{ width: p.w, height: p.h, objectFit: p.name === "__bg" ? "fill" : "contain", display: "block", pointerEvents: "none" }} />
+          <img src={p.src} alt={p.name} draggable={false} style={{ width: p.w, height: p.h, objectFit: p.name === "__bg" || d.fit === "fill" ? "fill" : "contain", display: "block", pointerEvents: "none" }} />
         </HTMLContainer>
       );
     }
-    const pill = p.bg === "pill";
+    if (p.name === "__bgcss") {
+      return (
+        <HTMLContainer>
+          <div style={{ width: p.w, height: p.h, background: String(d.fill ?? "#29baf5"), pointerEvents: "none" }} />
+        </HTMLContainer>
+      );
+    }
+    const anton = (d.family ?? "anton") === "anton";
+    const stroke = Number(d.stroke ?? 0);
+    const pill = d.bg === "pill";
+    const isBox = p.kind === "box" || pill;
+    const align = String(d.align ?? "center");
+    const parts = p.text.split(/\[\[(.*?)\]\]/);
     return (
       <HTMLContainer>
         <div
@@ -68,21 +75,30 @@ export class GameElementUtil extends BaseBoxShapeUtil<GameElementShape> {
             height: p.h,
             display: "flex",
             alignItems: "center",
-            justifyContent: "center",
-            textAlign: "center",
+            justifyContent: align === "left" ? "flex-start" : align === "right" ? "flex-end" : "center",
+            textAlign: align as "left" | "center" | "right",
             boxSizing: "border-box",
-            fontFamily: '"Anton", Impact, "Arial Black", sans-serif',
+            padding: align === "left" && isBox ? "0 36px" : 0,
+            fontFamily: anton ? '"Anton", Impact, "Arial Black", sans-serif' : '"Noto Sans KR", system-ui, sans-serif',
+            fontWeight: Number(d.weight ?? 400),
             fontSize: p.font,
-            lineHeight: 1.08,
-            color: p.color,
-            WebkitTextStroke: `${p.stroke}px ${INK}`,
+            lineHeight: anton ? 1.05 : 1.3,
+            color: String(d.color ?? "#fff"),
+            WebkitTextStroke: stroke ? `${stroke}px ${d.strokeColor ?? INK}` : undefined,
             paintOrder: "stroke fill",
-            strokeLinejoin: "round",
+            textShadow: d.shadow ? String(d.shadow) : undefined,
             pointerEvents: "none",
-            ...(pill ? { background: "#1f4788", border: "4px solid #fff", borderRadius: p.h / 2, boxShadow: "0 0 0 0" } : {}),
+            overflow: "hidden",
+            whiteSpace: p.h < p.font * 1.7 ? "nowrap" : "normal",
+            ...(pill ? { background: "#1f4788", border: "4px solid #fff", borderRadius: p.h / 2 } : {}),
+            ...(p.kind === "box"
+              ? { background: String(d.fill ?? "transparent"), border: d.borderW ? `${d.borderW}px solid ${d.border ?? "#fff"}` : undefined, borderRadius: Number(d.radius ?? 0) }
+              : {}),
           }}
         >
-          <span>{p.text}</span>
+          <span>
+            {parts.map((t, i) => (i % 2 ? <span key={i} style={{ color: "#ffd54a" }}>{t}</span> : t))}
+          </span>
         </div>
       </HTMLContainer>
     );
