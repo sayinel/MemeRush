@@ -1,0 +1,15 @@
+html, body, #root { margin: 0; height: 100%; font-family: system-ui, "Malgun Gothic", sans-serif; font-size: 14px; }
+.shell { display: grid; grid-template-rows: 48px 1fr; height: 100%; }
+.bar { display: flex; align-items: center; gap: 14px; padding: 0 12px; background: #14192e; color: #fff; flex-wrap: nowrap; overflow: hidden; white-space: nowrap; }
+.bar select, .bar input[type=range] { font-size: 13px; }
+.bar button { font-size: 14px; padding: 6px 14px; border-radius: 6px; border: 0; cursor: pointer; background: #fede25; color: #14192e; font-weight: 700; }
+.bar button.plain { background: #3a4266; color: #fff; font-weight: 500; }
+.bar label { display: inline-flex; align-items: center; gap: 4px; }
+.bar .status { color: #9fe6a0; margin-left: auto; }
+.main { display: grid; grid-template-columns: 1fr 260px; min-height: 0; }
+.canvas { position: relative; min-height: 0; }
+.panel { padding: 12px; background: #f4f5f9; border-left: 1px solid #d5d8e3; overflow: auto; }
+.panel h3 { margin: 0 0 10px; font-size: 15px; }
+.panel .row { display: grid; grid-template-columns: 52px 1fr; align-items: center; gap: 6px; margin-bottom: 8px; }
+.panel input[type=number], .panel input[type=text] { width: 100%; box-sizing: border-box; padding: 5px 6px; font-size: 14px; }
+.panel .hint { color: #5b6180; font-size: 12px; line-height: 1.5; margin-top: 12px; }
