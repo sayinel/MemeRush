@@ -448,19 +448,20 @@ export class TimingStopScene extends Phaser.Scene {
   private finalGrabbed(result: FinishResult) {
     const run = this.run;
     this.bigNumber(result, C.red, C.white);
+    const hasArt = this.textures.exists(`${this.challenge.meme.theme.boss}_grab`);
     // Exit door waits on the right (trailer scene); boss and worker leave through it, past the screen edge.
     if (this.textures.exists("door")) {
       const door = this.add.image(DOOR.x + 40, DOOR.y, "door").setDisplaySize(170, 290).setDepth(20);
       this.stageFx.push(door);
     }
-    const boss = this.makeBoss(true).setPosition(-260, HOME.y - 120).setScale(1.0).setDepth(32);
+    // The boss reads ~1.5x the worker's height (worker box is WORKER_PX tall); feet on the floor line.
+    const boss = this.makeBoss(true, hasArt ? Math.round(WORKER_PX * 1.5) : 400, hasArt).setPosition(-300, FLOOR_Y + 15).setDepth(32);
     this.stageFx.push(boss);
     this.setFace("shocked");
-    const hasArt = this.textures.exists(`${this.challenge.meme.theme.boss}_grab`);
     this.tweens.add({ targets: this.worker, x: 420, duration: 360, ease: "Quad.Out" });
     this.tweens.add({
       targets: boss,
-      x: 250,
+      x: hasArt ? 150 : 250,
       delay: 250,
       duration: 380,
       ease: "Quad.Out",
@@ -470,14 +471,13 @@ export class TimingStopScene extends Phaser.Scene {
         // With real art the boss's own arm holds the worker, so the stand-in hand is hidden.
         const hand = this.makeHand().setPosition(this.worker.x - 40, this.worker.y - 300).setDepth(40).setVisible(!hasArt);
         this.stageFx.push(hand);
-        this.setFace("dragged");
         this.squash(1.25, 0.72, 120, 1);
         // Held by the scruff: tilted, flailing while dragged right, off the screen edge (~1.4 s).
         this.time.delayedCall(450, () => {
           if (run !== this.run) return;
           this.setCaption(this.capBottom, "BACK TO YOUR DESK");
-          this.tweens.add({ targets: this.worker, angle: hasArt ? 4 : 22, duration: 200, ease: "Quad.Out" }); // the art is already tilted
-          this.tweens.add({ targets: this.body, angle: { from: -6, to: 6 }, duration: 90, yoyo: true, repeat: -1 });
+          this.tweens.add({ targets: this.worker, angle: hasArt ? 8 : 22, duration: 200, ease: "Quad.Out" }); // the art is already tilted
+          this.tweens.add({ targets: this.body, angle: { from: -4, to: 4 }, duration: 90, yoyo: true, repeat: -1 });
           this.tweens.add({ targets: [boss, this.worker, hand], x: "+=820", duration: 1400, ease: "Sine.In" });
         });
       },
@@ -785,12 +785,15 @@ export class TimingStopScene extends Phaser.Scene {
     return c;
   }
 
-  private makeBoss(grab: boolean): Phaser.GameObjects.Container {
+  // Sized by HEIGHT (art may change canvas ratio). feetAnchor: image bottom sits at the container origin.
+  private makeBoss(grab: boolean, height = 400, feetAnchor = false): Phaser.GameObjects.Container {
     // Local frame: head at y≈-190, body −130..130 (wide enough to cover the clock at 1.7x).
     const c = this.add.container(0, 0);
     const key = `${this.challenge.meme.theme.boss}_${grab ? "grab" : "walk"}`;
     if (this.textures.exists(key)) {
-      c.add(this.add.image(0, -60, key).setDisplaySize(350, 400)); // art is 700x800
+      const img = this.add.image(0, feetAnchor ? 0 : -60, key);
+      img.setOrigin(0.5, feetAnchor ? 1 : 0.5).setScale(height / img.height);
+      c.add(img);
       return c;
     }
     const g = this.add.graphics();
