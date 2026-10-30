@@ -445,8 +445,63 @@ export class TimingStopScene extends Phaser.Scene {
     this.tweens.add({ targets: trophy, angle: { from: -6, to: 6 }, delay: 800, duration: 500, yoyo: true, repeat: -1, ease: "Sine.InOut" });
   }
 
+  // Boss art path: the boss walks right (flipped art, pointing ahead) and holds the worker by the scruff with a
+  // code-drawn arm; the worker trails behind on the left, leaning back with his feet off the floor.
+  private finalGrabbedArt(result: FinishResult, run: number) {
+    this.bigNumber(result, C.red, C.white);
+    if (this.textures.exists("door")) {
+      this.stageFx.push(this.add.image(DOOR.x + 40, DOOR.y, "door").setDisplaySize(170, 290).setDepth(20));
+    }
+    const BOSS_H = Math.round(WORKER_PX * 1.5);
+    const boss = this.makeBoss(true, BOSS_H, true).setPosition(-300, FLOOR_Y + 15).setDepth(32).setScale(-1, 1);
+    this.stageFx.push(boss);
+    const arm = this.add.graphics().setDepth(36);
+    this.stageFx.push(arm);
+    this.setFace("shocked");
+    this.tweens.add({ targets: this.worker, x: 240, duration: 300, ease: "Quad.Out" });
+    // Arm from the boss's rear shoulder to the worker's scruff (elbow bent), fist at the end.
+    const drawArm = () => {
+      const sx = boss.x - 95;
+      const sy = boss.y - BOSS_H * 0.5;
+      const ex = this.worker.x + 12;
+      const ey = this.worker.y - 262;
+      const mx = (sx + ex) / 2;
+      const my = Math.max(sy, ey) + 35; // elbow sags below the line
+      arm.clear();
+      for (const [w, col] of [[40, 0xffffff], [28, 0x14181c]] as const) {
+        arm.lineStyle(w, col, 1).beginPath().moveTo(sx, sy).lineTo(mx, my).lineTo(ex, ey).strokePath();
+      }
+      arm.fillStyle(0xffffff).fillCircle(ex, ey, 34);
+      arm.fillStyle(0x9aa0a8).fillCircle(ex, ey, 26);
+    };
+    arm.setVisible(false);
+    this.tweens.add({
+      targets: boss,
+      x: 540,
+      delay: 250,
+      duration: 650,
+      ease: "Quad.Out",
+      onComplete: () => {
+        if (run !== this.run) return;
+        this.cameras.main.shake(140, 0.01);
+        arm.setVisible(true);
+        drawArm();
+        // Hoisted: leans back, feet off the floor, flailing a little.
+        this.tweens.add({ targets: this.worker, angle: -12, y: HOME.y - 28, duration: 220, ease: "Quad.Out" });
+        this.time.delayedCall(450, () => {
+          if (run !== this.run) return;
+          this.setCaption(this.capBottom, "BACK TO YOUR DESK");
+          this.tweens.add({ targets: this.body, angle: { from: -5, to: 5 }, duration: 90, yoyo: true, repeat: -1 });
+          this.tweens.add({ targets: boss, y: "-=10", duration: 160, yoyo: true, repeat: -1 });
+          this.tweens.add({ targets: [boss, this.worker], x: "+=780", duration: 1400, ease: "Sine.In", onUpdate: drawArm });
+        });
+      },
+    });
+  }
+
   private finalGrabbed(result: FinishResult) {
     const run = this.run;
+    if (this.textures.exists(`${this.challenge.meme.theme.boss}_grab`)) return this.finalGrabbedArt(result, run);
     this.bigNumber(result, C.red, C.white);
     const hasArt = this.textures.exists(`${this.challenge.meme.theme.boss}_grab`);
     // Exit door waits on the right (trailer scene); boss and worker leave through it, past the screen edge.
