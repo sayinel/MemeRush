@@ -653,7 +653,7 @@ export default function ChallengeClient({
 
   if (stage === "playing") {
     return (
-      <main className="relative flex min-h-dvh items-center justify-center gap-8 overflow-hidden px-0 lg:px-6">
+      <main className="relative flex min-h-dvh items-center justify-center gap-8 overflow-hidden px-0 lg:items-start lg:px-6 lg:pt-[max(16px,calc((100dvh-900px)/2))]">
         <PlayBackdrop />
         <SideInfoLeft dailyNo={dailyNo} title={challenge.title} />
         <div className="play-box">
@@ -701,7 +701,7 @@ export default function ChallengeClient({
     const hero = art("worker_sweating") ?? "/game/worker_sweating.png";
     const bg = art("bg_office") ?? "/game/bg_office.webp";
     return (
-      <main className="relative flex min-h-dvh items-center justify-center gap-8 overflow-hidden px-0 lg:px-6">
+      <main className="relative flex min-h-dvh items-center justify-center gap-8 overflow-hidden px-0 lg:items-start lg:px-6 lg:pt-[max(16px,calc((100dvh-900px)/2))]">
         <PlayBackdrop />
         <SideInfoLeft dailyNo={dailyNo} title={challenge.title} />
         <div className="play-box" data-testid="intro-screen">
@@ -759,7 +759,7 @@ export default function ChallengeClient({
   const bg = art("bg_office") ?? "/game/bg_office.webp";
   const trophy = art("trophy") ?? "/game/trophy.png";
   return (
-    <main className="relative flex min-h-dvh items-center justify-center gap-8 overflow-hidden px-0 lg:px-6">
+    <main className="relative flex min-h-dvh items-center justify-center gap-8 overflow-hidden px-0 lg:items-start lg:px-6 lg:pt-[max(16px,calc((100dvh-900px)/2))]">
       <PlayBackdrop />
       <SideInfoLeft dailyNo={dailyNo} title={challenge.title} />
       <div className="play-box" data-testid="rank-screen">

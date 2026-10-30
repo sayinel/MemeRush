@@ -1,3 +1,4 @@
+import { ROUND1_LAYOUT as R1 } from "./layout_round1";
 import * as Phaser from "phaser";
 import type { Challenge } from "@/lib/challenge";
 import { fillCaption, formatClock, parseLabel, pickCaption } from "./captions";
@@ -45,15 +46,15 @@ const NICE_MS = 100;
 const MIN_TAP_MS = 1000;
 const MAX_TAP_MS = 15000;
 
-const CLOCK = { x: 360, y: 440, w: 560, h: 190 };
-const HOME = { x: 200, y: 955 }; // worker feet
-const BUTTON = { x: 488, y: 950 };
+const CLOCK = { x: R1.clock.x, y: R1.clock.y, w: R1.clock.w, h: R1.clock.h };
+const HOME = { x: R1.hero.x, y: R1.hero.y }; // worker feet
+const BUTTON = { x: R1.button.x, y: R1.button.y };
 const DOOR = { x: 640, y: 822 };
 const FLOOR_Y = 955;
 const CAP_TOP_Y = 245;
 const CAP_BOTTOM_Y = 1132;
 const RESULT_Y = 525;
-const WORKER_PX = 380; // displayed sprite box (sprites are square with feet near the bottom)
+const WORKER_PX = R1.hero.w; // displayed sprite box (sprites are square with feet near the bottom)
 
 type Phase = "boot" | "intro" | "starting" | "play" | "reaction" | "submitting" | "final" | "done" | "error";
 type Caption = { top: string; bottom: string };
@@ -207,20 +208,30 @@ export class TimingStopScene extends Phaser.Scene {
     this.roundText.setText(`ROUND ${i + 1}/${rounds.length}`);
     this.clockText.setText(formatClock(this.startMs()));
     const target = this.startMs() + this.challenge.frameParams.targetMs[i];
-    this.setCaption(this.capTop, `ROUND ${i + 1}: ${rounds[i].label}`);
+    // The label already carries its take number ("TAKE 1: ..."), and the ROUND n/N chip is top left: no "ROUND n:" prefix.
+    this.capTop.setY(R1.caption_top.y);
+    this.setCaption(this.capTop, rounds[i].label, R1.caption_top.h);
+    this.capBottom.setY(R1.tap_at.y);
     this.setCaption(this.capBottom, `TAP AT ${formatClock(target, false)}`);
 
     this.setFace("laughing");
     this.tweens.add({ targets: this.worker, y: HOME.y - 26, duration: 180, yoyo: true, repeat: 3, ease: "Quad.Out" });
     this.squash(1.12, 0.88, 180, 3);
 
-    const card = this.makeBanner(`ROUND ${i + 1}`, 380).setPosition(-W, 680).setDepth(60);
-    if (i === 0) card.add(this.txt(0, 108, this.challenge.meme.prompt, 30, { strokeThickness: 7, wordWrap: { width: 600 } }));
-    this.tweens.add({ targets: card, x: W / 2, duration: 380, ease: "Back.Out" });
+    // Short ribbon in the free area right of the hero (the hero sits left, the stop button lower right); the
+    // description goes in the gap between the top caption and the clock, so nothing covers the face or the button.
+    const card = this.makeBanner(i === 0 ? "GET READY" : "NEXT TAKE", 380).setScale(0.7).setPosition(W + 400, R1.ribbon.y).setDepth(25);
+    let prompt: Phaser.GameObjects.Text | null = null;
+    if (i === 0) {
+      prompt = this.txt(R1.prompt_text.x, R1.prompt_text.y, this.challenge.meme.prompt, 26, { strokeThickness: 6, wordWrap: { width: R1.prompt_text.w }, align: "center" }).setDepth(60).setAlpha(0);
+      this.tweens.add({ targets: prompt, alpha: 1, duration: 300 });
+    }
+    this.tweens.add({ targets: card, x: R1.ribbon.x, duration: 380, ease: "Back.Out" });
     this.tweens.add({ targets: card, x: W * 1.6, delay: INTRO_MS - 300, duration: 300, ease: "Back.In" });
     this.time.delayedCall(INTRO_MS, () => {
       if (run !== this.run) return;
       card.destroy();
+      prompt?.destroy();
       if (i === 0) this.beginFirstRound();
       else this.startPlay(performance.now()); // rounds 2+ start when the intro card ends
     });
@@ -375,6 +386,8 @@ export class TimingStopScene extends Phaser.Scene {
   private playFinal(result: FinishResult) {
     const run = this.run;
     this.phase = "final";
+    this.capTop.setY(CAP_TOP_Y);
+    this.capBottom.setY(CAP_BOTTOM_Y);
     const caption: Caption = pickCaption(this.challenge, result);
 
     this.setCaption(this.capTop, "");
@@ -778,8 +791,8 @@ export class TimingStopScene extends Phaser.Scene {
       g.fillStyle(C.white, 0.1).fillRoundedRect(-w / 2 + 16, -h / 2 + 14, w - 32, h / 2 - 18, 22);
       this.clockGroup.add(g);
     }
-    for (const side of [-1, 1]) {
-      const s = this.add.image(side * (w / 2 + 6), 0, this.tex("star", "__star")).setScale(0.85).setAngle(side * 12);
+    for (const [side, st] of [[-1, R1.star_left], [1, R1.star_right]] as const) {
+      const s = this.add.image(st.x - CLOCK.x, st.y - CLOCK.y, this.tex("star", "__star")).setDisplaySize(st.w, st.h).setAngle(side * 14);
       this.clockGroup.add(s);
     }
     this.clockText = this.txt(0, 6, "", 108, { color: hex(C.gold), stroke: hex(C.ink), strokeThickness: 10 });
@@ -797,7 +810,7 @@ export class TimingStopScene extends Phaser.Scene {
   }
 
   private drawHud() {
-    this.roundText = this.pill(118, 52, 196, "", C.white, false);
+    this.roundText = this.pill(R1.badge_round.x, R1.badge_round.y, R1.badge_round.w, "", C.white, false);
     const cap = (y: number) =>
       this.txt(W / 2, y, "", 80, { strokeThickness: 16 })
         .setShadow(0, 6, hex(C.ink), 0, true, true)
