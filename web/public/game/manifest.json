@@ -18,5 +18,14 @@
   "door": "door.png",
   "confetti_star": "confetti_star.png",
   "duck": "duck.png",
-  "poof": "poof.png"
+  "poof": "poof.png",
+  "boss_angry": "boss_angry.png",
+  "boss_laughing": "boss_laughing.png",
+  "boss_deadpan": "boss_deadpan.png",
+  "boss_shocked": "boss_shocked.png",
+  "boss_smug": "boss_smug.png",
+  "boss_disappointed": "boss_disappointed.png",
+  "boss_checkwatch": "boss_checkwatch.png",
+  "boss_thumbsup": "boss_thumbsup.png",
+  "boss_facepalm": "boss_facepalm.png"
 }
