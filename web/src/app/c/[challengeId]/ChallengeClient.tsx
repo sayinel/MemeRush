@@ -7,6 +7,9 @@ import type { FinishResult } from "@/game/types";
 import { fillCaption, pickCaption } from "@/game/captions";
 import { captureSrc, useLang, type Lang, type Strings } from "@/lib/i18n";
 
+// Public demos can hide the email CTA entirely: build with NEXT_PUBLIC_HIDE_EMAIL=1.
+const HIDE_EMAIL = process.env.NEXT_PUBLIC_HIDE_EMAIL === "1";
+
 const GameCanvas = dynamic(() => import("@/game/GameCanvas"), { ssr: false });
 
 type League = { leagueId: string; ownerNickname: string; isOwner: boolean };
@@ -444,13 +447,14 @@ function SideInfoRight({ challengeId, refresh, t, onEmail }: { challengeId: stri
       >
         {copied ? "Copied" : "Copy challenge link"}
       </button>
-      {/* TODO(email CTA): placeholder only, opens the empty email screen; no email server yet. */}
-      <button
-        onClick={onEmail}
-        className="min-h-11 rounded-full border-[3px] border-white bg-green px-4 font-title text-base text-white shadow-[0_3px_0_var(--navy)] active:translate-y-[3px] active:shadow-none"
-      >
-        {t.emailMe}
-      </button>
+      {!HIDE_EMAIL && (
+        <button
+          onClick={onEmail}
+          className="min-h-11 rounded-full border-[3px] border-white bg-green px-4 font-title text-base text-white shadow-[0_3px_0_var(--navy)] active:translate-y-[3px] active:shadow-none"
+        >
+          {t.emailMe}
+        </button>
+      )}
     </aside>
   );
 }
@@ -672,7 +676,7 @@ export default function ChallengeClient({
               onRank={seeMyRank}
             />
           )}
-          {emailOpen && (
+          {emailOpen && !HIDE_EMAIL && (
             <EmailScreen
               t={t}
               lang={lang}
@@ -727,7 +731,7 @@ export default function ChallengeClient({
               {needsJoin && invite ? `Join ${invite.ownerNickname}'s league & play` : t.playNow}
             </button>
           </div>
-          {emailOpen && (
+          {emailOpen && !HIDE_EMAIL && (
             <EmailScreen
               t={t}
               lang={lang}
@@ -798,17 +802,21 @@ export default function ChallengeClient({
           <div className="rk-bottom">
             {error && <p className="rk-note">{error}</p>}
             {notice && <p className="rk-note">{notice}</p>}
+            {!HIDE_EMAIL && (
+              <>
             <p className="rk-help">{t.emailHelp}</p>
-            {/* TODO(email CTA): placeholder; opens the empty email screen and stores nothing (no email server yet). */}
-            <button className="rs-go" onClick={() => setEmailOpen(true)}>
-              {t.emailMe}
-            </button>
-            <button className="rs-go ghost" onClick={() => share(false)} disabled={busy}>
+                {/* TODO(email CTA): placeholder; opens the empty email screen and stores nothing (no email server yet). */}
+                <button className="rs-go" onClick={() => setEmailOpen(true)}>
+                  {t.emailMe}
+                </button>
+              </>
+            )}
+            <button className={HIDE_EMAIL ? "rs-go" : "rs-go ghost"} onClick={() => share(false)} disabled={busy}>
               {t.share}
             </button>
           </div>
         </div>
-        {emailOpen && (
+        {emailOpen && !HIDE_EMAIL && (
             <EmailScreen
               t={t}
               lang={lang}

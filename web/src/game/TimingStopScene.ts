@@ -266,6 +266,8 @@ export class TimingStopScene extends Phaser.Scene {
 
   private startPlay(t: number) {
     this.roundStart = t;
+    // Read-only timing marker for automated QA (performance.now() timebase); nothing in the game reads it.
+    (window as unknown as { __mrRound?: { start: number; index: number } }).__mrRound = { start: t, index: this.round };
     this.phase = "play";
     // Nervous foot-tapping, wobble and sweat while waiting.
     this.setFace("sweating");
