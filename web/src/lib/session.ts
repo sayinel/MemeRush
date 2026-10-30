@@ -23,7 +23,7 @@ export async function currentPlayer(): Promise<Player | null> {
 export async function setSessionCookie(token: string) {
   (await cookies()).set(COOKIE, token, {
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
+    secure: process.env.NODE_ENV === "production" && process.env.LOCAL_PLAY !== "1",
     sameSite: "lax",
     path: "/",
     maxAge: ONE_YEAR_S,
