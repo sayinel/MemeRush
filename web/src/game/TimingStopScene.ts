@@ -141,7 +141,11 @@ export class TimingStopScene extends Phaser.Scene {
     const canvas = this.game.canvas;
     canvas.style.touchAction = "manipulation";
     canvas.addEventListener("pointerdown", this.onPointerDown);
-    const detach = () => canvas.removeEventListener("pointerdown", this.onPointerDown);
+    window.addEventListener("keydown", this.onKeyDown);
+    const detach = () => {
+      canvas.removeEventListener("pointerdown", this.onPointerDown);
+      window.removeEventListener("keydown", this.onKeyDown);
+    };
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, detach);
     this.events.once(Phaser.Scenes.Events.DESTROY, detach);
 
@@ -171,6 +175,15 @@ export class TimingStopScene extends Phaser.Scene {
       this.retry = null;
       retry();
     }
+  };
+
+  // PC: Space / Enter stop the clock like a tap.
+  private onKeyDown = (e: KeyboardEvent) => {
+    if (e.repeat || (e.code !== "Space" && e.code !== "Enter")) return;
+    if (this.phase !== "play") return;
+    const t = performance.now();
+    if (e.code === "Space") e.preventDefault();
+    this.recordTap(e.timeStamp > 0 && e.timeStamp <= t ? e.timeStamp : t);
   };
 
   private recordTap(t: number) {

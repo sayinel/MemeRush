@@ -75,7 +75,7 @@ function PrimaryButton({ children, onClick, disabled }: { children: ReactNode; o
     <button
       onClick={onClick}
       disabled={disabled}
-      className="h-14 w-full rounded-full border-[3px] border-white bg-green font-title text-[22px] text-white shadow-[0_3px_0_var(--navy)] transition active:translate-y-[3px] active:shadow-none disabled:opacity-50"
+      className="h-[clamp(44px,13cqw,56px)] w-full rounded-full border-[3px] border-white bg-green font-title text-[clamp(16px,6cqw,22px)] text-white shadow-[0_3px_0_var(--navy)] transition active:translate-y-[3px] active:shadow-none disabled:opacity-50"
     >
       {children}
     </button>
@@ -308,6 +308,89 @@ function Header({ dailyNo }: { dailyNo: string }) {
   return <p className="font-title text-sm tracking-widest text-white [text-shadow:0_2px_0_var(--navy)]">MEME RUSH · DAILY {dailyNo}</p>;
 }
 
+// --- PC layout (>=1024px): blurred office backdrop + info beside the 9:16 game box ---
+
+function PlayBackdrop() {
+  return (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src="/game/bg_office.webp"
+      alt=""
+      aria-hidden
+      className="pointer-events-none fixed inset-0 -z-10 h-full w-full scale-[1.12] object-cover [filter:blur(14px)_brightness(.62)_saturate(1.1)]"
+    />
+  );
+}
+
+function SideInfoLeft({ dailyNo, title }: { dailyNo: string; title: string }) {
+  return (
+    <aside className="hidden w-64 shrink-0 flex-col gap-4 text-white lg:flex">
+      <p className="meme-caption meme-caption-sm text-left text-4xl">MEME RUSH</p>
+      <p className="font-title text-xl [text-shadow:0_2px_0_var(--navy)]">
+        {dailyNo} {title}
+      </p>
+      <ol className="list-decimal space-y-2 pl-5 text-sm font-bold leading-snug [text-shadow:0_1px_2px_rgba(0,0,0,.6)]">
+        <li>Read the clock before it hides</li>
+        <li>Tap at the target time</li>
+        <li>Three rounds, lowest total error wins</li>
+      </ol>
+    </aside>
+  );
+}
+
+function SideInfoRight({ challengeId, refresh }: { challengeId: string; refresh: number }) {
+  const [rows, setRows] = useState<Row[]>([]);
+  const [copied, setCopied] = useState(false);
+  useEffect(() => {
+    let live = true;
+    api<Board>(`/api/leaderboard?challengeId=${challengeId}`)
+      .then((b) => live && setRows(b.rows.slice(0, 5)))
+      .catch(() => live && setRows([]));
+    return () => {
+      live = false;
+    };
+  }, [challengeId, refresh]);
+
+  async function copyLink() {
+    try {
+      const ref = await api<{ url: string }>("/api/referrals", { method: "POST", body: { challengeId, invite: false } }).catch(() => null);
+      await navigator.clipboard.writeText(ref?.url ?? window.location.href);
+      setCopied(true);
+      api("/api/events", { method: "POST", body: { type: "challenge_link_copied", challengeId } }).catch(() => {});
+      setTimeout(() => setCopied(false), 2500);
+    } catch {
+      // Clipboard refused: leave the button as is.
+    }
+  }
+
+  return (
+    <aside className="hidden w-64 shrink-0 flex-col gap-4 lg:flex">
+      {rows.length > 0 && (
+        <section className="rounded-[22px] border-4 border-white bg-panel p-3 shadow-[0_0_0_3px_var(--navy)]">
+          <h2 className="mb-2 font-title text-lg text-ink-blue">Today&apos;s ranking</h2>
+          <ol className="space-y-1.5">
+            {rows.map((r, i) => (
+              <li key={`${r.nickname}-${i}`} className="flex items-center gap-2 rounded-[14px] bg-row px-2 py-1.5 text-sm font-bold text-ink-blue">
+                <span className="w-5 text-center font-title">{r.rank}</span>
+                <span className="min-w-0 flex-1 truncate">{r.nickname}</span>
+                <span className="font-title">{seconds(r.errorMs)}</span>
+              </li>
+            ))}
+          </ol>
+        </section>
+      )}
+      <button
+        onClick={copyLink}
+        disabled={copied}
+        className="min-h-11 rounded-full border-[3px] border-white bg-navy px-4 font-title text-base text-white shadow-[0_3px_0_var(--ink-blue)] active:translate-y-[3px] active:shadow-none disabled:bg-silver disabled:text-ink-blue"
+      >
+        {copied ? "Copied" : "Copy challenge link"}
+      </button>
+      {/* TODO(email CTA) */}
+    </aside>
+  );
+}
+
 export default function ChallengeClient({
   challenge,
   dailyNo,
@@ -503,35 +586,38 @@ export default function ChallengeClient({
   if (stage === "playing") {
     const key = last ? resultKey(last) : "late";
     return (
-      <main className="relative flex min-h-dvh flex-col items-center justify-center bg-[#29BAF5]">
-        <div className="h-dvh w-full max-w-[480px]">
+      <main className="relative flex min-h-dvh items-center justify-center gap-8 overflow-hidden px-0 lg:px-6">
+        <PlayBackdrop />
+        <SideInfoLeft dailyNo={dailyNo} title={challenge.title} />
+        <div className="play-box">
           <GameCanvas challenge={challenge} beforeStart={beforeStart} onComplete={onComplete} onFinished={onFinished} playKey={playKey} />
-        </div>
-        {showCard && last && (
-          <div className="absolute inset-x-4 bottom-6 mx-auto max-w-sm">
-            <Panel className="text-center">
-              {last.isNewBest && (
-                <p className="mx-auto -mt-8 mb-2 w-fit rounded-full border-[3px] border-white bg-gold px-4 py-1 font-title text-lg text-[#7a5200] shadow-[0_3px_0_var(--navy)]">
-                  New best
+          {showCard && last && (
+            <div className="absolute inset-x-[4cqw] bottom-[4cqw] z-10">
+              <Panel className="text-center !p-[3cqw]">
+                {last.isNewBest && (
+                  <p className="mx-auto -mt-[7cqw] mb-[1.5cqw] w-fit rounded-full border-[3px] border-white bg-gold px-[4cqw] py-[0.5cqw] font-title text-[clamp(14px,4.6cqw,18px)] text-[#7a5200] shadow-[0_3px_0_var(--navy)]">
+                    New best
+                  </p>
+                )}
+                <p className="font-title text-[clamp(14px,5cqw,22px)] text-ink-blue">{RESULT_LINE[key]}</p>
+                <p className="score-number text-[clamp(28px,12cqw,52px)] leading-tight">{seconds(last.errorMs)} off</p>
+                <p className="mt-1 text-[clamp(12px,3.6cqw,15px)] font-bold text-ink-blue">
+                  World #{last.globalRank}
+                  {last.friendsRank != null && ` · Friends #${last.friendsRank}`}
                 </p>
-              )}
-              <p className="font-title text-xl text-ink-blue">{RESULT_LINE[key]}</p>
-              <p className="score-number text-5xl">{seconds(last.errorMs)} off</p>
-              <p className="mt-1 text-sm font-bold text-ink-blue">
-                World #{last.globalRank}
-                {last.friendsRank != null && ` · Friends #${last.friendsRank}`}
-              </p>
-              <div className="mt-4">
-                <PrimaryButton onClick={retry}>Try again</PrimaryButton>
-              </div>
-              <div className="mt-2">
-                <button onClick={seeMyRank} className="min-h-11 font-bold text-ink-blue underline underline-offset-4">
-                  See my rank
-                </button>
-              </div>
-            </Panel>
-          </div>
-        )}
+                <div className="mt-[3cqw]">
+                  <PrimaryButton onClick={retry}>Try again</PrimaryButton>
+                </div>
+                <div className="mt-1">
+                  <button onClick={seeMyRank} className="min-h-11 text-[clamp(13px,4cqw,16px)] font-bold text-ink-blue underline underline-offset-4">
+                    See my rank
+                  </button>
+                </div>
+              </Panel>
+            </div>
+          )}
+        </div>
+        <SideInfoRight challengeId={challengeId} refresh={playKey + (last?.errorMs ?? 0)} />
       </main>
     );
   }
