@@ -55,6 +55,8 @@ export default function GameCanvas(props: GameCanvasProps): JSX.Element {
         backgroundColor: "#29BAF5",
         banner: false,
         audio: { noAudio: true },
+        // Phaser's XHR has no timeout by default, so one stalled image on a slow network leaves the blue screen forever.
+        loader: { timeout: 8000, maxRetries: 3 },
         scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH },
       });
       const data: TimingStopSceneData = { challenge, bridge: bridgeRef.current };

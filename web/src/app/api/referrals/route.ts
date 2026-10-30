@@ -40,7 +40,12 @@ export async function POST(request: Request) {
   });
   if (error) return jsonError(500, error.message);
 
-  const url = new URL(`/c/${challengeId}`, new URL(request.url).origin);
+  // Behind a tunnel or proxy, request.url carries the server's own bind address (localhost:3918), which breaks the link
+  // for everyone else. Prefer the address the visitor actually used.
+  const own = new URL(request.url);
+  const host = request.headers.get("x-forwarded-host") ?? request.headers.get("host") ?? own.host;
+  const proto = request.headers.get("x-forwarded-proto") ?? (/^(localhost|127\.|\[::1\])/.test(host) ? "http" : "https");
+  const url = new URL(`/c/${challengeId}`, `${proto}://${host}`);
   url.searchParams.set("ref", referralId);
   if (league) url.searchParams.set("league", league.invite_token);
   return Response.json({ url: url.toString(), referralId, leagueId: league?.id ?? null });

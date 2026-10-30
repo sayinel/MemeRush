@@ -1,4 +1,6 @@
 import { ROUND1_LAYOUT as R1 } from "./layout_round1";
+import { PLAY_LAYOUT } from "./layout_play";
+import { play } from "./sfx";
 import * as Phaser from "phaser";
 import type { Challenge } from "@/lib/challenge";
 import { fillCaption, formatClock, parseLabel, pickCaption } from "./captions";
@@ -48,6 +50,7 @@ const MAX_TAP_MS = 15000;
 
 // Panel center; w/h are the digit-box size the code-drawn fallback uses.
 const CLOCK = { x: R1.clock_panel.x, y: R1.clock_panel.y, w: R1.clock_digits.w, h: R1.clock_digits.h };
+const HIDER = PLAY_LAYOUT.hider;
 const HOME = { x: R1.hero.x, y: R1.hero.y - R1.hero.h * 0.1 }; // worker feet (sprite origin is 90% down the box) // worker feet
 const BUTTON = { x: R1.button.x, y: R1.button.y };
 const DOOR = { x: 640, y: 822 };
@@ -81,6 +84,7 @@ export class TimingStopScene extends Phaser.Scene {
   private hiderShown = false;
   private elapsed: number[] = [];
   private retry: (() => void) | null = null;
+  private assetFail = false; // an image did not load, so the code-drawn stand-in art would show
 
   private worker!: Phaser.GameObjects.Container;
   private body!: Phaser.GameObjects.Image;
@@ -111,12 +115,41 @@ export class TimingStopScene extends Phaser.Scene {
     this.hiderShown = false;
     this.elapsed = [];
     this.retry = null;
+    this.assetFail = false;
     this.hider = null;
     this.stageFx = [];
   }
 
+  // The blue canvas is all a first-time visitor sees while images download, so show progress instead of nothing.
+  private showLoading() {
+    const w = this.scale.width;
+    const h = this.scale.height;
+    const barW = w * 0.6;
+    const x = (w - barW) / 2;
+    const y = h / 2;
+    const label = this.add.text(w / 2, y - 40, "LOADING", { fontFamily: "Anton, Impact, sans-serif", fontSize: "44px", color: "#ffffff" }).setOrigin(0.5);
+    const track = this.add.graphics();
+    track.fillStyle(0xffffff, 0.35).fillRoundedRect(x, y, barW, 18, 9);
+    const fill = this.add.graphics();
+    let shown = 0;
+    this.load.on("progress", (v: number) => {
+      if (this.load.totalToLoad <= 1) return; // only the manifest is queued yet, which would read as 100%
+      shown = Math.max(shown, v);
+      fill.clear();
+      fill.fillStyle(0xffffff, 1).fillRoundedRect(x, y, Math.max(18, barW * shown), 18, 9);
+    });
+    this.load.once("complete", () => {
+      label.destroy();
+      track.destroy();
+      fill.destroy();
+    });
+  }
+
   preload() {
-    const queue = (manifest: Record<string, string> | undefined) => {
+    this.load.on(Phaser.Loader.Events.FILE_LOAD_ERROR, () => {
+      this.assetFail = true;
+    });
+    const queue =(manifest: Record<string, string> | undefined) => {
       for (const [key, file] of Object.entries(manifest ?? {})) {
         if (!this.textures.exists(key)) this.load.image(key, `${ASSET_BASE}${file}`);
       }
@@ -126,6 +159,7 @@ export class TimingStopScene extends Phaser.Scene {
       return;
     }
     // Files added while the loader runs join the same load, so create() still waits for every listed image.
+    this.showLoading();
     this.load.once(`filecomplete-json-${MANIFEST_KEY}`, (_key: string, _type: string, data: Record<string, string>) => queue(data));
     this.load.json(MANIFEST_KEY, `${ASSET_BASE}manifest.json`);
   }
@@ -151,6 +185,11 @@ export class TimingStopScene extends Phaser.Scene {
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, detach);
     this.events.once(Phaser.Scenes.Events.DESTROY, detach);
 
+    if (this.assetFail) {
+      // Missing art would fall back to rough drawn shapes; ask for a retry instead of playing on with that.
+      this.showError(() => this.scene.restart({ challenge: this.challenge, bridge: this.bridge }));
+      return;
+    }
     this.startIntro(0);
   }
 
@@ -210,9 +249,9 @@ export class TimingStopScene extends Phaser.Scene {
     this.clockText.setText(formatClock(this.startMs()));
     const target = this.startMs() + this.challenge.frameParams.targetMs[i];
     // The label already carries its take number ("TAKE 1: ..."), and the ROUND n/N chip is top left: no "ROUND n:" prefix.
-    this.capTop.setY(R1.caption_top.y);
+    this.capTop.setPosition(R1.caption_top.x, R1.caption_top.y);
     this.setCaption(this.capTop, rounds[i].label, R1.caption_top.font);
-    this.capBottom.setY(R1.tap_at.y);
+    this.capBottom.setPosition(R1.tap_at.x, R1.tap_at.y);
     this.setCaption(this.capBottom, `TAP AT ${formatClock(target, false)}`, R1.tap_at.font);
 
     this.setFace("laughing");
@@ -269,6 +308,7 @@ export class TimingStopScene extends Phaser.Scene {
     // Read-only timing marker for automated QA (performance.now() timebase); nothing in the game reads it.
     (window as unknown as { __mrRound?: { start: number; index: number } }).__mrRound = { start: t, index: this.round };
     this.phase = "play";
+    play("go");
     // Nervous foot-tapping, wobble and sweat while waiting.
     this.setFace("sweating");
     this.resetWorkerTweens();
@@ -291,15 +331,15 @@ export class TimingStopScene extends Phaser.Scene {
     // A tap can land while the hider is still flying in; then the reaction owns the clock.
     const cover = () => this.phase === "play" && this.clockText.setVisible(false);
     if (key === this.challenge.meme.theme.boss) {
-      h.setPosition(W + 400, CLOCK.y - 20);
-      this.tweens.add({ targets: h, x: CLOCK.x, duration: 320, ease: "Quad.Out", onComplete: cover });
+      h.setPosition(W + 400, HIDER.y - 20);
+      this.tweens.add({ targets: h, x: HIDER.x, duration: 320, ease: "Quad.Out", onComplete: cover });
       this.tweens.add({ targets: h, angle: { from: -4, to: 4 }, duration: 110, yoyo: true, repeat: 2 });
     } else if (key === "meeting_card") {
-      h.setPosition(CLOCK.x, -250).setAngle(-25);
-      this.tweens.add({ targets: h, y: CLOCK.y, angle: 4, duration: 300, ease: "Back.Out", onComplete: cover });
+      h.setPosition(HIDER.x, -250).setAngle(-25);
+      this.tweens.add({ targets: h, y: HIDER.y, angle: 4, duration: 300, ease: "Back.Out", onComplete: cover });
     } else {
-      h.setPosition(CLOCK.x, -250);
-      this.tweens.add({ targets: h, y: CLOCK.y, duration: 300, ease: "Bounce.Out", onComplete: cover });
+      h.setPosition(HIDER.x, -250);
+      this.tweens.add({ targets: h, y: HIDER.y, duration: 300, ease: "Bounce.Out", onComplete: cover });
     }
   }
 
@@ -309,12 +349,14 @@ export class TimingStopScene extends Phaser.Scene {
     const err = el - this.challenge.frameParams.targetMs[i];
     const abs = Math.abs(err);
     const nice = abs <= NICE_MS;
+    if (nice) play("nice");
     this.stopWaiting();
     this.hiderShown = true;
     this.setCaption(this.capBottom, "");
 
     // Tap: slam the big red button.
     this.pressButton();
+    play("tap");
     this.squash(1.2, 0.8, 90, 0);
 
     // Stopped time revealed on the clock.
@@ -345,6 +387,7 @@ export class TimingStopScene extends Phaser.Scene {
           this.squash(1.15, 0.85, 120, 0);
         },
       });
+      play("early");
       this.popLabel("TOO EARLY", C.red);
     } else {
       // The hider drops into the worker's path and he runs straight into it.
@@ -362,6 +405,7 @@ export class TimingStopScene extends Phaser.Scene {
           this.tweens.add({ targets: this.worker, x: 210, angle: -16, duration: 300, ease: "Back.Out" });
         },
       });
+      play("late");
       this.popLabel("TOO LATE", C.red);
     }
 
@@ -437,16 +481,22 @@ export class TimingStopScene extends Phaser.Scene {
     const overlay = this.add.container(0, 0).setDepth(100);
     overlay.add(this.add.rectangle(W / 2, H / 2, W, H, C.ink, 0.78));
     overlay.add(this.txt(W / 2, H / 2 - 40, "CONNECTION PROBLEM", 60, { color: hex(C.hot), strokeThickness: 12 }));
-    overlay.add(this.txt(W / 2, H / 2 + 40, "TAP TO RETRY", 48, { strokeThickness: 10 }));
+    const tap = this.txt(W / 2, H / 2 + 40, "TAP TO RETRY", 48, { strokeThickness: 10 });
+    overlay.add(tap);
     this.retry = () => {
-      overlay.destroy();
-      retry();
+      // A failed retry redraws this same overlay at once and looks like the tap did nothing, so show that we are trying.
+      tap.setText("RETRYING...");
+      this.time.delayedCall(700, () => {
+        overlay.destroy();
+        retry();
+      });
     };
   }
 
   // ---------- final outcomes ----------
 
   private finalWin(result: FinishResult) {
+    play("win");
     this.setFace("smug");
     this.tweens.add({ targets: this.worker, x: 250, scale: 1.12, duration: 320, ease: "Back.Out" });
     this.squash(1.12, 0.9, 200, 3);
@@ -539,6 +589,7 @@ export class TimingStopScene extends Phaser.Scene {
   }
 
   private finalGrabbed(result: FinishResult) {
+    play("lose");
     const run = this.run;
     if (this.textures.exists("drag_combo")) return this.finalGrabbedCombo(result, run);
     if (this.textures.exists(`${this.challenge.meme.theme.boss}_grab`)) return this.finalGrabbedArt(result, run);
@@ -581,6 +632,7 @@ export class TimingStopScene extends Phaser.Scene {
   }
 
   private finalBuried(result: FinishResult) {
+    play("lose");
     this.bigNumber(result, C.red, C.white);
     this.setFace("shocked");
     this.tweens.add({ targets: this.worker, x: 280, duration: 300, ease: "Quad.Out" });
@@ -596,7 +648,7 @@ export class TimingStopScene extends Phaser.Scene {
       onComplete: () => {
         this.cameras.main.shake(500, 0.02);
         this.tweens.add({ targets: card, x: 560, y: 900, angle: 40, scale: 0.3, duration: 320, ease: "Quad.In" });
-        // Crying close-up: zoom in, speed lines behind, poof where the card landed.
+        // Crying close-up: zoom in, speed lines behind, duck pops up where the card landed.
         this.setFace("crying");
         const cx = 290;
         const cy = 800;
@@ -616,9 +668,7 @@ export class TimingStopScene extends Phaser.Scene {
         this.tweens.add({ targets: this.worker, x: cx, y: HOME.y + 110, scale: 1.8, duration: 320, ease: "Back.Out" });
         this.tweens.add({ targets: this.body, angle: { from: -2, to: 2 }, delay: 320, duration: 90, yoyo: true, repeat: -1 });
 
-        const poof = this.makePoof().setPosition(560, 850).setDepth(45).setScale(0.3);
-        this.stageFx.push(poof);
-        this.tweens.add({ targets: poof, scale: 1, duration: 300, ease: "Back.Out" });
+        // The white poof under the duck hid the crying worker (사장님 10/30), so the duck now stands alone.
         const duck = this.makeDuck().setPosition(590, 700).setDepth(46).setScale(0);
         this.stageFx.push(duck);
         this.tweens.add({ targets: duck, scale: 0.9, delay: 300, duration: 300, ease: "Back.Out" });
@@ -669,15 +719,13 @@ export class TimingStopScene extends Phaser.Scene {
     const g = this.add.graphics();
     g.fillGradientStyle(C.skyDeep, C.skyDeep, C.skyLight, C.skyLight, 1).fillRect(0, 0, W, H);
 
-    // Soft radial rays from behind the clock, turning slowly (transform only, no per-frame redraw).
-    const rays = this.add.graphics({ x: CLOCK.x, y: CLOCK.y }).setDepth(1);
+    // Soft diagonal bands. Rays fanning out from one point read as a rising-sun flag, so the sky stays parallel.
+    const rays = this.add.graphics().setDepth(1);
     rays.fillStyle(C.white, 0.13);
-    for (let k = 0; k < 14; k++) {
-      const a = (k / 14) * Math.PI * 2;
-      const b = a + Math.PI / 20;
-      rays.fillTriangle(0, 0, Math.cos(a) * 1500, Math.sin(a) * 1500, Math.cos(b) * 1500, Math.sin(b) * 1500);
+    for (let k = -4; k < 14; k++) {
+      const x = k * 96;
+      rays.fillPoints([{ x, y: 0 }, { x: x + 44, y: 0 }, { x: x + 44 - 320, y: H }, { x: x - 320, y: H }], true);
     }
-    this.tweens.add({ targets: rays, angle: 360, duration: 60000, repeat: -1 });
 
     // Puffy clouds.
     for (const [x, y, s] of [

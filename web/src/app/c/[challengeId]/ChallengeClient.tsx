@@ -6,6 +6,7 @@ import type { Challenge } from "@/lib/challenge";
 import type { FinishResult } from "@/game/types";
 import { fillCaption, pickCaption } from "@/game/captions";
 import { captureSrc, useLang, type Lang, type Strings } from "@/lib/i18n";
+import { onSoundChange, setSoundEnabled, soundEnabled, soundFeature } from "@/game/sfx";
 
 // Public demos can hide the email CTA entirely: build with NEXT_PUBLIC_HIDE_EMAIL=1.
 const HIDE_EMAIL = process.env.NEXT_PUBLIC_HIDE_EMAIL === "1";
@@ -33,12 +34,49 @@ class ApiError extends Error {
   }
 }
 
+// A stalled request on a weak network must end in an error the screens already handle, not hang forever.
+function fetchWithTimeout(path: string, init: RequestInit, ms = 15000): Promise<Response> {
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), ms);
+  return fetch(path, { ...init, signal: ctrl.signal }).finally(() => clearTimeout(timer));
+}
+
+// Pulls the game's images and code during the first "Loading" screen, so the first round never waits on them.
+// Each piece has its own deadline; whatever is late is skipped and the game's own loader retries it.
+async function preloadGame(onProgress: (pct: number) => void): Promise<void> {
+  const late = <T,>(p: Promise<T>, ms: number): Promise<T | undefined> =>
+    Promise.race([p, new Promise<undefined>((r) => setTimeout(() => r(undefined), ms))]);
+  const manifest = ((await late(fetchWithTimeout("/game/manifest.json", {}, 6000).then((r) => (r.ok ? r.json() : {})), 7000).catch(() => ({}))) ??
+    {}) as Record<string, string>;
+  const files = Object.values(manifest);
+  const total = files.length + 2;
+  let done = 0;
+  const tick = () => onProgress(Math.min(1, ++done / total));
+  const image = (file: string) =>
+    late(
+      new Promise<void>((res) => {
+        const img = new Image();
+        img.onload = img.onerror = () => res();
+        img.src = `/game/${file}`;
+      }),
+      8000,
+    ).then(tick);
+  await Promise.all([
+    late(import("@/game/GameCanvas").catch(() => undefined), 12000).then(tick),
+    late(import("phaser").catch(() => undefined), 12000).then(tick),
+    ...files.map(image),
+  ]);
+}
+
 async function api<T>(path: string, init?: { method?: string; body?: unknown }): Promise<T> {
-  const res = await fetch(path, {
-    method: init?.method ?? "GET",
+  const method = init?.method ?? "GET";
+  const req: RequestInit = {
+    method,
     headers: init?.body === undefined ? undefined : { "Content-Type": "application/json" },
     body: init?.body === undefined ? undefined : JSON.stringify(init.body),
-  });
+  };
+  // Reads are safe to repeat once; writes are sent once so a slow answer never doubles a record.
+  const res = await (method === "GET" ? fetchWithTimeout(path, req).catch(() => fetchWithTimeout(path, req)) : fetchWithTimeout(path, req));
   if (res.status === 204) return undefined as T;
   const data = await res.json().catch(() => ({}));
   if (!res.ok) throw new ApiError(res.status, (data as { error?: string }).error ?? `HTTP ${res.status}`);
@@ -158,8 +196,26 @@ function VideoPanel({ challengeId, dailyNo, bestErrorMs }: { challengeId: string
 
 // --- Result screen v2 / ranking v2 (no card box; type and buttons on the backdrop) ---
 
+function SoundToggle({ small, corner }: { small?: boolean; corner?: boolean }) {
+  const [on, setOn] = useState(true);
+  const [shown, setShown] = useState(false);
+  useEffect(() => {
+    setShown(soundFeature());
+    setOn(soundEnabled());
+    return onSoundChange(setOn);
+  }, []);
+  if (!shown) return null;
+  return (
+    <button className={`rs-snd${small ? " rs-snd-sm" : ""}${corner ? " rs-snd-corner" : ""}`} aria-pressed={on} aria-label={on ? "Sound on" : "Sound off"} onClick={() => setSoundEnabled(!on)}>
+      {on ? "🔊" : "🔇"}
+    </button>
+  );
+}
+
 function LangToggle({ lang, setLang, small }: { lang: Lang; setLang: (l: Lang) => void; small?: boolean }) {
   return (
+    <>
+    <SoundToggle small={small} />
     <div className={`rs-lang${small ? " rs-lang-sm" : ""}`} role="group" aria-label="Language">
       {(["ko", "en"] as const).map((l) => (
         <button key={l} aria-pressed={lang === l} onClick={() => setLang(l)}>
@@ -167,6 +223,7 @@ function LangToggle({ lang, setLang, small }: { lang: Lang; setLang: (l: Lang) =
         </button>
       ))}
     </div>
+    </>
   );
 }
 
@@ -290,9 +347,11 @@ function EmailScreen({
               {state === "sending" ? t.emailSending : failed ? t.emailRetry : t.emailMe}
             </button>
             <p className="rk-help">{failed ? t.emailKeep : t.emailHelp}</p>
-            <p className="rs-legal" style={{ visibility: failed ? "hidden" : "visible" }}>
-              {t.emailLegal}
-            </p>
+            {t.emailLegal && (
+              <p className="rs-legal" style={{ visibility: failed ? "hidden" : "visible" }}>
+                {t.emailLegal}
+              </p>
+            )}
           </form>
         </>
       )}
@@ -475,6 +534,7 @@ export default function ChallengeClient({
   const [invite, setInvite] = useState<Invite | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [loadPct, setLoadPct] = useState(0);
   const [playKey, setPlayKey] = useState(0);
   const [last, setLast] = useState<FinishResponse | null>(null);
   const [showCard, setShowCard] = useState(false);
@@ -511,6 +571,9 @@ export default function ChallengeClient({
 
   useEffect(() => {
     (async () => {
+      const preload = preloadGame(setLoadPct).catch(() => undefined);
+      // Never hold the first screen longer than this for the downloads; the game loader finishes the rest.
+      const preloaded = () => Promise.race([preload, new Promise((r) => setTimeout(r, 12000))]);
       try {
         const [m, inv] = await Promise.all([
           api<Me>(`/api/me?challengeId=${challengeId}`),
@@ -520,14 +583,13 @@ export default function ChallengeClient({
         setInvite(inv);
         const leagueId = pickLeague(m.leagues, inv);
         setActiveLeagueId(leagueId);
-        if (m.bestErrorMs != null) {
-          await loadBoards(leagueId);
-          setStage("result");
-        } else {
-          setStage("intro");
-        }
+        // Opening the link always lands on the home screen, even for a returning player (사장님 10/30):
+        // a shared link should invite a new round, and the ranking is one game away.
+        await preloaded();
+        setStage("intro");
       } catch (e) {
         setError(friendly(e));
+        await preloaded();
         setStage("intro");
       }
       // ?src= (sns_kr, community_global ...) rides along as event meta; the events route already stores `meta`.
@@ -652,7 +714,14 @@ export default function ChallengeClient({
   }
 
   if (stage === "loading") {
-    return <main className="flex min-h-dvh items-center justify-center font-title text-3xl text-white">Loading…</main>;
+    return (
+      <main className="flex min-h-dvh flex-col items-center justify-center gap-4 font-title text-3xl text-white">
+        Loading…
+        <div className="h-4 w-3/5 max-w-xs overflow-hidden rounded-full bg-white/35" role="progressbar" aria-valuenow={Math.round(loadPct * 100)} aria-valuemin={0} aria-valuemax={100}>
+          <div className="h-full rounded-full bg-white transition-[width] duration-200" style={{ width: `${Math.max(6, loadPct * 100)}%` }} />
+        </div>
+      </main>
+    );
   }
 
   if (stage === "playing") {
@@ -662,6 +731,7 @@ export default function ChallengeClient({
         <SideInfoLeft dailyNo={dailyNo} title={challenge.title} />
         <div className="play-box">
           <GameCanvas challenge={challenge} beforeStart={beforeStart} onComplete={onComplete} onFinished={onFinished} playKey={playKey} />
+          {!showCard && <SoundToggle corner />}
           {showCard && last && (
             <ResultScreen
               challenge={challenge}

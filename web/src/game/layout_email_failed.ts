@@ -8,5 +8,5 @@ export const EMAIL_FAILED_LAYOUT = {
   error_line: { x: 360, y: 875.2, w: 633.6, h: 64.8, font: 25.2 },
   input: { x: 360, y: 965.2, w: 633.6, h: 86.4, font: 31.7 },
   btn_submit: { x: 360, y: 1074.6, w: 633.6, h: 103.6, font: 40.3 },
-  help: { x: 360, y: 1158, w: 633.6, h: 34.5, font: 23.8 },
+  help: { x: 356.85, y: 1165.88, w: 633.6, h: 34.5, font: 23.8 },
 } as const;
