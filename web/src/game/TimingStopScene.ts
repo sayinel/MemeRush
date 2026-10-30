@@ -610,6 +610,11 @@ export class TimingStopScene extends Phaser.Scene {
   private drawDoor() {
     const key = this.challenge.meme.theme.goal;
     const door = this.add.container(DOOR.x, DOOR.y).setDepth(5);
+    // The paper-confetti sprite is retired (result-v2): a day file that still names it as the goal shows no goal object.
+    if (key === "confetti_star") {
+      this.doorPanel = this.add.container(0, 0);
+      return;
+    }
     if (this.textures.exists(key)) {
       door.add(this.add.image(0, 0, key).setDisplaySize(170, 290));
       this.doorPanel = this.add.container(0, 0);

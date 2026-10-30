@@ -4,8 +4,8 @@ import dynamic from "next/dynamic";
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import type { Challenge } from "@/lib/challenge";
 import type { FinishResult } from "@/game/types";
-import { WIN_MAX_TOTAL_ERROR_MS } from "@/lib/timing";
-import { formatClock, parseLabel } from "@/game/captions";
+import { fillCaption, formatClock, parseLabel, pickCaption } from "@/game/captions";
+import { captureSrc, useLang, type Lang, type Strings } from "@/lib/i18n";
 
 const GameCanvas = dynamic(() => import("@/game/GameCanvas"), { ssr: false });
 
@@ -50,7 +50,6 @@ function friendly(e: unknown): string {
 
 const seconds = (ms: number) => `${(ms / 1000).toFixed(3)}s`;
 
-const RESULT_LINE: Record<string, string> = { win: "Perfect.", early: "Too early.", late: "Too late." };
 const resultKey = (r: FinishResult) => (r.outcome === "win" ? "win" : (r.outcomeVariant ?? "late"));
 
 // Art from web/public/game/manifest.json (shared with the game). Missing keys fall back to code-drawn art,
@@ -82,22 +81,6 @@ function PrimaryButton({ children, onClick, disabled }: { children: ReactNode; o
   );
 }
 
-function TextLink({ children, onClick, disabled }: { children: ReactNode; onClick: () => void; disabled?: boolean }) {
-  return (
-    <button onClick={onClick} disabled={disabled} className="min-h-11 font-bold text-ink-blue underline underline-offset-4 disabled:opacity-50">
-      {children}
-    </button>
-  );
-}
-
-function Panel({ children, className = "" }: { children: ReactNode; className?: string }) {
-  return (
-    <section className={`rounded-[22px] border-4 border-white bg-panel p-3 shadow-[0_0_0_3px_var(--navy)] ${className}`}>
-      {children}
-    </section>
-  );
-}
-
 const pillClass =
   "flex min-h-11 flex-1 items-center justify-center rounded-full border-[3px] border-white bg-navy px-4 font-title text-lg text-white shadow-[0_3px_0_var(--navy)] active:translate-y-[3px] active:shadow-none disabled:opacity-50";
 
@@ -110,6 +93,8 @@ type VideoState =
 // a file or downloaded. The file and the public link are fetched up front: awaiting them inside the tap handler
 // makes iOS drop the user gesture and reject navigator.share. If rendering fails, offer the result card instead.
 // The parent keys this by the best record, so a new best remounts it and makes a new video.
+// Not rendered since ranking v2 (the mock has no video block); kept for the share-video flow.
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function VideoPanel({ challengeId, dailyNo, bestErrorMs }: { challengeId: string; dailyNo: string; bestErrorMs: number }) {
   const [state, setState] = useState<VideoState>({ kind: "making" });
   const text = `Meme Rush ${dailyNo} | ${seconds(bestErrorMs)} off\nCan you beat it?`;
@@ -180,79 +165,6 @@ function VideoPanel({ challengeId, dailyNo, bestErrorMs }: { challengeId: string
   );
 }
 
-function RankBadge({ kind, rank, art }: { kind: "world" | "friends"; rank: number | null | undefined; art: Art }) {
-  const img = art(kind === "world" ? "badge_world" : "badge_friends");
-  const label = kind === "world" ? "WORLD" : "FRIENDS";
-  return (
-    <div className="relative flex h-28 w-28 shrink-0 items-center justify-center">
-      {img ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img src={img} alt="" className="absolute inset-0 h-full w-full object-contain" />
-      ) : kind === "world" ? (
-        <>
-          <span className="absolute left-0 top-7 h-10 w-9 -rotate-[25deg] rounded-[50%_10%_50%_50%] border-[3px] border-white bg-gold shadow-[0_3px_0_var(--navy)]" />
-          <span className="absolute right-0 top-7 h-10 w-9 rotate-[25deg] rounded-[10%_50%_50%_50%] border-[3px] border-white bg-gold shadow-[0_3px_0_var(--navy)]" />
-          <span className="absolute inset-3 rounded-full border-4 border-white bg-gold shadow-[0_3px_0_var(--navy)]" />
-        </>
-      ) : (
-        <>
-          <span className="absolute inset-3 rounded-full border-4 border-white bg-hot shadow-[0_3px_0_var(--navy)]" />
-          <span className="absolute top-1 flex gap-0.5">
-            {[0, 1, 2].map((i) => (
-              <span key={i} className="h-5 w-5 rounded-full border-2 border-white bg-mascot" />
-            ))}
-          </span>
-        </>
-      )}
-      <span className="relative flex flex-col items-center leading-none">
-        <span className="text-[11px] font-bold tracking-wide text-ink-blue">{label}</span>
-        <span className="font-title text-3xl text-ink-blue">{rank != null ? `#${rank}` : "–"}</span>
-      </span>
-    </div>
-  );
-}
-
-function Ribbon({ text, art }: { text: string; art: Art }) {
-  const img = art("banner_gold");
-  return (
-    <div className="relative flex h-14 w-64 items-center justify-center">
-      {img ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img src={img} alt="" className="absolute inset-0 h-full w-full object-contain" />
-      ) : (
-        <span className="absolute inset-0 border-[3px] border-white bg-gold shadow-[0_3px_0_var(--navy)] [clip-path:polygon(0_0,100%_0,94%_50%,100%_100%,0_100%,6%_50%)]" />
-      )}
-      <span className="relative font-title text-2xl text-[#7a5200]">{text}</span>
-    </div>
-  );
-}
-
-function Hero({ win, art }: { win: boolean; art: Art }) {
-  const img = art(win ? "hero_win" : "hero_lose") ?? art(win ? "worker_smug" : "worker_crying");
-  const trophy = win && !art("hero_win") ? art("trophy") : null;
-  if (!img) return <div className="h-36 w-36" />;
-  return (
-    <div className="relative h-36 w-36 shrink-0">
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src={img} alt="" className="h-full w-full object-contain drop-shadow-[0_4px_0_rgba(28,86,146,0.35)]" />
-      {trophy && (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img src={trophy} alt="" className="absolute -right-4 bottom-0 h-16 w-16 object-contain" />
-      )}
-    </div>
-  );
-}
-
-function CloudsFooter({ art }: { art: Art }) {
-  const img = art("clouds_footer");
-  return img ? (
-    // eslint-disable-next-line @next/next/no-img-element
-    <img src={img} alt="" className="pointer-events-none fixed inset-x-0 bottom-0 z-0 mx-auto w-full max-w-md" />
-  ) : (
-    <div className="pointer-events-none fixed inset-x-0 bottom-0 z-0 h-32 bg-[radial-gradient(circle_at_10%_100%,#fff_0_38px,transparent_39px),radial-gradient(circle_at_35%_110%,#fff_0_56px,transparent_57px),radial-gradient(circle_at_65%_105%,#fff_0_48px,transparent_49px),radial-gradient(circle_at_92%_100%,#fff_0_44px,transparent_45px)]" />
-  );
-}
-
 function Avatar({ name }: { name: string }) {
   return (
     <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-[3px] border-white bg-mascot font-title text-white">
@@ -261,51 +173,102 @@ function Avatar({ name }: { name: string }) {
   );
 }
 
-function Medal({ rank, art }: { rank: number; art: Art }) {
-  if (rank > 3) return <span className="w-8 text-center font-title text-lg text-ink-blue">{rank}</span>;
-  const tone = rank === 1 ? "bg-gold text-[#7a5200]" : rank === 2 ? "bg-silver text-ink-blue" : "bg-bronze text-ink-blue";
-  const medal = art(rank === 1 ? "medal_gold" : rank === 2 ? "medal_silver" : "medal_bronze");
-  const crown = art("crown");
+// --- Result screen v2 / ranking v2 (no card box; type and buttons on the backdrop) ---
+
+function LangToggle({ lang, setLang }: { lang: Lang; setLang: (l: Lang) => void }) {
   return (
-    <span className="relative flex w-8 justify-center">
-      {rank === 1 &&
-        (crown ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={crown} alt="" className="absolute -top-4 h-4 w-5 object-contain" />
-        ) : (
-          <span className="absolute -top-3 text-sm">👑</span>
-        ))}
-      {medal ? (
-        <span className="relative flex h-8 w-8 items-center justify-center font-title text-ink-blue">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={medal} alt="" className="absolute inset-0 h-full w-full object-contain" />
-          <span className="relative">{rank}</span>
-        </span>
-      ) : (
-        <span className={`flex h-7 w-7 items-center justify-center rounded-full border-2 border-white font-title ${tone}`}>{rank}</span>
-      )}
-    </span>
+    <div className="rs-lang" role="group" aria-label="Language">
+      {(["ko", "en"] as const).map((l) => (
+        <button key={l} aria-pressed={lang === l} onClick={() => setLang(l)}>
+          {l.toUpperCase()}
+        </button>
+      ))}
+    </div>
   );
 }
 
-function RankRow({ row, art }: { row: Row; art: Art }) {
+// Placeholder for the email CTA: there is no email server yet, so this stores and sends nothing.
+function EmailModal({ t, onClose }: { t: Strings; onClose: () => void }) {
   return (
-    <li
-      className={`flex items-center gap-2 rounded-[14px] border-[3px] border-white px-2 py-1.5 shadow-[0_0_0_2px_var(--panel)] ${row.isMe ? "bg-hot" : "bg-row"}`}
-    >
-      <Medal rank={row.rank} art={art} />
-      <Avatar name={row.nickname} />
-      <span className="min-w-0 flex-1 truncate font-bold text-ink-blue">
-        {row.nickname}
-        {row.isMe && <span className="ml-1 text-xs">▲ you</span>}
+    <div className="rs-modal" role="dialog" aria-modal="true">
+      <div>
+        <p className="font-title text-[5.4cqw]">{t.emailTitle}</p>
+        <input type="email" placeholder={t.emailPlaceholder} aria-label={t.emailPlaceholder} />
+        <p className="text-[3.4cqw] font-bold opacity-80">{t.emailSoon}</p>
+        <button className="rs-go ghost" onClick={onClose}>
+          {t.emailClose}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+const VERDICT: Record<string, string> = { win: "PERFECT", early: "TOO EARLY", late: "TOO LATE" };
+
+function ResultScreen({
+  challenge,
+  last,
+  elapsed,
+  roundCount,
+  art,
+  lang,
+  setLang,
+  t,
+  onRetry,
+  onRank,
+}: {
+  challenge: Challenge;
+  last: FinishResponse;
+  elapsed: number[];
+  roundCount: number;
+  art: Art;
+  lang: Lang;
+  setLang: (l: Lang) => void;
+  t: Strings;
+  onRetry: () => void;
+  onRank: () => void;
+}) {
+  const key = resultKey(last);
+  const win = key === "win";
+  const heroKey = win ? "worker_smug" : key === "early" ? "worker_shocked" : "worker_crying";
+  const cap = pickCaption(challenge, last);
+  const played = { ...last, roundElapsedMs: elapsed };
+  const bg = art("bg_office") ?? "/game/bg_office.webp";
+  const hero = art(heroKey) ?? `/game/${heroKey}.png`;
+  const duck = art("duck") ?? "/game/duck.png";
+  const badge = `${last.isNewBest ? "NEW BEST · " : ""}WORLD #${last.globalRank}`;
+  return (
+    <div className="absolute inset-0 z-10" data-testid="result-screen">
+      {/* eslint-disable @next/next/no-img-element */}
+      <img className="rs-bg" src={bg} alt="" aria-hidden />
+      <span className="rs-chip" style={{ left: "3cqw" }}>
+        ROUND {roundCount}/{roundCount}
       </span>
-      <span className="font-title text-lg text-ink-blue">{seconds(row.errorMs)}</span>
-    </li>
+      <LangToggle lang={lang} setLang={setLang} />
+      <div className="rs-cap" style={{ top: "11cqw" }}>
+        {fillCaption(challenge, cap.top, played)}
+      </div>
+      <div className="rs-verdict">
+        <span className={`v ${win ? "win" : ""}`}>{VERDICT[key]}</span>
+        <span className="s">{seconds(last.errorMs)} off</span>
+        <span className="b">{badge}</span>
+      </div>
+      <img className="rs-hero" src={hero} alt="" />
+      {!win && <img className="rs-duck" src={duck} alt="" />}
+      {/* eslint-enable @next/next/no-img-element */}
+      <div className="rs-cap" style={{ bottom: "38cqw", fontSize: "7.4cqw" }}>
+        {fillCaption(challenge, cap.bottom, played)}
+      </div>
+      <div className="rs-btns">
+        <button className="rs-go" onClick={onRetry}>
+          {t.tryAgain}
+        </button>
+        <button className="rs-go blue" onClick={onRank}>
+          {t.seeRank}
+        </button>
+      </div>
+    </div>
   );
-}
-
-function Header({ dailyNo }: { dailyNo: string }) {
-  return <p className="font-title text-sm tracking-widest text-white [text-shadow:0_2px_0_var(--navy)]">MEME RUSH · DAILY {dailyNo}</p>;
 }
 
 // --- PC layout (>=1024px): blurred office backdrop + info beside the 9:16 game box ---
@@ -338,7 +301,7 @@ function SideInfoLeft({ dailyNo, title }: { dailyNo: string; title: string }) {
   );
 }
 
-function SideInfoRight({ challengeId, refresh }: { challengeId: string; refresh: number }) {
+function SideInfoRight({ challengeId, refresh, t, onEmail }: { challengeId: string; refresh: number; t: Strings; onEmail: () => void }) {
   const [rows, setRows] = useState<Row[]>([]);
   const [copied, setCopied] = useState(false);
   useEffect(() => {
@@ -386,7 +349,13 @@ function SideInfoRight({ challengeId, refresh }: { challengeId: string; refresh:
       >
         {copied ? "Copied" : "Copy challenge link"}
       </button>
-      {/* TODO(email CTA) */}
+      {/* TODO(email CTA): placeholder only, opens the empty email screen; no email server yet. */}
+      <button
+        onClick={onEmail}
+        className="min-h-11 rounded-full border-[3px] border-white bg-green px-4 font-title text-base text-white shadow-[0_3px_0_var(--navy)] active:translate-y-[3px] active:shadow-none"
+      >
+        {t.emailMe}
+      </button>
     </aside>
   );
 }
@@ -412,9 +381,10 @@ export default function ChallengeClient({
   const [last, setLast] = useState<FinishResponse | null>(null);
   const [showCard, setShowCard] = useState(false);
   const [activeLeagueId, setActiveLeagueId] = useState<string | null>(null);
-  const [tab, setTab] = useState<"global" | "friends">("global");
   const [globalBoard, setGlobalBoard] = useState<Board>({ rows: [] });
-  const [friendsBoard, setFriendsBoard] = useState<Board | null>(null);
+  const [elapsed, setElapsed] = useState<number[]>([]);
+  const [emailOpen, setEmailOpen] = useState(false);
+  const { lang, setLang, t } = useLang();
   const [notice, setNotice] = useState<string | null>(null);
   const attemptIdRef = useRef<string | null>(null);
   const art = useArt();
@@ -433,14 +403,10 @@ export default function ChallengeClient({
   );
 
   const loadBoards = useCallback(
-    async (leagueId: string | null) => {
-      const [g, f] = await Promise.all([
-        api<Board>(`/api/leaderboard?challengeId=${challengeId}`),
-        leagueId ? api<Board>(`/api/leagues/${leagueId}/leaderboard?challengeId=${challengeId}`) : Promise.resolve(null),
-      ]);
-      setGlobalBoard(g);
-      setFriendsBoard(f);
-      setTab(f ? "friends" : "global");
+    // Global list only (the Friends tab is gone); the league id is still accepted so callers stay as they were.
+    async (leagueId?: string | null) => {
+      void leagueId;
+      setGlobalBoard(await api<Board>(`/api/leaderboard?challengeId=${challengeId}`));
     },
     [challengeId],
   );
@@ -466,7 +432,12 @@ export default function ChallengeClient({
         setError(friendly(e));
         setStage("intro");
       }
-      api("/api/events", { method: "POST", body: { type: "challenge_link_opened", challengeId, ref: refId } }).catch(() => {});
+      // ?src= (sns_kr, community_global ...) rides along as event meta; the events route already stores `meta`.
+      const src = captureSrc();
+      api("/api/events", {
+        method: "POST",
+        body: { type: "challenge_link_opened", challengeId, ref: refId, ...(src ? { meta: { src } } : {}) },
+      }).catch(() => {});
     })();
   }, [challengeId, leagueToken, refId, pickLeague, loadBoards]);
 
@@ -520,6 +491,7 @@ export default function ChallengeClient({
         body: { roundElapsedMs, leagueId: activeLeagueId },
       });
       setLast(res);
+      setElapsed(roundElapsedMs);
       setMe((prev) => ({ ...prev, bestErrorMs: res.bestErrorMs, globalRank: res.globalRank }));
       return res;
     },
@@ -570,7 +542,7 @@ export default function ChallengeClient({
         }
       }
       await navigator.clipboard.writeText(`${text}\n${res.url}`);
-      setNotice("Link copied. Send it to a friend.");
+      setNotice(t.linkCopied);
       api("/api/events", { method: "POST", body: { type: "challenge_link_copied", challengeId } }).catch(() => {});
     } catch (e) {
       setError(friendly(e));
@@ -584,7 +556,6 @@ export default function ChallengeClient({
   }
 
   if (stage === "playing") {
-    const key = last ? resultKey(last) : "late";
     return (
       <main className="relative flex min-h-dvh items-center justify-center gap-8 overflow-hidden px-0 lg:px-6">
         <PlayBackdrop />
@@ -592,32 +563,22 @@ export default function ChallengeClient({
         <div className="play-box">
           <GameCanvas challenge={challenge} beforeStart={beforeStart} onComplete={onComplete} onFinished={onFinished} playKey={playKey} />
           {showCard && last && (
-            <div className="absolute inset-x-[4cqw] bottom-[4cqw] z-10">
-              <Panel className="text-center !p-[3cqw]">
-                {last.isNewBest && (
-                  <p className="mx-auto -mt-[7cqw] mb-[1.5cqw] w-fit rounded-full border-[3px] border-white bg-gold px-[4cqw] py-[0.5cqw] font-title text-[clamp(14px,4.6cqw,18px)] text-[#7a5200] shadow-[0_3px_0_var(--navy)]">
-                    New best
-                  </p>
-                )}
-                <p className="font-title text-[clamp(14px,5cqw,22px)] text-ink-blue">{RESULT_LINE[key]}</p>
-                <p className="score-number text-[clamp(28px,12cqw,52px)] leading-tight">{seconds(last.errorMs)} off</p>
-                <p className="mt-1 text-[clamp(12px,3.6cqw,15px)] font-bold text-ink-blue">
-                  World #{last.globalRank}
-                  {last.friendsRank != null && ` · Friends #${last.friendsRank}`}
-                </p>
-                <div className="mt-[3cqw]">
-                  <PrimaryButton onClick={retry}>Try again</PrimaryButton>
-                </div>
-                <div className="mt-1">
-                  <button onClick={seeMyRank} className="min-h-11 text-[clamp(13px,4cqw,16px)] font-bold text-ink-blue underline underline-offset-4">
-                    See my rank
-                  </button>
-                </div>
-              </Panel>
-            </div>
+            <ResultScreen
+              challenge={challenge}
+              last={last}
+              elapsed={elapsed}
+              roundCount={challenge.frameParams.rounds}
+              art={art}
+              lang={lang}
+              setLang={setLang}
+              t={t}
+              onRetry={retry}
+              onRank={seeMyRank}
+            />
           )}
+          {emailOpen && <EmailModal t={t} onClose={() => setEmailOpen(false)} />}
         </div>
-        <SideInfoRight challengeId={challengeId} refresh={playKey + (last?.errorMs ?? 0)} />
+        <SideInfoRight challengeId={challengeId} refresh={playKey + (last?.errorMs ?? 0)} t={t} onEmail={() => setEmailOpen(true)} />
       </main>
     );
   }
@@ -645,6 +606,16 @@ export default function ChallengeClient({
           </span>
         </div>
 
+        <div className="relative z-10 flex self-end">
+          <div className="rs-lang !static !text-[13px]">
+            {(["ko", "en"] as const).map((l) => (
+              <button key={l} aria-pressed={lang === l} onClick={() => setLang(l)} className="!px-3 !py-1">
+                {l.toUpperCase()}
+              </button>
+            ))}
+          </div>
+        </div>
+
         <h1 className="meme-caption relative z-10 text-[50px]">{challenge.title}</h1>
 
         <div className="relative z-10 flex flex-col items-center">
@@ -663,7 +634,6 @@ export default function ChallengeClient({
 
         {/* The hero leans over the stop button: button drawn in front, overlapping his hands. */}
         <div className="relative h-[270px] w-full">
-          {sprite("confetti_star", "anim-pulse-star absolute left-0 top-0 h-28 w-28 opacity-90")}
           {sprite("duck", "anim-jitter absolute left-6 top-14 h-24 w-24 [animation-duration:0.9s]")}
           <span className="meme-caption meme-caption-sm absolute left-1/3 top-2 -rotate-12 text-5xl">!</span>
           <span className="meme-caption meme-caption-sm absolute right-4 top-0 rotate-12 text-6xl">!!</span>
@@ -692,107 +662,71 @@ export default function ChallengeClient({
 
         <div className="fixed inset-x-0 bottom-0 z-20 mx-auto w-full max-w-md px-5 pb-5">
           <PrimaryButton onClick={start} disabled={busy || (!me.nickname && nickname.trim().length === 0)}>
-            {needsJoin && invite ? `Join ${invite.ownerNickname}'s league & play` : "Play now"}
+            {needsJoin && invite ? `Join ${invite.ownerNickname}'s league & play` : t.playNow}
           </PrimaryButton>
         </div>
       </main>
     );
   }
 
-  // Result hub
-  const board = tab === "friends" ? friendsBoard : globalBoard;
-  const myGlobalOutside = tab === "global" && me.globalRank != null && me.globalRank > 50;
-  const gapText =
-    friendsBoard?.gapMs != null
-      ? friendsBoard.myRank === 1
-        ? `${seconds(friendsBoard.gapMs)} ahead of #2`
-        : `${seconds(friendsBoard.gapMs)} behind #1`
-      : null;
-  const bestIsWin = me.bestErrorMs != null && me.bestErrorMs <= WIN_MAX_TOTAL_ERROR_MS;
-
+  // Ranking screen v2: Global list only, then the email CTA (placeholder) and share.
+  const myNick = me.nickname ?? "";
+  const rows = globalBoard.rows;
+  const meInList = rows.some((r) => r.isMe || (!!myNick && r.nickname === myNick && r.errorMs === me.bestErrorMs));
+  const myOutside = !meInList && me.globalRank != null && me.bestErrorMs != null;
+  const bg = art("bg_office") ?? "/game/bg_office.webp";
+  const trophy = art("trophy") ?? "/game/trophy.png";
   return (
-    <main className="mx-auto flex min-h-dvh w-full max-w-md flex-col gap-4 px-5 pb-28 pt-6">
-      <CloudsFooter art={art} />
-      <header className="relative z-10 flex flex-col items-center gap-1 text-center">
-        <Header dailyNo={dailyNo} />
-        <p className="meme-caption meme-caption-sm text-3xl">{challenge.title}</p>
-        {me.bestErrorMs != null && <Ribbon text={bestIsWin ? "Perfect" : "So close"} art={art} />}
-        <p className="score-number text-6xl">{me.bestErrorMs != null ? `${seconds(me.bestErrorMs)} off` : "No record yet"}</p>
-        <p className="text-sm font-bold text-ink-blue">{me.nickname}&apos;s best today</p>
-      </header>
-
-      <div className="relative z-10 flex items-end justify-center gap-1">
-        <RankBadge kind="world" rank={me.globalRank} art={art} />
-        <Hero win={bestIsWin} art={art} />
-        <RankBadge kind="friends" rank={friendsBoard?.myRank} art={art} />
-      </div>
-
-      {needsJoin && invite && (
-        <button
-          onClick={() =>
-            joinInvite()
-              .then((id) => loadBoards(id))
-              .catch((e) => setError(friendly(e)))
-          }
-          className="min-h-11 font-bold text-ink-blue underline underline-offset-4"
-        >
-          Join {invite.ownerNickname}&apos;s league
-        </button>
-      )}
-
-      <Panel className="relative z-10">
-        <div className="mb-3 grid grid-cols-2 gap-2" role="tablist">
-          {(["global", "friends"] as const).map((t) => (
-            <button
-              key={t}
-              role="tab"
-              aria-selected={tab === t}
-              onClick={() => setTab(t)}
-              className={`min-h-11 rounded-full border-[3px] border-white font-title text-lg shadow-[0_3px_0_var(--navy)] ${tab === t ? "bg-navy text-white" : "bg-row text-ink-blue"}`}
-            >
-              {t === "global" ? "Global" : "Friends"}
-            </button>
-          ))}
-        </div>
-        {tab === "friends" && !friendsBoard ? (
-          <p className="p-4 text-center font-bold text-ink-blue">No friends here yet. Challenge one.</p>
-        ) : (board?.rows.length ?? 0) === 0 ? (
-          <p className="p-4 text-center font-bold text-ink-blue">No one here yet. Be the first.</p>
-        ) : (
-          <ol className="space-y-1.5">
-            {board!.rows.map((r, i) => (
-              <RankRow key={`${r.nickname}-${i}`} row={r} art={art} />
-            ))}
-            {myGlobalOutside && (
-              <RankRow art={art} row={{ nickname: me.nickname ?? "", errorMs: me.bestErrorMs ?? 0, rank: me.globalRank!, isMe: true }} />
+    <main className="relative flex min-h-dvh items-center justify-center gap-8 overflow-hidden px-0 lg:px-6">
+      <PlayBackdrop />
+      <SideInfoLeft dailyNo={dailyNo} title={challenge.title} />
+      <div className="play-box" data-testid="rank-screen">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img className="rs-bg" src={bg} alt="" aria-hidden />
+        <div className="rk-wrap">
+          <button className="rk-back" onClick={start} disabled={busy}>
+            ‹ {t.tryAgain}
+          </button>
+          <LangToggle lang={lang} setLang={setLang} />
+          <h1 className="rk-title">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={trophy} alt="" />
+            WORLD RANKING
+          </h1>
+          <ul className="rk-list">
+            {rows.length === 0 && <li>No one here yet. Be the first.</li>}
+            {rows.map((r, i) => {
+              const mine = r.isMe || (!!myNick && r.nickname === myNick && r.errorMs === me.bestErrorMs);
+              return (
+                <li key={`${r.nickname}-${i}`} className={mine ? "me" : ""}>
+                  <b>{r.rank}</b>
+                  <span className="n">{mine ? "You" : r.nickname}</span>
+                  <em>{seconds(r.errorMs)}</em>
+                </li>
+              );
+            })}
+            {myOutside && (
+              <li className="me">
+                <b>{me.globalRank}</b>
+                <span className="n">You</span>
+                <em>{seconds(me.bestErrorMs!)}</em>
+              </li>
             )}
-          </ol>
-        )}
-        {tab === "friends" && gapText && <p className="mt-2 text-center font-title text-lg text-ink-blue">{gapText}</p>}
-      </Panel>
-
-      {me.bestErrorMs != null && (
-        <Panel className="relative z-10">
-          <VideoPanel key={me.bestErrorMs} challengeId={challengeId} dailyNo={dailyNo} bestErrorMs={me.bestErrorMs} />
-        </Panel>
-      )}
-
-      {error && <p className="rounded-[14px] bg-warn-bg px-3 py-2 text-center text-sm font-bold text-warn-text">{error}</p>}
-      {notice && <p className="text-center font-bold text-ink-blue">{notice}</p>}
-
-      <div className="relative z-10 flex justify-center gap-8">
-        <TextLink onClick={() => share(false)} disabled={busy}>
-          Copy link
-        </TextLink>
-        <TextLink onClick={start} disabled={busy}>
-          Play again
-        </TextLink>
-      </div>
-
-      <div className="fixed inset-x-0 bottom-0 z-20 mx-auto w-full max-w-md px-5 pb-5">
-        <PrimaryButton onClick={() => share(true)} disabled={busy}>
-          Challenge a Friend
-        </PrimaryButton>
+          </ul>
+          <div className="rk-bottom">
+            {error && <p className="rk-note">{error}</p>}
+            {notice && <p className="rk-note">{notice}</p>}
+            <p className="rk-help">{t.emailHelp}</p>
+            {/* TODO(email CTA): placeholder; opens the empty email screen and stores nothing (no email server yet). */}
+            <button className="rs-go" onClick={() => setEmailOpen(true)}>
+              {t.emailMe}
+            </button>
+            <button className="rs-go ghost" onClick={() => share(false)} disabled={busy}>
+              {t.share}
+            </button>
+          </div>
+        </div>
+        {emailOpen && <EmailModal t={t} onClose={() => setEmailOpen(false)} />}
       </div>
     </main>
   );
