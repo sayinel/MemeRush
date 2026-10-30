@@ -159,3 +159,5 @@ body {
 .rs-modal { position: absolute; inset: 0; z-index: 20; display: flex; align-items: center; justify-content: center; background: rgb(5 15 40 / 0.78); padding: 6cqw; }
 .rs-modal > div { width: 100%; background: #14346e; border: 0.9cqw solid #fff; border-radius: 5cqw; padding: 5cqw; display: flex; flex-direction: column; gap: 3cqw; color: #fff; text-align: center; font-family: var(--font-sans); }
 .rs-modal input { height: 11cqw; border-radius: 9cqw; border: 0.6cqw solid #fff; background: #fff; color: #0f3a73; text-align: center; font: 700 4.2cqw var(--font-sans); }
+.rs-lang-sm { transform: scale(0.8); transform-origin: top right; opacity: 0.85; }
+.rs-line { position: absolute; left: 8cqw; right: 8cqw; text-align: center; color: #fff; font: 700 3.8cqw/1.4 var(--font-sans); text-shadow: 0 0 1.2cqw #000, 0 0 1.2cqw #000, 0 0.3cqw 0 #000; }
