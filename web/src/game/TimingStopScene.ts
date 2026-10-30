@@ -39,6 +39,7 @@ type Expr = "deadpan" | "shocked" | "smug" | "crying" | "sweating" | "laughing" 
 const INTRO_MS = 2000;
 const REACTION_MS = 3000;
 const FINAL_MS = 3000;
+const GRABBED_MS = 2900; // boss drags the worker out of frame, then the result screen takes over
 const NICE_MS = 100;
 // Server rejects measurements outside 1–15 s (docs/MVP_SCOPE.md §2 측정·검증).
 const MIN_TAP_MS = 1000;
@@ -385,15 +386,23 @@ export class TimingStopScene extends Phaser.Scene {
     else if (result.outcomeVariant === "early") this.finalGrabbed(result);
     else this.finalBuried(result);
 
-    this.time.delayedCall(350, () => {
-      if (run !== this.run) return;
-      this.setCaption(this.capTop, this.fillTemplate(caption.top, result));
-      this.time.delayedCall(450, () => {
-        if (run !== this.run) return;
-        this.setCaption(this.capBottom, this.fillTemplate(caption.bottom, result));
+    // early (grabbed): the trailer lines "NOT SO FAST." then "BACK TO YOUR DESK" replace the card captions.
+    const grabbed = result.outcome !== "win" && result.outcomeVariant === "early";
+    if (grabbed) {
+      this.time.delayedCall(250, () => {
+        if (run === this.run) this.setCaption(this.capTop, "NOT SO FAST.");
       });
-    });
-    this.time.delayedCall(FINAL_MS, () => {
+    } else {
+      this.time.delayedCall(350, () => {
+        if (run !== this.run) return;
+        this.setCaption(this.capTop, this.fillTemplate(caption.top, result));
+        this.time.delayedCall(450, () => {
+          if (run !== this.run) return;
+          this.setCaption(this.capBottom, this.fillTemplate(caption.bottom, result));
+        });
+      });
+    }
+    this.time.delayedCall(grabbed ? GRABBED_MS : FINAL_MS, () => {
       if (run !== this.run) return;
       this.phase = "done";
       this.bridge.finished(result);
@@ -437,7 +446,13 @@ export class TimingStopScene extends Phaser.Scene {
   }
 
   private finalGrabbed(result: FinishResult) {
+    const run = this.run;
     this.bigNumber(result, C.red, C.white);
+    // Exit door waits on the right (trailer scene); boss and worker leave through it, past the screen edge.
+    if (this.textures.exists("door")) {
+      const door = this.add.image(DOOR.x + 40, DOOR.y, "door").setDisplaySize(170, 290).setDepth(20);
+      this.stageFx.push(door);
+    }
     const boss = this.makeBoss(true).setPosition(-260, HOME.y - 120).setScale(0.85).setDepth(32);
     this.stageFx.push(boss);
     this.setFace("shocked");
@@ -449,11 +464,19 @@ export class TimingStopScene extends Phaser.Scene {
       duration: 380,
       ease: "Quad.Out",
       onComplete: () => {
+        if (run !== this.run) return;
         this.cameras.main.shake(140, 0.01);
         const hand = this.makeHand().setPosition(this.worker.x - 40, this.worker.y - 300).setDepth(40);
         this.stageFx.push(hand);
         this.squash(1.25, 0.72, 120, 1);
-        this.tweens.add({ targets: [boss, this.worker, hand], x: "-=220", delay: 600, duration: 900, ease: "Quad.InOut" });
+        // Held by the scruff: tilted, flailing while dragged right, off the screen edge (~1.4 s).
+        this.time.delayedCall(450, () => {
+          if (run !== this.run) return;
+          this.setCaption(this.capBottom, "BACK TO YOUR DESK");
+          this.tweens.add({ targets: this.worker, angle: 22, duration: 200, ease: "Quad.Out" });
+          this.tweens.add({ targets: this.body, angle: { from: -8, to: 8 }, duration: 90, yoyo: true, repeat: -1 });
+          this.tweens.add({ targets: [boss, this.worker, hand], x: "+=820", duration: 1400, ease: "Sine.In" });
+        });
       },
     });
   }
