@@ -21,6 +21,11 @@ export async function globalRank(challengeId: string, best: number): Promise<num
   return (count ?? 0) + 1;
 }
 
+export async function playerCount(challengeId: string): Promise<number> {
+  const { count } = await supabaseAdmin().from("best_attempts").select("id", { count: "exact", head: true }).eq("challenge_id", challengeId);
+  return count ?? 0;
+}
+
 export async function leagueMemberIds(leagueId: string): Promise<string[]> {
   const { data } = await supabaseAdmin().from("league_members").select("player_id").eq("league_id", leagueId);
   return (data ?? []).map((r) => r.player_id as string);
