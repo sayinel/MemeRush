@@ -11,7 +11,8 @@ const notoSans = Noto_Sans({ weight: ["500", "700"], subsets: ["latin"], variabl
 const host =
   process.env.VERCEL_ENV === "production" ? process.env.VERCEL_PROJECT_PRODUCTION_URL : process.env.VERCEL_URL;
 // Cloudflare deploys: set SITE_HOST (e.g. memerush.example.workers.dev) so OG image URLs are absolute.
-const siteHost = process.env.SITE_HOST || host;
+// Production default: without SITE_HOST the OG image URL became http://localhost:3000/... and chat apps could not load the share image (2026-10-31).
+const siteHost = process.env.SITE_HOST || host || (process.env.NODE_ENV === "production" ? "memerush.superagents.run" : undefined);
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteHost ? `https://${siteHost}` : `http://localhost:${process.env.PORT ?? 3000}`),

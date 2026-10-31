@@ -127,7 +127,7 @@ type VideoState =
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 function VideoPanel({ challengeId, dailyNo, bestErrorMs }: { challengeId: string; dailyNo: string; bestErrorMs: number }) {
   const [state, setState] = useState<VideoState>({ kind: "making" });
-  const text = `Meme Rush ${dailyNo} | ${seconds(bestErrorMs)} off\nCan you beat it?`;
+  const text = `${seconds(bestErrorMs)} off! Beat me 🔥 Meme Rush ${dailyNo}`;
 
   useEffect(() => {
     let live = true;
@@ -696,7 +696,7 @@ export default function ChallengeClient({
       });
       // WRITING_GUIDE 6절: Wordle-style, no nickname, no target time.
       const best = me.bestErrorMs != null ? `${seconds(me.bestErrorMs)} off` : "";
-      const text = `Meme Rush ${dailyNo} | ${best}\nCan you beat it?`;
+      const text = best ? `${best}! Beat me 🔥 Meme Rush ${dailyNo}` : `Can you beat me? 🔥 Meme Rush ${dailyNo}`;
       if (res.leagueId && res.leagueId !== activeLeagueId) {
         setActiveLeagueId(res.leagueId);
         setMe((prev) =>
