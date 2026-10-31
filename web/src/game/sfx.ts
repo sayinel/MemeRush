@@ -1,5 +1,5 @@
 // Game sound: picked effect files plus a background loop, played through Web Audio (synthesized sounds are the fallback).
-// The audio context starts only after a tap (browser rule). Defaults for everyone: effects ON, music OFF, each with its own button and remembered per device.
+// The audio context starts only after a tap (browser rule). Defaults for everyone: effects ON, music ON, each with its own button and remembered per device.
 // A link with ?sound=1 is the test mode (music on by default, vibration on, sound lab panel on the left).
 type Name = "tap" | "go" | "nice" | "perfect" | "early" | "late" | "win" | "lose";
 
@@ -7,7 +7,7 @@ const KEY = "mr_sound";
 const FEATURE_KEY = "mr_sound_feature";
 let ctx: AudioContext | null = null;
 let on = true; // sound effects
-let musicOn = false; // background music
+let musicOn = true; // background music (on by default; the visitor's own choice is remembered)
 // Public since 2026-10-31: the sound button is shown to everyone. `lab` marks the ?sound=1 test mode (remembered for the tab).
 let feature = true;
 let lab = false;
@@ -25,7 +25,7 @@ try {
   const saved = localStorage.getItem(KEY);
   on = saved ? saved === "on" : true;
   const m = localStorage.getItem("mr_music");
-  musicOn = m ? m === "on" : lab; // music is off for visitors until they tap the music button; on in the test mode
+  musicOn = m ? m === "on" : true; // music is on by default (decided 2026-10-31); a visitor who turns it off keeps it off
 } catch {
   /* storage blocked: keep the default */
 }
