@@ -163,6 +163,12 @@ function ac(): AudioContext | null {
     } catch {
       return null;
     }
+    // iOS 17+: Web Audio follows the ring/silent switch unless the page declares playback audio (YouTube does this).
+    try {
+      (navigator as unknown as { audioSession?: { type: string } }).audioSession!.type = "playback";
+    } catch {
+      /* older browsers have no audioSession */
+    }
   }
   if (ctx.state === "suspended") void ctx.resume().catch(() => undefined);
   return ctx;
@@ -271,6 +277,9 @@ if (typeof window !== "undefined") {
   };
   window.addEventListener("pointerdown", wake, { passive: true });
   window.addEventListener("keydown", wake, { passive: true });
+  // iOS Safari only counts touchend/click as an audio-unlocking gesture, so wake on those too (resume is idempotent).
+  window.addEventListener("touchend", wake, { passive: true });
+  window.addEventListener("click", wake, { passive: true });
 }
 
 // Sound lab (test build only, opened with ?sound=1): the left panel can swap the sound of each event and the background music.
