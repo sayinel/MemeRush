@@ -1,6 +1,6 @@
 import { ROUND1_LAYOUT as R1 } from "./layout_round1";
 import { PLAY_LAYOUT } from "./layout_play";
-import { play } from "./sfx";
+import { play, startBgm, stopBgm } from "./sfx";
 import * as Phaser from "phaser";
 import type { Challenge } from "@/lib/challenge";
 import { fillCaption, formatClock, parseLabel, pickCaption } from "./captions";
@@ -14,6 +14,8 @@ import {
 } from "./types";
 
 // Color tokens from docs/GAME_SCREEN_GUIDE.md §3 (canvas, so plain numbers instead of CSS variables).
+// Semitone steps for the tap sound by round: a pentatonic climb so each round feels higher.
+const TAP_STEPS = [0, 2, 4, 7, 9];
 const C = {
   sky: 0x29baf5,
   skyLight: 0xb9e9fa,
@@ -183,6 +185,7 @@ export class TimingStopScene extends Phaser.Scene {
       window.removeEventListener("keydown", this.onKeyDown);
     };
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, detach);
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => stopBgm(true));
     this.events.once(Phaser.Scenes.Events.DESTROY, detach);
 
     if (this.assetFail) {
@@ -309,6 +312,7 @@ export class TimingStopScene extends Phaser.Scene {
     (window as unknown as { __mrRound?: { start: number; index: number } }).__mrRound = { start: t, index: this.round };
     this.phase = "play";
     play("go");
+    startBgm(true); // a new game (first or retry) always brings the music back
     // Nervous foot-tapping, wobble and sweat while waiting.
     this.setFace("sweating");
     this.resetWorkerTweens();
@@ -356,7 +360,7 @@ export class TimingStopScene extends Phaser.Scene {
 
     // Tap: slam the big red button.
     this.pressButton();
-    play("tap");
+    play("tap", false, TAP_STEPS[Math.min(i, TAP_STEPS.length - 1)]); // pitch climbs each round
     this.squash(1.2, 0.8, 90, 0);
 
     // Stopped time revealed on the clock.
@@ -496,6 +500,7 @@ export class TimingStopScene extends Phaser.Scene {
   // ---------- final outcomes ----------
 
   private finalWin(result: FinishResult) {
+    stopBgm(true); // the music ends with the game
     play("win");
     this.setFace("smug");
     this.tweens.add({ targets: this.worker, x: 250, scale: 1.12, duration: 320, ease: "Back.Out" });
@@ -589,6 +594,7 @@ export class TimingStopScene extends Phaser.Scene {
   }
 
   private finalGrabbed(result: FinishResult) {
+    stopBgm(true);
     play("lose");
     const run = this.run;
     if (this.textures.exists("drag_combo")) return this.finalGrabbedCombo(result, run);
@@ -632,6 +638,7 @@ export class TimingStopScene extends Phaser.Scene {
   }
 
   private finalBuried(result: FinishResult) {
+    stopBgm(true);
     play("lose");
     this.bigNumber(result, C.red, C.white);
     this.setFace("shocked");

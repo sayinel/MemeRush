@@ -6,7 +6,8 @@ import type { Challenge } from "@/lib/challenge";
 import type { FinishResult } from "@/game/types";
 import { fillCaption, pickCaption } from "@/game/captions";
 import { captureSrc, useLang, type Lang, type Strings } from "@/lib/i18n";
-import { onSoundChange, setSoundEnabled, soundEnabled, soundFeature } from "@/game/sfx";
+import { musicEnabled, onMusicChange, onSoundChange, setMusicEnabled, setSoundEnabled, soundEnabled, soundFeature } from "@/game/sfx";
+import SoundLab from "@/game/SoundLab";
 
 // Public demos can hide the email CTA entirely: build with NEXT_PUBLIC_HIDE_EMAIL=1.
 const HIDE_EMAIL = process.env.NEXT_PUBLIC_HIDE_EMAIL === "1";
@@ -198,17 +199,26 @@ function VideoPanel({ challengeId, dailyNo, bestErrorMs }: { challengeId: string
 
 function SoundToggle({ small, corner }: { small?: boolean; corner?: boolean }) {
   const [on, setOn] = useState(true);
+  const [music, setMusic] = useState(false);
   const [shown, setShown] = useState(false);
   useEffect(() => {
     setShown(soundFeature());
     setOn(soundEnabled());
-    return onSoundChange(setOn);
+    setMusic(musicEnabled());
+    const offs = [onSoundChange(setOn), onMusicChange(setMusic)];
+    return () => offs.forEach((off) => off());
   }, []);
   if (!shown) return null;
+  const pos = `${small ? " rs-snd-sm" : ""}${corner ? " rs-snd-corner" : ""}`;
   return (
-    <button className={`rs-snd${small ? " rs-snd-sm" : ""}${corner ? " rs-snd-corner" : ""}`} aria-pressed={on} aria-label={on ? "Sound on" : "Sound off"} onClick={() => setSoundEnabled(!on)}>
-      {on ? "🔊" : "🔇"}
-    </button>
+    <>
+      <button className={`rs-snd rs-mus${pos}`} aria-pressed={music} aria-label={music ? "Music on" : "Music off"} onClick={() => setMusicEnabled(!music)}>
+        🎵
+      </button>
+      <button className={`rs-snd${pos}`} aria-pressed={on} aria-label={on ? "Sound effects on" : "Sound effects off"} onClick={() => setSoundEnabled(!on)}>
+        {on ? "🔊" : "🔇"}
+      </button>
+    </>
   );
 }
 
@@ -394,8 +404,9 @@ function ResultScreen({
   const hero = art(heroKey) ?? `/game/${heroKey}.png`;
   const duck = art("duck") ?? "/game/duck.png";
   const badge = `${last.isNewBest ? "NEW BEST · " : ""}WORLD #${last.globalRank}`;
+  // Solid base colour: while the images below decode, the finished game underneath must not show through (double text).
   return (
-    <div className="absolute inset-0 z-10" data-testid="result-screen">
+    <div className="absolute inset-0 z-10" style={{ background: "#f6b073" }} data-testid="result-screen">
       {/* eslint-disable @next/next/no-img-element */}
       <img className="rs-bg" src={bg} alt="" aria-hidden />
       <span className="rs-chip" style={{ left: "3cqw" }}>
@@ -444,7 +455,7 @@ function PlayBackdrop() {
 
 function SideInfoLeft({ dailyNo, title }: { dailyNo: string; title: string }) {
   return (
-    <aside className="hidden w-64 shrink-0 flex-col gap-4 text-white lg:flex">
+    <aside className="hidden w-64 shrink-0 flex-col gap-4 text-white lg:flex xl:w-72">
       <p className="meme-caption meme-caption-sm text-left text-4xl">MEME RUSH</p>
       <p className="font-title text-xl [text-shadow:0_2px_0_var(--navy)]">
         {dailyNo} {title}
@@ -454,6 +465,7 @@ function SideInfoLeft({ dailyNo, title }: { dailyNo: string; title: string }) {
         <li>Tap at the target time</li>
         <li>Three rounds, lowest total error wins</li>
       </ol>
+      <SoundLab />
     </aside>
   );
 }
