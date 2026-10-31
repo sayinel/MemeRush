@@ -73,6 +73,19 @@ test("(1) legacy pending rows (created before the single step) can still be conf
   assert.equal(sent.welcome.length, 1);
 });
 
+test("(1) a legacy pending row that signs up again is activated and gets the single mail; recent sends still wait a day", async () => {
+  const db = d1();
+  const { d, sent } = deps(db);
+  await d.store.insertPending({ id: "old-3", email: "p@example.com", norm: "p@example.com", lang: "ko", source: null, nowSec: d.nowSec - 100, sent: false });
+  assert.deepEqual(await subscribe(d, req("p@example.com")), { status: 200, action: "subscribed" });
+  assert.equal(db.raw.prepare("select status from email_subscribers where id='old-3'").get().status, "active");
+  assert.equal(sent.welcome.length, 1);
+  assert.equal(sent.confirm.length, 0);
+  await d.store.insertPending({ id: "old-4", email: "q@example.com", norm: "q@example.com", lang: "ko", source: null, nowSec: d.nowSec - 100, sent: true });
+  assert.deepEqual(await subscribe(d, req("q@example.com", "6.6.6.6")), { status: 200, action: "resend_later" });
+  assert.equal(sent.welcome.length, 1);
+});
+
 test("(1) expired confirm token is refused; mail off or no key saves pending without mail", async () => {
   const db = d1();
   const { d, sent } = deps(db);
