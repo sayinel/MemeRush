@@ -6,7 +6,7 @@
 import { useEffect, useRef, useState } from "react";
 import {
   MAX_CRACKS,
-  ROUND_MS,
+  SHAPE_LIMIT_MS,
   SHAPE_ORDER,
   judgeRound,
   shapeOutline,
@@ -20,7 +20,7 @@ import {
 
 const W = 400;
 const H = 400;
-const SHAPE_NAME: Record<ShapeId, string> = { circle: "원", triangle: "삼각형", star: "별" };
+const SHAPE_NAME: Record<ShapeId, string> = { circle: "원", triangle: "삼각형", star: "별", heart: "하트", umbrella: "우산" };
 
 type Phase = "ready" | "playing" | "between" | "done";
 
@@ -84,7 +84,7 @@ function drawAll(c: HTMLCanvasElement, g: G) {
     ctx.strokeStyle = "#fff";
     ctx.lineWidth = 3;
     res.crackAtMs.forEach((ms, k) => {
-      const p = ms >= ROUND_MS ? { x: 0.5, y: 0.5 } : nearestPoint(g.trace, ms);
+      const p = ms >= SHAPE_LIMIT_MS[SHAPE_ORDER[Math.min(g.round, 2)]] ? { x: 0.5, y: 0.5 } : nearestPoint(g.trace, ms);
       const dir = k % 2 ? -1 : 1;
       ctx.beginPath();
       ctx.moveTo(p.x * W, p.y * H);
@@ -109,7 +109,7 @@ export default function DalgonaDevPage() {
   const [ui, setUi] = useState<{ phase: Phase; round: number; leftMs: number; live: RoundResult | null; rounds: RoundResult[]; valid: boolean }>({
     phase: "ready",
     round: 0,
-    leftMs: ROUND_MS,
+    leftMs: SHAPE_LIMIT_MS[SHAPE_ORDER[0]],
     live: null,
     rounds: [],
     valid: true,
@@ -125,19 +125,20 @@ export default function DalgonaDevPage() {
     let raf = 0;
     const tick = () => {
       const g = gRef.current;
-      let left = ROUND_MS;
+      let left = SHAPE_LIMIT_MS[SHAPE_ORDER[Math.min(g.round, 2)]];
       if (g.phase === "playing" && g.t0 !== null) {
         const el = performance.now() - g.t0;
-        left = Math.max(0, ROUND_MS - el);
         const shape = SHAPE_ORDER[g.round];
+        const limit = SHAPE_LIMIT_MS[shape];
+        left = Math.max(0, limit - el);
         const cur = judgeRound(shape, g.trace, { elapsedMs: el });
         g.live = cur;
-        if (cur.complete || cur.broken || el >= ROUND_MS) {
-          const fin = judgeRound(shape, g.trace, { elapsedMs: cur.complete || cur.broken ? el : ROUND_MS });
+        if (cur.complete || cur.broken || el >= limit) {
+          const fin = judgeRound(shape, g.trace, { elapsedMs: cur.complete || cur.broken ? el : limit });
           g.live = fin;
           if (!validateHumanTrace(shape, g.trace).ok) g.valid = false;
           g.rounds = [...g.rounds, fin];
-          g.phase = fin.broken || g.rounds.length >= SHAPE_ORDER.length ? "done" : "between";
+          g.phase = fin.broken || !fin.complete || g.rounds.length >= SHAPE_ORDER.length ? "done" : "between";
           left = fin.complete ? fin.timeLeftMs : 0;
         }
         sync(left);
@@ -171,15 +172,28 @@ export default function DalgonaDevPage() {
     g.trace.push({ ...toPt(e), t: performance.now() - g.t0 });
   };
 
+  const onUp = () => {
+    const g = gRef.current;
+    if (g.phase !== "playing" || g.t0 === null) return;
+    const el = performance.now() - g.t0;
+    const shape = SHAPE_ORDER[g.round];
+    const fin = judgeRound(shape, g.trace, { elapsedMs: el, ended: true });
+    g.live = fin;
+    if (!validateHumanTrace(shape, g.trace).ok) g.valid = false;
+    g.rounds = [...g.rounds, fin];
+    g.phase = fin.broken || !fin.complete || g.rounds.length >= SHAPE_ORDER.length ? "done" : "between";
+    sync(fin.complete ? fin.timeLeftMs : 0);
+  };
+
   const nextRound = () => {
     const g = gRef.current;
     gRef.current = { ...fresh(), round: g.round + 1, rounds: g.rounds, valid: g.valid };
-    sync(ROUND_MS);
+    sync(SHAPE_LIMIT_MS[SHAPE_ORDER[Math.min(gRef.current.round, 2)]]);
   };
 
   const reset = () => {
     gRef.current = fresh();
-    sync(ROUND_MS);
+    sync(SHAPE_LIMIT_MS[SHAPE_ORDER[0]]);
   };
 
   const { phase, round, leftMs, live, rounds, valid } = ui;
@@ -214,10 +228,12 @@ export default function DalgonaDevPage() {
           className="w-full touch-none rounded bg-neutral-900"
           onPointerDown={onDown}
           onPointerMove={onMove}
+          onPointerUp={onUp}
+          onPointerCancel={onUp}
         />
         <p className="py-2 text-center text-sm text-gray-300">
-          {phase === "ready" && "초록 점에서 시작해 갈색 홈을 따라 한 바퀴 그리세요"}
-          {phase === "playing" && `정확도 ${live ? live.accuracy.toFixed(0) : 0}% (진행 중)`}
+          {phase === "ready" && "초록 점에서 시작해 갈색 홈을 따라 그리고, 끝선을 초록 점에 닿게 이어야 성공"}
+          {phase === "playing" && `정확도 ${live ? live.accuracy.toFixed(0) : 0}% (진행 중) · 끝선을 초록 점에 이으세요`}
           {phase === "between" && last && (last.complete ? `성공! 정확도 ${last.accuracy}%` : `시간 초과, 균열 ${last.cracks}칸`)}
         </p>
         {phase === "between" && (
@@ -227,7 +243,7 @@ export default function DalgonaDevPage() {
         )}
         {summary && (
           <div className="rounded bg-neutral-800 p-4 text-center">
-            <p className="text-xl font-bold">{summary.failed ? "달고나가 깨졌어요" : "NO CRACKS. NO NOTES."}</p>
+            <p className="text-xl font-bold">{last && !last.complete && !last.broken ? "💣 펑! 시간 초과" : summary.failed ? (last && last.broken && last.cracks < 3 ? "끝선이 첫선에 닿지 않아 실패" : "달고나가 깨졌어요") : summary.totalCracks === 0 ? "NO CRACKS. NO NOTES." : "클리어!"}</p>
             <p className="mt-2">정확도 {summary.totalAccuracy}%</p>
             <p>남은 시간 {(summary.timeLeftMs / 1000).toFixed(1)}초</p>
             <p>

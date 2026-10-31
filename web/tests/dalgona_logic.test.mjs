@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {
   shapeOutline, polylineLength, judgeRound, validateHumanTrace, minLapMs, summarizeSession,
-  rankSortKey, compareRank, ROUND_MS, SHAPE_ORDER,
+  rankSortKey, compareRank, ROUND_MS, SHAPE_ORDER, SHAPE_LIMIT_MS,
 } from "../src/game/dalgona_logic.ts";
 
 // outline을 totalMs 동안 따라가는 궤적. offset: 안쪽(중심 방향) 이탈량, from~to 구간만(0~1 비율)
@@ -29,6 +29,12 @@ function lap(shape, totalMs, { offset = 0, from = 0, to = 1, laps = 1, hz = 60 }
   return out;
 }
 
+test("라운드 모양(하트·별·우산)은 닫힌 0~1 폴리라인, 갈수록 제한 시간이 짧다", () => {
+  assert.deepEqual(SHAPE_ORDER, ["heart", "star", "umbrella"]);
+  const lim = SHAPE_ORDER.map((s) => SHAPE_LIMIT_MS[s]);
+  assert.ok(lim[0] > lim[1] && lim[1] > lim[2], String(lim));
+});
+
 test("모양 3개는 닫힌 0~1 폴리라인", () => {
   for (const s of SHAPE_ORDER) {
     const o = shapeOutline(s);
@@ -45,7 +51,8 @@ test("완벽한 궤적: 정확도 높고 균열 0, 완주, 남은 시간 있음"
     assert.ok(r.accuracy >= 95, s + " " + r.accuracy);
     assert.equal(r.complete, true);
     assert.equal(r.timedOut, false);
-    assert.ok(r.timeLeftMs > 3500 && r.timeLeftMs <= 4900, String(r.timeLeftMs));
+    const lim = SHAPE_LIMIT_MS[s];
+    assert.ok(r.timeLeftMs > lim - 6500 && r.timeLeftMs <= lim - 5100, s + " " + r.timeLeftMs);
   }
 });
 
@@ -139,4 +146,27 @@ test("제출 라운드가 부족하면 미완주로 랭킹 제외, 평균은 3�
   const s = summarizeSession(one);
   assert.equal(s.allComplete, false);
   assert.ok(s.totalAccuracy < 40);
+});
+
+test("끝선이 첫선에 닿지 않으면 테두리를 거의 다 그려도 성공이 아니다", () => {
+  for (const s of SHAPE_ORDER) {
+    const full = lap(s, 6000);
+    const cut = full.slice(0, Math.floor(full.length * 0.93)); // 93%까지만 그리고 멈춤(시작 점까지 못 돌아옴)
+    const r = judgeRound(s, cut, { elapsedMs: 9000 });
+    assert.equal(r.complete, false, s);
+    assert.equal(judgeRound(s, full).complete, true, s);
+  }
+});
+
+test("끝선이 첫선에 닿지 않은 채 펜을 떼면 무조건 실패(깨짐)", () => {
+  for (const s of SHAPE_ORDER) {
+    const full = lap(s, 6000);
+    const cut = full.slice(0, Math.floor(full.length * 0.93));
+    const open = judgeRound(s, cut, { elapsedMs: 5000, ended: true });
+    assert.equal(open.complete, false, s);
+    assert.equal(open.broken, true, s);
+    const closed = judgeRound(s, full, { elapsedMs: 6000, ended: true });
+    assert.equal(closed.complete, true, s);
+    assert.equal(closed.broken, false, s);
+  }
 });

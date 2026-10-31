@@ -1,8 +1,17 @@
 // 달고나 뽑기(outline_trace 틀 시제품)의 순수 판정 로직. 의존성 없음, 좌표는 정규화 0~1.
 // 규칙 출처: docs/GAME_02_DALGONA_SCRIPT.md 2장.
 
-export type ShapeId = "circle" | "triangle" | "star";
-export const SHAPE_ORDER: ShapeId[] = ["circle", "triangle", "star"];
+export type ShapeId = "circle" | "triangle" | "star" | "heart" | "umbrella";
+// 사장님 2026-11-01: 하트(매우 쉬움) → 별 → 우산(될랑 말랑). circle·triangle은 시험·예비용으로 남긴다.
+export const SHAPE_ORDER: ShapeId[] = ["heart", "star", "umbrella"];
+// 라운드(모양)별 제한 시간. 마지막 판은 될랑 말랑하게 짧다. 플레이하며 조정.
+export const SHAPE_LIMIT_MS: Record<ShapeId, number> = {
+  circle: 10000,
+  triangle: 10000,
+  heart: 9000,
+  star: 8000,
+  umbrella: 7000,
+};
 
 export interface Pt {
   x: number;
@@ -16,6 +25,7 @@ export const ROUND_MS = 10000;
 export const MAX_CRACKS = 3;
 export const DEFAULT_TOLERANCE = 0.045; // 정규화 단위(폭의 4.5%). 플레이하며 조정
 export const COMPLETE_COVERAGE = 0.92; // 테두리 이만큼 덮으면 완주
+export const CLOSE_RADIUS = 0.07; // 사장님 2026-11-01: 끝선이 첫선(초록 점)에 닿아야 성공. 폭의 7%
 export const MAX_HUMAN_SPEED = 1.6; // 폭/초. 이보다 빠른 궤적은 사람이 아님
 
 // ---------- 모양 ----------
@@ -60,6 +70,49 @@ export function shapeOutline(shape: ShapeId): Pt[] {
       const r = i % 2 === 0 ? 0.38 : 0.16;
       c.push({ x: 0.5 + r * Math.cos(a), y: 0.52 + r * Math.sin(a) });
     }
+    c.push({ ...c[0] });
+    return densify(c, 0.01);
+  }
+  if (shape === "heart") {
+    const raw: Pt[] = [];
+    const n = 160;
+    for (let i = 0; i <= n; i++) {
+      const t = (i / n) * Math.PI * 2;
+      raw.push({
+        x: 16 * Math.sin(t) ** 3,
+        y: -(13 * Math.cos(t) - 5 * Math.cos(2 * t) - 2 * Math.cos(3 * t) - Math.cos(4 * t)),
+      });
+    }
+    const xs = raw.map((p) => p.x);
+    const ys = raw.map((p) => p.y);
+    const minX = Math.min(...xs), maxX = Math.max(...xs), minY = Math.min(...ys), maxY = Math.max(...ys);
+    const s = 0.72 / Math.max(maxX - minX, maxY - minY);
+    const pts = raw.map((p) => ({
+      x: 0.5 + (p.x - (minX + maxX) / 2) * s,
+      y: 0.5 + (p.y - (minY + maxY) / 2) * s,
+    }));
+    pts[pts.length - 1] = { ...pts[0] };
+    return pts;
+  }
+  if (shape === "umbrella") {
+    // 일반 우산 윤곽(캐노피 + 물결 가장자리 + J자 손잡이). 한 번에 이어 그리는 닫힌 선.
+    const arc = (cx: number, cy: number, r: number, a0: number, a1: number, n = 24): Pt[] =>
+      Array.from({ length: n + 1 }, (_, i) => {
+        const a = a0 + ((a1 - a0) * i) / n;
+        return { x: cx + r * Math.cos(a), y: cy + r * Math.sin(a) };
+      });
+    const cut = Math.acos(0.5); // 가운데 물결에서 손잡이 오른쪽 변(x=0.56)이 나오는 각
+    const c: Pt[] = [
+      ...arc(0.5, 0.5, 0.38, Math.PI, Math.PI * 2, 40), // 캐노피 윗선: 왼쪽 → 오른쪽
+      ...arc(0.75, 0.5, 0.13, 0, Math.PI, 16), // 오른쪽 물결
+      ...arc(0.5, 0.5, 0.12, 0, cut, 10), // 가운데 물결(오른쪽 반)
+      { x: 0.56, y: 0.78 }, // 손잡이 오른쪽 변
+      ...arc(0.47, 0.78, 0.09, 0, Math.PI, 16), // 손잡이 갈고리 바깥(아래를 돌아 왼쪽 끝)
+      ...arc(0.47, 0.78, 0.03, Math.PI, 0, 10), // 갈고리 안쪽(다시 아래를 돌아 오른쪽으로)
+      { x: 0.5, y: 0.5 + 0.12 }, // 손잡이 왼쪽 변 위
+      ...arc(0.5, 0.5, 0.12, Math.PI / 2, Math.PI, 10), // 가운데 물결(왼쪽 반)
+      ...arc(0.25, 0.5, 0.13, 0, Math.PI, 16), // 왼쪽 물결
+    ];
     c.push({ ...c[0] });
     return densify(c, 0.01);
   }
@@ -132,6 +185,8 @@ function densifyTrace(trace: TracePt[], step = 0.01): TracePt[] {
 export interface JudgeOptions {
   tolerance?: number;
   limitMs?: number;
+  /** 펜을 뗐다(손가락을 뗌). 끝선이 첫선에 닿지 않은 채 떼면 무조건 실패(사장님 2026-11-01) */
+  ended?: boolean;
   /** UI 시계가 이미 한계에 도달했음을 알릴 때(마지막 점 이후에도 시간이 흘렀다면) */
   elapsedMs?: number;
 }
@@ -154,7 +209,7 @@ const SAMPLES = 120;
 
 export function judgeRound(shape: ShapeId, trace: TracePt[], opts: JudgeOptions = {}): RoundResult {
   const tol = opts.tolerance ?? DEFAULT_TOLERANCE;
-  const limit = opts.limitMs ?? ROUND_MS;
+  const limit = opts.limitMs ?? SHAPE_LIMIT_MS[shape];
   const outline = shapeOutline(shape);
   const samples = sampleOutline(outline, SAMPLES);
 
@@ -191,7 +246,13 @@ export function judgeRound(shape: ShapeId, trace: TracePt[], opts: JudgeOptions 
           coveredCount++;
         }
       }
-      if (completeAt === null && coveredCount / samples.length >= COMPLETE_COVERAGE) completeAt = p.t;
+      // 완주: 테두리를 충분히 덮고, 끝선이 첫선(시작 점)에 닿아 한 바퀴가 이어져야 한다
+      if (
+        completeAt === null &&
+        coveredCount / samples.length >= COMPLETE_COVERAGE &&
+        Math.hypot(p.x - outline[0].x, p.y - outline[0].y) <= CLOSE_RADIUS
+      )
+        completeAt = p.t;
     }
     if (cracks >= MAX_CRACKS) break; // 깨지면 거기서 끝
   }
@@ -207,7 +268,8 @@ export function judgeRound(shape: ShapeId, trace: TracePt[], opts: JudgeOptions 
     finalCracks = cracks + 1;
   }
   finalCracks = Math.min(MAX_CRACKS, finalCracks);
-  const finalBroken = finalCracks >= MAX_CRACKS;
+  const openEnd = !!opts.ended && !complete && !broken; // 끝선이 첫선에 닿지 않은 채 끝남
+  const finalBroken = finalCracks >= MAX_CRACKS || openEnd;
 
   const meanDeviation = devN ? devSum / devN : 1; // 0=딱 맞음, 1=2*tol 이상 이탈
   const accuracy = devN

@@ -1,0 +1,6 @@
+[
+  {"name": "dalgona_disc_sheet", "ratio": "1:1", "prompt": "Sheet of 6 variations of a single round brown honeycomb candy disc (Korean dalgona), front view only, thick white outline and warm brown contour, flat cartoon meme style, transparent-looking plain white background, 3 columns x 2 rows grid, no text, no logo, no watermark"},
+  {"name": "shape_outline_sheet", "ratio": "1:1", "prompt": "Sheet of 6 candy disc faces, each with one shape pressed into the surface as a thick groove outline: 2 circles, 2 triangles, 2 stars. Thick groove wide enough for a finger to trace, brown candy, flat cartoon meme style with thick white outline, white background, 3 columns x 2 rows grid, no text, no logo"},
+  {"name": "crack_shards_sheet", "ratio": "1:1", "prompt": "Sheet of 6 cracked-candy effects on white background: 2 thin hairline crack overlays across a round disc, 2 long spreading crack overlays, 2 groups of 3-4 broken brown candy shards. Flat cartoon meme style, thick white outline, no text, no logo, 3 columns x 2 rows"},
+  {"name": "bg_stall_sheet", "ratio": "9:16", "prompt": "Night alley street-food stall for dalgona candy, cartoon meme style, warm lantern light, an empty clear space in the center for a candy disc, vertical phone layout, no text, no logos, no corner marks, no watermark"}
+]
