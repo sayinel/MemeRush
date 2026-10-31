@@ -146,9 +146,12 @@ export async function subscribe(
     if (!canSend) return { status: 200, action: "saved_no_mail" };
     if (d.nowSec - last < LIMITS.resendAfterSec) return { status: 200, action: "resend_later" };
     await d.store.markConfirmSent(existing.id, d.nowSec);
+    // A row waiting from the old two-step flow becomes a single-step subscriber (사장님 F1031-8/9, 10/31): typing the
+    // address again is the sign-up, so it is activated and gets the one mail with the unsubscribe link.
     // Goes to the address on the row (the first one typed), not to the variant in this request.
-    await d.sendConfirm(existing.email, existing.lang, await d.lib.makeToken(d.ring!, "c", existing.id, d.nowSec + LIMITS.confirmTtlSec));
-    return { status: 200, action: "confirm_sent" };
+    await d.store.activate(existing.id, d.nowSec);
+    await d.sendWelcome(existing.email, existing.lang, await d.lib.makeToken(d.ring!, "u", existing.id, d.nowSec + LIMITS.unsubTtlSec));
+    return { status: 200, action: "subscribed" };
   }
 
   const id = (d.newId ?? (() => crypto.randomUUID()))();
