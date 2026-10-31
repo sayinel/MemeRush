@@ -884,18 +884,22 @@ export default function ChallengeClient({
           <div className="rk-bottom">
             {error && <p className="rk-note">{error}</p>}
             {notice && <p className="rk-note">{notice}</p>}
+            {/* Order (사장님 10/31): share right under the ranking, then the email button, its help under it, then the site link. */}
+            <button className={HIDE_EMAIL ? "rs-go" : "rs-go ghost"} onClick={() => share(false)} disabled={busy}>
+              {t.share}
+            </button>
             {!HIDE_EMAIL && (
               <>
-            <p className="rk-help">{t.emailHelp}</p>
                 {/* TODO(email CTA): placeholder; opens the empty email screen and stores nothing (no email server yet). */}
                 <button className="rs-go" onClick={() => setEmailOpen(true)}>
                   {t.emailMe}
                 </button>
+                <p className="rk-help">{t.emailHelp}</p>
               </>
             )}
-            <button className={HIDE_EMAIL ? "rs-go" : "rs-go ghost"} onClick={() => share(false)} disabled={busy}>
-              {t.share}
-            </button>
+            <a className="rk-foot" href="/" target="_blank" rel="noopener">
+              © Meme Rush · memerush.superagents.run ↗
+            </a>
           </div>
         </div>
         {emailOpen && !HIDE_EMAIL && (
