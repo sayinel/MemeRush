@@ -1,4 +1,4 @@
-import { jsonError, readJson } from "@/lib/api";
+import { jsonError, readJson, serverError } from "@/lib/api";
 import { getChallenge } from "@/lib/challenge";
 import { globalRank } from "@/lib/ranking";
 import { renderVideo } from "@/lib/render";
@@ -27,7 +27,7 @@ export async function POST(request: Request) {
     .eq("player_id", player.id)
     .eq("challenge_id", challengeId)
     .maybeSingle();
-  if (error) return jsonError(500, error.message);
+  if (error) return serverError("videos", error);
   if (!best) return jsonError(403, "finish a game first");
 
   let videoPath: string = best.video_path ?? "";
@@ -53,13 +53,13 @@ export async function POST(request: Request) {
       );
     } catch (e) {
       // The record is already saved (AC-20); the client falls back to the result card.
-      return jsonError(500, `render failed: ${(e as Error).message}`);
+      return serverError("videos render", e);
     }
     videoPath = `${challengeId}/${best.id}.mp4`;
     const up = await db.storage.from(BUCKET).upload(videoPath, mp4, { contentType: "video/mp4", upsert: true });
-    if (up.error) return jsonError(500, up.error.message);
+    if (up.error) return serverError("videos upload", up.error);
     const { error: saveError } = await db.from("attempts").update({ video_path: videoPath }).eq("id", best.id);
-    if (saveError) return jsonError(500, saveError.message);
+    if (saveError) return serverError("videos save", saveError);
     await logEvent("video_generated", {
       challengeId,
       playerId: player.id,

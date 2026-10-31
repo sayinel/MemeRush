@@ -1,4 +1,4 @@
-import { jsonError, readJson } from "@/lib/api";
+import { jsonError, readJson, serverError } from "@/lib/api";
 import { currentPlayer, logEvent } from "@/lib/session";
 import { supabaseAdmin } from "@/lib/supabase";
 
@@ -15,7 +15,7 @@ export async function POST(request: Request) {
   const { error } = await db
     .from("league_members")
     .upsert({ league_id: league.id, player_id: player.id }, { onConflict: "league_id,player_id", ignoreDuplicates: true });
-  if (error) return jsonError(500, error.message);
+  if (error) return serverError("leagues/join", error);
   await logEvent("league_joined", { playerId: player.id, meta: { leagueId: league.id } });
   return Response.json({ leagueId: league.id });
 }

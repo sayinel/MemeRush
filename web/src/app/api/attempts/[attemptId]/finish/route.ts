@@ -1,4 +1,4 @@
-import { jsonError, readJson } from "@/lib/api";
+import { jsonError, readJson, serverError } from "@/lib/api";
 import { getChallenge } from "@/lib/challenge";
 import { bestErrorMs, friendsRank, globalRank } from "@/lib/ranking";
 import { currentPlayer, logEvent } from "@/lib/session";
@@ -23,7 +23,7 @@ export async function POST(request: Request, ctx: RouteContext<"/api/attempts/[a
   if (!challenge) return jsonError(404, "unknown challenge");
 
   const { data: serverElapsedMs, error: rpcError } = await db.rpc("attempt_server_elapsed_ms", { p_attempt: attemptId });
-  if (rpcError || typeof serverElapsedMs !== "number") return jsonError(500, rpcError?.message ?? "elapsed unavailable");
+  if (rpcError || typeof serverElapsedMs !== "number") return serverError("attempts/[attemptId]/finish elapsed", rpcError ?? "elapsed unavailable");
 
   const invalid = validateRounds(challenge, body?.roundElapsedMs, serverElapsedMs);
   if (invalid) return jsonError(422, invalid);
@@ -44,7 +44,7 @@ export async function POST(request: Request, ctx: RouteContext<"/api/attempts/[a
     .eq("id", attemptId)
     .is("finished_at", null) // guards against a concurrent double finish
     .select("id");
-  if (error) return jsonError(500, error.message);
+  if (error) return serverError("attempts/[attemptId]/finish", error);
   if (!updated?.length) return jsonError(409, "attempt already finished");
 
   const best = previousBest === null ? result.errorMs : Math.min(previousBest, result.errorMs);

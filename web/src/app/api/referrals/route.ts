@@ -1,5 +1,5 @@
 import { randomBytes } from "node:crypto";
-import { jsonError, readJson } from "@/lib/api";
+import { jsonError, readJson, serverError } from "@/lib/api";
 import { getChallenge } from "@/lib/challenge";
 import { bestErrorMs } from "@/lib/ranking";
 import { currentPlayer, newToken } from "@/lib/session";
@@ -25,7 +25,7 @@ export async function POST(request: Request) {
         .insert({ owner_id: player.id, invite_token: newToken() })
         .select("id, invite_token")
         .single();
-      if (error) return jsonError(500, error.message);
+      if (error) return serverError("referrals", error);
       league = created;
       await db.from("league_members").insert({ league_id: league.id, player_id: player.id });
     }
@@ -38,7 +38,7 @@ export async function POST(request: Request) {
     source_player_id: player.id,
     league_id: league?.id ?? null,
   });
-  if (error) return jsonError(500, error.message);
+  if (error) return serverError("referrals", error);
 
   // Share links always point at the official address, whichever tunnel or preview the visitor happens to be on.
   // SHARE_BASE_URL overrides it (e.g. for a staging copy).

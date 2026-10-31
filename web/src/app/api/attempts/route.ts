@@ -1,4 +1,4 @@
-import { jsonError, readJson } from "@/lib/api";
+import { jsonError, readJson, serverError } from "@/lib/api";
 import { getChallenge } from "@/lib/challenge";
 import { currentPlayer, logEvent } from "@/lib/session";
 import { supabaseAdmin } from "@/lib/supabase";
@@ -27,7 +27,7 @@ export async function POST(request: Request) {
     .insert({ player_id: player.id, challenge_id: challengeId, referral_id: referralId })
     .select("id")
     .single();
-  if (error) return jsonError(500, error.message);
+  if (error) return serverError("attempts", error);
 
   await logEvent("game_started", { challengeId, playerId: player.id, referralId });
   return Response.json({ attemptId: data.id });

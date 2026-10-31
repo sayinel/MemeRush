@@ -1,10 +1,19 @@
-// Public (Cloudflare) build: temporarily moves the routes that must not exist in public deploys
-// (/admin, /api/admin/*, /api/videos = ffmpeg) out of src/app, runs the OpenNext build, then restores them.
+// Public (Cloudflare) build: temporarily moves the routes and files that must not exist in public deploys
+// (/admin, /api/admin/*, /api/videos = ffmpeg, /dev/* test harnesses, public/mock pages, public/sfx notes)
+// out of the tree, runs the OpenNext build, then restores them.
 // Local PC demo server (npm run dev/build/start) is untouched and keeps these routes.
 import { spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, renameSync, rmSync } from "node:fs";
 
-const EXCLUDE = ["src/app/admin", "src/app/api/admin", "src/app/api/videos"];
+const EXCLUDE = [
+  "src/app/admin",
+  "src/app/api/admin",
+  "src/app/api/videos",
+  "src/app/dev", // /dev/sound, /dev/game: internal test screens (dev/game can fake a WIN screen)
+  "public/mock", // design mock pages
+  "public/sfx/README.md", // sound source notes
+  "public/sfx/SOURCES.md",
+];
 const STASH = ".cf-stash";
 const moved = [];
 function restore() {

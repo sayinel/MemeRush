@@ -1,4 +1,4 @@
-import { jsonError } from "@/lib/api";
+import { serverError } from "@/lib/api";
 import { getChallenge } from "@/lib/challenge";
 import { bestErrorMs, globalRank } from "@/lib/ranking";
 import { currentPlayer } from "@/lib/session";
@@ -15,7 +15,7 @@ export async function GET(request: Request) {
     .from("league_members")
     .select("league_id, leagues(owner_id, owner:players!owner_id(nickname))")
     .eq("player_id", player.id);
-  if (error) return jsonError(500, error.message);
+  if (error) return serverError("me", error);
 
   const leagues = (memberships ?? []).map((m) => {
     const league = m.leagues as unknown as { owner_id: string; owner: { nickname: string } | null } | null;

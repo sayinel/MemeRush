@@ -1,4 +1,4 @@
-import { jsonError } from "@/lib/api";
+import { jsonError, serverError } from "@/lib/api";
 import { getChallenge } from "@/lib/challenge";
 import { leagueMemberIds } from "@/lib/ranking";
 import { currentPlayer } from "@/lib/session";
@@ -21,7 +21,7 @@ export async function GET(request: Request, ctx: RouteContext<"/api/leagues/[lea
     .in("player_id", members)
     .order("error_ms", { ascending: true })
     .order("finished_at", { ascending: true });
-  if (error) return jsonError(500, error.message);
+  if (error) return serverError("leagues/[leagueId]/leaderboard", error);
 
   let rank = 0;
   let prev: number | null = null;

@@ -309,7 +309,10 @@ export class TimingStopScene extends Phaser.Scene {
   private startPlay(t: number) {
     this.roundStart = t;
     // Read-only timing marker for automated QA (performance.now() timebase); nothing in the game reads it.
-    (window as unknown as { __mrRound?: { start: number; index: number } }).__mrRound = { start: t, index: this.round };
+    // Development builds only: production bundles drop this branch, so the public site exposes no auto-tap hook.
+    if (process.env.NODE_ENV !== "production") {
+      (window as unknown as { __mrRound?: { start: number; index: number } }).__mrRound = { start: t, index: this.round };
+    }
     this.phase = "play";
     play("go");
     startBgm(true); // a new game (first or retry) always brings the music back

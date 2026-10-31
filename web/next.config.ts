@@ -1,6 +1,18 @@
 import type { NextConfig } from "next";
 
+// Baseline security headers for every page and API response served by the worker (static files in .open-next/assets
+// are served by the ASSETS binding directly and get the same set from public/_headers).
+// frame-ancestors allows our own site family only (superagents.run may embed the game); everything else cannot frame it.
+export const SECURITY_HEADERS = [
+  { key: "X-Content-Type-Options", value: "nosniff" },
+  { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+  { key: "Content-Security-Policy", value: "frame-ancestors 'self' https://superagents.run https://*.superagents.run" },
+];
+
 const nextConfig: NextConfig = {
+  async headers() {
+    return [{ source: "/:path*", headers: SECURITY_HEADERS }];
+  },
   // ffmpeg-static resolves its binary by path at runtime; keep it unbundled and trace the binary + fonts.
   serverExternalPackages: ["ffmpeg-static"],
   outputFileTracingIncludes: {
