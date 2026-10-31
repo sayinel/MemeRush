@@ -45,7 +45,7 @@ export async function POST(request: Request) {
     {
       host,
       challengeId: currentChallengeId(),
-      replyAddress: env.MAIL_SENDER || "memerush@superagents.run",
+      replyAddress: "memerush@superagents.run", // 문의(CS) 주소. 발신 DoNotReply는 답장을 받지 않는다(사장님 10/31)
       nowSec: Math.floor(Date.now() / 1000),
       parseEmail,
       normalizeEmail,
