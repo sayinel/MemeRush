@@ -7,5 +7,12 @@ NEXT_PUBLIC_HIDE_EMAIL=
 NEXT_PUBLIC_MVP_URL=
 SITE_HOST=
 # D1 (Cloudflare) is a binding named DB in wrangler.jsonc, not an env var. Remote setup: create the DB, put its id in wrangler.jsonc, run npm run d1:migrate:remote.
-# HMAC secret for unsubscribe links (set as a secret in Cloudflare; any long random string). Value stays empty here.
+# HMAC secret for confirm/unsubscribe links and suppression hashes (set as a secret in Cloudflare; any long random string). Value stays empty here.
+# Key rotation: add UNSUB_SECRET_V2 (secret) and set UNSUB_KEY_VERSION=2; links signed with version 1 keep working while UNSUB_SECRET stays set.
 UNSUB_SECRET=
+UNSUB_KEY_VERSION=
+# Confirmation + welcome mail via Azure Communication Services Email. Send only when MAIL_ENABLED=1. Values stay empty here (ACS_ACCESS_KEY is a secret).
+MAIL_ENABLED=
+ACS_ENDPOINT=
+ACS_ACCESS_KEY=
+MAIL_SENDER=

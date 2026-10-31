@@ -8,7 +8,7 @@ let client: SupabaseClient | undefined;
 
 // Storage choice by runtime: Cloudflare binding `DB` (D1) first; otherwise the existing paths (Supabase keys, or the
 // local stand-in for the PC demo server). The Supabase code stays as the fallback (kept for rollback).
-function cloudflareD1(): D1Like | null {
+export function cloudflareD1(): D1Like | null {
   try {
     const db = (getCloudflareContext().env as { DB?: D1Like }).DB;
     return db ?? null;

@@ -8,6 +8,7 @@
     "start": "next start",
     "lint": "eslint",
     "test": "node --test \"tests/*.test.mjs\"",
+    "test:mail": "node --test tests/mail.test.mjs tests/mail_hardening.test.mjs",
     "prebuild": "node scripts/gen-challenges.mjs",
     "cf:build": "node scripts/cf-build.mjs",
     "cf:preview": "node scripts/cf-build.mjs && opennextjs-cloudflare preview",
