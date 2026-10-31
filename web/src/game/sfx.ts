@@ -267,11 +267,45 @@ export function play(name: Name, force = false, semis = 0) {
   }
 }
 
+// iOS: a one-sample silent buffer started inside the gesture opens the output, and a silent <audio> loop moves older iOS
+// (no navigator.audioSession) to the playback category so the ring/silent switch no longer mutes Web Audio.
+let warmed = false;
+function warmUp(c: AudioContext | null) {
+  if (!c || warmed) return;
+  warmed = true;
+  try {
+    const src = c.createBufferSource();
+    src.buffer = c.createBuffer(1, 1, 22050);
+    src.connect(c.destination);
+    src.start(0);
+  } catch {
+    /* warm-up is best effort */
+  }
+  if (!("audioSession" in navigator)) {
+    try {
+      const a = new Audio("data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=");
+      a.loop = true;
+      a.volume = 0.01;
+      void a.play().catch(() => undefined);
+    } catch {
+      /* no HTMLAudio */
+    }
+  }
+}
+
+// Coming back from another app can leave the context dead on iOS; resume it when the page is visible again.
+if (typeof document !== "undefined") {
+  document.addEventListener("visibilitychange", () => {
+    if (!document.hidden && ctx && ctx.state !== "running") void ctx.resume().catch(() => undefined);
+  });
+}
+
 // Browsers keep audio locked until a tap, so wake it on the first touch anywhere instead of at the first sound.
 if (typeof window !== "undefined") {
   const wake = () => {
     if (feature && (on || musicOn)) {
-      ac();
+      const c = ac();
+      warmUp(c);
       startBgm(); // the music runs from the first touch and keeps going through results and retries
     }
   };
