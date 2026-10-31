@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {
   shapeOutline, polylineLength, judgeRound, validateHumanTrace, minLapMs, summarizeSession,
-  rankSortKey, compareRank, ROUND_MS, SHAPE_ORDER,
+  rankSortKey, compareRank, ROUND_MS, SHAPE_ORDER, SHAPE_LIMIT_MS,
 } from "../src/game/dalgona_logic.ts";
 
 // outline을 totalMs 동안 따라가는 궤적. offset: 안쪽(중심 방향) 이탈량, from~to 구간만(0~1 비율)
@@ -29,6 +29,12 @@ function lap(shape, totalMs, { offset = 0, from = 0, to = 1, laps = 1, hz = 60 }
   return out;
 }
 
+test("라운드 모양(하트·별·우산)은 닫힌 0~1 폴리라인, 갈수록 제한 시간이 짧다", () => {
+  assert.deepEqual(SHAPE_ORDER, ["heart", "star", "umbrella"]);
+  const lim = SHAPE_ORDER.map((s) => SHAPE_LIMIT_MS[s]);
+  assert.ok(lim[0] > lim[1] && lim[1] > lim[2], String(lim));
+});
+
 test("모양 3개는 닫힌 0~1 폴리라인", () => {
   for (const s of SHAPE_ORDER) {
     const o = shapeOutline(s);
@@ -45,7 +51,8 @@ test("완벽한 궤적: 정확도 높고 균열 0, 완주, 남은 시간 있음"
     assert.ok(r.accuracy >= 95, s + " " + r.accuracy);
     assert.equal(r.complete, true);
     assert.equal(r.timedOut, false);
-    assert.ok(r.timeLeftMs > 3500 && r.timeLeftMs <= 4900, String(r.timeLeftMs));
+    const lim = SHAPE_LIMIT_MS[s];
+    assert.ok(r.timeLeftMs > lim - 6500 && r.timeLeftMs <= lim - 5100, s + " " + r.timeLeftMs);
   }
 });
 
