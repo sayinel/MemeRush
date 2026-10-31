@@ -59,7 +59,7 @@ export function buildConfirmMail(opts: { lang: string; host: string; challengeId
   return { subject: t.subject, text, html };
 }
 
-// After confirmation. Carries RFC 8058 one-click unsubscribe headers; the same URL accepts the one-click POST.
+// The mail sent right after sign-up (single step since 사장님 10/31) and after a legacy confirmation. Carries RFC 8058 one-click unsubscribe headers; the same URL accepts the one-click POST.
 export function buildWelcomeMail(opts: { lang: string; host: string; challengeId: string; unsubToken: string }): BuiltMail {
   const lang: MailLang = opts.lang === "ko" ? "ko" : "en";
   const base = `https://${safeHost(opts.host)}`;
@@ -68,18 +68,18 @@ export function buildWelcomeMail(opts: { lang: string; host: string; challengeId
   const t =
     lang === "ko"
       ? {
-          subject: "MemeRush 게임 링크를 보내드려요",
-          hello: "구독해 주셔서 고마워요. 이 게임을 보내드려요.",
-          play: "게임 하러 가기",
-          later: "새 게임이 나오면 알려드려요.",
+          subject: "Meme Rush 오늘의 게임이 도착했어요",
+          hello: "요청하신 Meme Rush 오늘의 게임이 도착했어요.",
+          play: "오늘의 게임 플레이 · 30초",
+          later: "새 게임이 나오면 메일로 알려드려요.",
           from: "MemeRush 드림",
           unsub: "수신거부",
         }
       : {
-          subject: "Your MemeRush game link",
-          hello: "Thanks for subscribing. Here is the game.",
-          play: "Play now",
-          later: "We will let you know when a new game is out.",
+          subject: "Your MemeRush game of the day",
+          hello: "Here is today's MemeRush game link you asked for.",
+          play: "Play today's game · 30s",
+          later: "We will mail you when a new game is out.",
           from: "From MemeRush",
           unsub: "Unsubscribe",
         };

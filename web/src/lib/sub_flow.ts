@@ -118,7 +118,7 @@ export type FlowDeps = {
 export type SubscribeOutcome =
   | { status: 400; reason: "invalid_email" }
   | { status: 429; reason: "ip_limit" | "address_limit" }
-  | { status: 200; action: "confirm_sent" | "saved_no_mail" | "already" | "suppressed" | "resend_later" };
+  | { status: 200; action: "subscribed" | "confirm_sent" | "saved_no_mail" | "already" | "suppressed" | "resend_later" };
 
 export async function subscribe(
   d: FlowDeps,
@@ -155,8 +155,11 @@ export async function subscribe(
   const r = await d.store.insertPending({ id, email, norm, lang: input.lang, source: input.source, nowSec: d.nowSec, sent: canSend });
   if (r === "dup") return { status: 200, action: "already" };
   if (!canSend) return { status: 200, action: "saved_no_mail" };
-  await d.sendConfirm(email, input.lang, await d.lib.makeToken(d.ring!, "c", id, d.nowSec + LIMITS.confirmTtlSec));
-  return { status: 200, action: "confirm_sent" };
+  // Single step (사장님 10/31, F1031-8): typing the address on the site is the sign-up, so there is no second button in
+  // the mail. The row becomes active now and the one mail carries the game link and the unsubscribe link.
+  await d.store.activate(id, d.nowSec);
+  await d.sendWelcome(email, input.lang, await d.lib.makeToken(d.ring!, "u", id, d.nowSec + LIMITS.unsubTtlSec));
+  return { status: 200, action: "subscribed" };
 }
 
 export type LinkOutcome = "ok" | "already" | "invalid" | "expired" | "gone";
