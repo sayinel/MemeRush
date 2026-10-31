@@ -91,6 +91,14 @@ export class SubStore {
       .first();
     return !!r;
   }
+  // Newsletter sending: active subscribers (oldest first) and the per-issue claim rows kept in rate_limits.
+  async listActive(limit: number): Promise<Row[]> {
+    const r = await this.db.prepare("select id, email, lang from email_subscribers where status = 'active' order by created_at limit ?").bind(limit).all();
+    return (r.results ?? []) as Row[];
+  }
+  async release(key: string) {
+    await this.db.prepare("delete from rate_limits where key = ? returning key").bind(key).all();
+  }
   async suppress(hash: string, reason: "unsubscribed" | "bounced" | "complained", nowSec: number) {
     await this.db
       .prepare("insert into email_suppressions (hash, reason, created_at) values (?, ?, ?) on conflict(hash) do nothing returning hash")
