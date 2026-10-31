@@ -21,6 +21,24 @@ export async function globalRank(challengeId: string, best: number): Promise<num
   return (count ?? 0) + 1;
 }
 
+// Top rows for the link-preview card: names are the public anonymous ones already shown on the ranking board.
+export async function topRows(challengeId: string, n = 3): Promise<{ rank: number; nickname: string; errorMs: number }[]> {
+  const { data } = await supabaseAdmin()
+    .from("best_attempts")
+    .select("nickname, error_ms")
+    .eq("challenge_id", challengeId)
+    .order("error_ms", { ascending: true })
+    .order("finished_at", { ascending: true })
+    .limit(n);
+  let rank = 0;
+  let prev: number | null = null;
+  return (data ?? []).map((r, i) => {
+    if (r.error_ms !== prev) rank = i + 1;
+    prev = r.error_ms;
+    return { rank, nickname: r.nickname as string, errorMs: r.error_ms as number };
+  });
+}
+
 export async function playerCount(challengeId: string): Promise<number> {
   const { count } = await supabaseAdmin().from("best_attempts").select("id", { count: "exact", head: true }).eq("challenge_id", challengeId);
   return count ?? 0;

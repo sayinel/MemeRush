@@ -23,7 +23,8 @@ const worker = () => publicFile("game/worker_smug.png").then((b) => `data:image/
 
 const C = { bg: "#140C09", bg2: "#1F130E", ink: "#FFF4E8", muted: "#BDB3AA", fire: "#FF6A2B", fireShadow: "#9A3A12", gold: "#FFB547" };
 
-export type OgCard = { kicker: string; headline: string; sub: string };
+export type OgRow = { rank: number | null; name: string; time: string; me?: boolean };
+export type OgCard = { kicker: string; headline: string; sub: string; rows?: OgRow[] };
 
 export async function ogImage(card: OgCard, headers?: Record<string, string>): Promise<ImageResponse> {
   return new ImageResponse(
@@ -43,9 +44,33 @@ export async function ogImage(card: OgCard, headers?: Record<string, string>): P
           <div style={{ display: "flex", fontSize: 44, color: C.fire, letterSpacing: 2 }}>MEME RUSH</div>
           <div style={{ display: "flex", flexDirection: "column" }}>
             <div style={{ display: "flex", fontSize: 34, color: C.muted, textTransform: "uppercase" }}>{card.kicker}</div>
-            <div style={{ display: "flex", fontSize: 150, lineHeight: 1.02, color: C.ink }}>{card.headline}</div>
+            <div style={{ display: "flex", fontSize: card.rows ? 104 : 150, lineHeight: 1.02, color: C.ink }}>{card.headline}</div>
+            {card.rows && (
+              <div style={{ display: "flex", flexDirection: "column", marginTop: 14 }}>
+                {card.rows.map((r, i) => (
+                  <div
+                    key={i}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      fontSize: 30,
+                      height: 42,
+                      marginTop: 6,
+                      padding: "0 16px",
+                      borderRadius: 10,
+                      color: r.me ? C.bg : C.ink,
+                      backgroundColor: r.me ? C.fire : "rgba(255,255,255,0.10)",
+                    }}
+                  >
+                    <div style={{ display: "flex", width: 64, color: r.me ? C.bg : C.gold }}>{r.rank === null ? "···" : r.rank}</div>
+                    <div style={{ display: "flex", flex: 1, textTransform: "uppercase" }}>{r.name}</div>
+                    <div style={{ display: "flex" }}>{r.time}</div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
-          <div style={{ display: "flex", fontSize: 64, color: C.gold, textTransform: "uppercase" }}>{card.sub}</div>
+          <div style={{ display: "flex", fontSize: card.rows ? 46 : 64, color: C.gold, textTransform: "uppercase" }}>{card.sub}</div>
         </div>
         <div style={{ display: "flex", flex: 1, alignItems: "center", justifyContent: "center" }}>
           {/* eslint-disable-next-line @next/next/no-img-element -- satori needs a plain img */}
