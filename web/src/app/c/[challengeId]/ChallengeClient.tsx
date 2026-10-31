@@ -341,6 +341,7 @@ function EmailScreen({
             </div>
             <input
               type="email"
+              data-clarity-mask="True"
               inputMode="email"
               autoComplete="email"
               value={email}
