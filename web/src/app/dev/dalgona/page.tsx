@@ -172,6 +172,19 @@ export default function DalgonaDevPage() {
     g.trace.push({ ...toPt(e), t: performance.now() - g.t0 });
   };
 
+  const onUp = () => {
+    const g = gRef.current;
+    if (g.phase !== "playing" || g.t0 === null) return;
+    const el = performance.now() - g.t0;
+    const shape = SHAPE_ORDER[g.round];
+    const fin = judgeRound(shape, g.trace, { elapsedMs: el, ended: true });
+    g.live = fin;
+    if (!validateHumanTrace(shape, g.trace).ok) g.valid = false;
+    g.rounds = [...g.rounds, fin];
+    g.phase = fin.broken || !fin.complete || g.rounds.length >= SHAPE_ORDER.length ? "done" : "between";
+    sync(fin.complete ? fin.timeLeftMs : 0);
+  };
+
   const nextRound = () => {
     const g = gRef.current;
     gRef.current = { ...fresh(), round: g.round + 1, rounds: g.rounds, valid: g.valid };
@@ -215,10 +228,12 @@ export default function DalgonaDevPage() {
           className="w-full touch-none rounded bg-neutral-900"
           onPointerDown={onDown}
           onPointerMove={onMove}
+          onPointerUp={onUp}
+          onPointerCancel={onUp}
         />
         <p className="py-2 text-center text-sm text-gray-300">
-          {phase === "ready" && "초록 점에서 시작해 갈색 홈을 따라 한 바퀴 그리세요"}
-          {phase === "playing" && `정확도 ${live ? live.accuracy.toFixed(0) : 0}% (진행 중)`}
+          {phase === "ready" && "초록 점에서 시작해 갈색 홈을 따라 그리고, 끝선을 초록 점에 닿게 이어야 성공"}
+          {phase === "playing" && `정확도 ${live ? live.accuracy.toFixed(0) : 0}% (진행 중) · 끝선을 초록 점에 이으세요`}
           {phase === "between" && last && (last.complete ? `성공! 정확도 ${last.accuracy}%` : `시간 초과, 균열 ${last.cracks}칸`)}
         </p>
         {phase === "between" && (
@@ -228,7 +243,7 @@ export default function DalgonaDevPage() {
         )}
         {summary && (
           <div className="rounded bg-neutral-800 p-4 text-center">
-            <p className="text-xl font-bold">{last && !last.complete && !last.broken ? "💣 펑! 시간 초과" : summary.failed ? "달고나가 깨졌어요" : summary.totalCracks === 0 ? "NO CRACKS. NO NOTES." : "클리어!"}</p>
+            <p className="text-xl font-bold">{last && !last.complete && !last.broken ? "💣 펑! 시간 초과" : summary.failed ? (last && last.broken && last.cracks < 3 ? "끝선이 첫선에 닿지 않아 실패" : "달고나가 깨졌어요") : summary.totalCracks === 0 ? "NO CRACKS. NO NOTES." : "클리어!"}</p>
             <p className="mt-2">정확도 {summary.totalAccuracy}%</p>
             <p>남은 시간 {(summary.timeLeftMs / 1000).toFixed(1)}초</p>
             <p>

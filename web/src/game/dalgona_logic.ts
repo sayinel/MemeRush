@@ -25,6 +25,7 @@ export const ROUND_MS = 10000;
 export const MAX_CRACKS = 3;
 export const DEFAULT_TOLERANCE = 0.045; // 정규화 단위(폭의 4.5%). 플레이하며 조정
 export const COMPLETE_COVERAGE = 0.92; // 테두리 이만큼 덮으면 완주
+export const CLOSE_RADIUS = 0.07; // 사장님 2026-11-01: 끝선이 첫선(초록 점)에 닿아야 성공. 폭의 7%
 export const MAX_HUMAN_SPEED = 1.6; // 폭/초. 이보다 빠른 궤적은 사람이 아님
 
 // ---------- 모양 ----------
@@ -184,6 +185,8 @@ function densifyTrace(trace: TracePt[], step = 0.01): TracePt[] {
 export interface JudgeOptions {
   tolerance?: number;
   limitMs?: number;
+  /** 펜을 뗐다(손가락을 뗌). 끝선이 첫선에 닿지 않은 채 떼면 무조건 실패(사장님 2026-11-01) */
+  ended?: boolean;
   /** UI 시계가 이미 한계에 도달했음을 알릴 때(마지막 점 이후에도 시간이 흘렀다면) */
   elapsedMs?: number;
 }
@@ -243,7 +246,13 @@ export function judgeRound(shape: ShapeId, trace: TracePt[], opts: JudgeOptions 
           coveredCount++;
         }
       }
-      if (completeAt === null && coveredCount / samples.length >= COMPLETE_COVERAGE) completeAt = p.t;
+      // 완주: 테두리를 충분히 덮고, 끝선이 첫선(시작 점)에 닿아 한 바퀴가 이어져야 한다
+      if (
+        completeAt === null &&
+        coveredCount / samples.length >= COMPLETE_COVERAGE &&
+        Math.hypot(p.x - outline[0].x, p.y - outline[0].y) <= CLOSE_RADIUS
+      )
+        completeAt = p.t;
     }
     if (cracks >= MAX_CRACKS) break; // 깨지면 거기서 끝
   }
@@ -259,7 +268,8 @@ export function judgeRound(shape: ShapeId, trace: TracePt[], opts: JudgeOptions 
     finalCracks = cracks + 1;
   }
   finalCracks = Math.min(MAX_CRACKS, finalCracks);
-  const finalBroken = finalCracks >= MAX_CRACKS;
+  const openEnd = !!opts.ended && !complete && !broken; // 끝선이 첫선에 닿지 않은 채 끝남
+  const finalBroken = finalCracks >= MAX_CRACKS || openEnd;
 
   const meanDeviation = devN ? devSum / devN : 1; // 0=딱 맞음, 1=2*tol 이상 이탈
   const accuracy = devN

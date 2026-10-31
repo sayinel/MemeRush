@@ -147,3 +147,26 @@ test("제출 라운드가 부족하면 미완주로 랭킹 제외, 평균은 3�
   assert.equal(s.allComplete, false);
   assert.ok(s.totalAccuracy < 40);
 });
+
+test("끝선이 첫선에 닿지 않으면 테두리를 거의 다 그려도 성공이 아니다", () => {
+  for (const s of SHAPE_ORDER) {
+    const full = lap(s, 6000);
+    const cut = full.slice(0, Math.floor(full.length * 0.93)); // 93%까지만 그리고 멈춤(시작 점까지 못 돌아옴)
+    const r = judgeRound(s, cut, { elapsedMs: 9000 });
+    assert.equal(r.complete, false, s);
+    assert.equal(judgeRound(s, full).complete, true, s);
+  }
+});
+
+test("끝선이 첫선에 닿지 않은 채 펜을 떼면 무조건 실패(깨짐)", () => {
+  for (const s of SHAPE_ORDER) {
+    const full = lap(s, 6000);
+    const cut = full.slice(0, Math.floor(full.length * 0.93));
+    const open = judgeRound(s, cut, { elapsedMs: 5000, ended: true });
+    assert.equal(open.complete, false, s);
+    assert.equal(open.broken, true, s);
+    const closed = judgeRound(s, full, { elapsedMs: 6000, ended: true });
+    assert.equal(closed.complete, true, s);
+    assert.equal(closed.broken, false, s);
+  }
+});
