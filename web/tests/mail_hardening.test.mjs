@@ -172,7 +172,7 @@ test("(3) welcome mail has RFC 8058 headers that reach the ACS body; confirm mai
     assert.ok(!c.headers);
   }
   const ko = buildConfirmMail({ lang: "ko", host: "x.example.com", challengeId: "c", confirmToken: "t" });
-  assert.match(ko.text, /앞으로 소식도 받기/);
+  assert.match(ko.text, /새 게임 메일로 받기/);
   const evil = buildConfirmMail({ lang: "en", host: "evil.com/x?", challengeId: "c", confirmToken: "t" });
   assert.equal(evil.text.includes("evil.com"), false);
   assert.ok(evil.text.includes("https://memerush.superagents.run/c/c"));

@@ -76,3 +76,34 @@ test("template switches language, defaults to en, has game and unsubscribe links
   }
   assert.doesNotMatch(ko.text + en.text, /매일|every day|daily|tomorrow|내일/i);
 });
+
+test("confirm mail design: links, inline styles, min font, no ad label, token encoded", async () => {
+  const { buildConfirmMail } = await import("../src/lib/mail_templates.ts");
+  const token = "v1.c.a+b/c=.1.sig&x";
+  for (const lang of ["ko", "en"]) {
+    const m = buildConfirmMail({ lang, host: "x.example.com", challengeId: "2026-10-31", confirmToken: token });
+    const play = "https://x.example.com/c/2026-10-31";
+    const confirm = `https://x.example.com/api/subscribe/confirm?token=${encodeURIComponent(token)}`;
+    // (a) both links in html and text
+    assert.ok(m.html.includes(`href="${play}"`) && m.text.includes(play));
+    assert.ok(m.html.includes(`href="${confirm}"`) && m.text.includes(confirm));
+    // (b) inline styles only
+    assert.doesNotMatch(m.html, /<style/i);
+    // (c) no font below 12px
+    for (const x of m.html.matchAll(/font-size:\s*(\d+(?:\.\d+)?)px/g)) assert.ok(Number(x[1]) >= 12, `font ${x[1]}px`);
+    // (d) no ad label
+    assert.doesNotMatch(m.subject, /광고/);
+    assert.doesNotMatch(m.html + m.text, /\(광고\)/);
+    // (e) token is URL encoded, never raw
+    assert.ok(!m.html.includes(token) && !m.text.includes(token));
+    assert.ok(m.html.includes(encodeURIComponent(token)));
+    // big button 56px, outline button 44px
+    assert.match(m.html, /height:56px/);
+    assert.match(m.html, /height:44px/);
+  }
+  const ko = buildConfirmMail({ lang: "ko", host: "x.example.com", challengeId: "c", confirmToken: "t" });
+  assert.equal(ko.subject, "Meme Rush 오늘의 게임이 도착했어요");
+  assert.ok(ko.html.includes("오늘의 게임 플레이 · 30초") && ko.html.includes("새 게임 메일로 받기"));
+  const en = buildConfirmMail({ lang: "en", host: "x.example.com", challengeId: "c", confirmToken: "t" });
+  assert.ok(en.html.includes("Play today&#39;s game · 30s") && en.html.includes("Also get future news"));
+});

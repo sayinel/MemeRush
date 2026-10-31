@@ -2,6 +2,8 @@
 // Product decision: "we send you this game, and tell you when a new game is out". Do NOT promise a daily mail.
 // TODO(legal): advertising label / sender identification for marketing mail is pending legal review. Not added on purpose.
 
+import { C, esc, p, topStrip, bigButton, outlineButton, banner, shell, footerRow } from "./mail/parts.ts";
+
 export type MailLang = "ko" | "en";
 
 export type BuiltMail = { subject: string; text: string; html: string; headers?: Record<string, string> };
@@ -22,26 +24,38 @@ export function buildConfirmMail(opts: { lang: string; host: string; challengeId
   const t =
     lang === "ko"
       ? {
-          subject: "MemeRush 오늘의 게임 링크",
-          hello: "요청하신 MemeRush 오늘의 게임 링크예요.",
-          play: "오늘의 게임 하러 가기",
-          news: "새 게임 소식도 메일로 받고 싶다면 아래 버튼을 눌러 주세요. 누르지 않으면 더 보내지 않아요.",
-          go: "앞으로 소식도 받기",
+          subject: "Meme Rush 오늘의 게임이 도착했어요",
+          hello: "요청하신 Meme Rush 오늘의 게임이 도착했어요.",
+          play: "오늘의 게임 플레이 · 30초",
+          news: "새 게임 소식도 받고 싶다면 아래 버튼을 눌러 주세요. 누르지 않으면 더 보내지 않아요.",
+          go: "새 게임 메일로 받기",
           ignore: "직접 요청하지 않았다면 이 메일을 무시하세요.",
         }
       : {
           subject: "Your MemeRush game of the day",
           hello: "Here is today's MemeRush game link you asked for.",
-          play: "Play today's game",
+          play: "Play today's game · 30s",
           news: "Want news about new games by mail too? Press the button below. Without it we send nothing more.",
           go: "Also get future news",
           ignore: "If you did not ask for this, ignore this mail.",
         };
   const text = `${t.hello}\n\n${t.play}: ${gameUrl}\n\n${t.news}\n${t.go}: ${url}\n\n${t.ignore}\n`;
-  const html =
-    `<!doctype html><html lang="${lang}"><body style="font-family:system-ui,sans-serif;max-width:32rem;margin:0 auto;padding:16px">` +
-    `<p>${t.hello}</p><p><a href="${gameUrl}" style="font-size:1.1rem;font-weight:bold">${t.play}</a></p>` +
-    `<p>${t.news}</p><p><a href="${url}">${t.go}</a></p><p style="font-size:12px;color:#666">${t.ignore}</p></body></html>`;
+  const html = shell(
+    lang,
+    t.subject,
+    t.hello,
+    topStrip() +
+      banner(esc(gameUrl), "Meme Rush") +
+      `<tr><td style="padding:20px;">` +
+      `<p style="${p(18, C.cream, "font-weight:700;margin-bottom:16px;")}">${esc(t.hello)}</p>` +
+      bigButton(esc(gameUrl), esc(t.play)) +
+      `</td></tr>` +
+      `<tr><td style="padding:20px;border-top:1px solid ${C.line};">` +
+      `<p style="${p(14, C.soft, "margin-bottom:12px;")}">${esc(t.news)}</p>` +
+      outlineButton(esc(url), esc(t.go)) +
+      `</td></tr>` +
+      footerRow(esc(t.ignore)),
+  );
   return { subject: t.subject, text, html };
 }
 
@@ -70,10 +84,19 @@ export function buildWelcomeMail(opts: { lang: string; host: string; challengeId
           unsub: "Unsubscribe",
         };
   const text = `${t.hello}\n\n${t.play}: ${gameUrl}\n\n${t.later}\n\n${t.from}\n${t.unsub}: ${unsubUrl}\n`;
-  const html =
-    `<!doctype html><html lang="${lang}"><body style="font-family:system-ui,sans-serif;max-width:32rem;margin:0 auto;padding:16px">` +
-    `<p>${t.hello}</p><p><a href="${gameUrl}">${t.play}</a></p><p>${t.later}</p><p>${t.from}</p>` +
-    `<p style="font-size:12px;color:#666"><a href="${unsubUrl}">${t.unsub}</a></p></body></html>`;
+  const html = shell(
+    lang,
+    t.subject,
+    t.hello,
+    topStrip() +
+      banner(esc(gameUrl), "Meme Rush") +
+      `<tr><td style="padding:20px;">` +
+      `<p style="${p(18, C.cream, "font-weight:700;margin-bottom:16px;")}">${esc(t.hello)}</p>` +
+      bigButton(esc(gameUrl), esc(t.play)) +
+      `<p style="${p(14, C.soft, "margin-top:16px;")}">${esc(t.later)}</p>` +
+      `</td></tr>` +
+      footerRow(`${esc(t.from)}<br><a href="${esc(unsubUrl)}" style="color:${C.foot};text-decoration:underline;">${esc(t.unsub)}</a>`),
+  );
   return {
     subject: t.subject,
     text,
