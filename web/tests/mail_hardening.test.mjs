@@ -48,28 +48,37 @@ function deps(db, over = {}) {
 }
 const req = (email, ip = "1.1.1.1") => ({ email, ip, lang: "en", source: null });
 
-test("(1) double opt-in: pending + one confirm mail, active only after confirm, then welcome", async () => {
+test("(1) single step (사장님 10/31 F1031-8): typing the address activates the row and sends one mail with the unsubscribe link", async () => {
   const db = d1();
   const { d, sent } = deps(db);
-  assert.deepEqual(await subscribe(d, req("A@Example.com")), { status: 200, action: "confirm_sent" });
-  assert.equal(sent.confirm.length, 1);
-  assert.equal(sent.welcome.length, 0);
-  assert.equal(db.raw.prepare("select status from email_subscribers").get().status, "pending");
-  // an unsubscribe token cannot confirm, a confirm token works once
-  assert.equal(await confirm(d, (await tok.makeToken(RING, "u", "sub-1", d.nowSec + 99))), "invalid");
-  assert.equal(await confirm(d, sent.confirm[0].token), "ok");
-  assert.equal(db.raw.prepare("select status from email_subscribers").get().status, "active");
+  assert.deepEqual(await subscribe(d, req("A@Example.com")), { status: 200, action: "subscribed" });
+  assert.equal(sent.confirm.length, 0);
   assert.equal(sent.welcome.length, 1);
-  assert.equal(await confirm(d, sent.confirm[0].token), "already");
+  assert.equal(db.raw.prepare("select status from email_subscribers").get().status, "active");
+  assert.match(sent.welcome[0].token, /^v1\.u\.sub-1\./);
+  // a second request for the same inbox is a no-op
+  assert.deepEqual(await subscribe({ ...d, nowSec: d.nowSec + LIMITS.addressWindowSec + 1 }, req("a@example.com", "7.7.7.7")), { status: 200, action: "already" });
+  assert.equal(sent.welcome.length, 1);
+});
+
+test("(1) legacy pending rows (created before the single step) can still be confirmed once", async () => {
+  const db = d1();
+  const { d, sent } = deps(db);
+  assert.equal(await d.store.insertPending({ id: "old-1", email: "o@example.com", norm: "o@example.com", lang: "en", source: null, nowSec: d.nowSec, sent: true }), "ok");
+  const ct = await tok.makeToken(RING, "c", "old-1", d.nowSec + LIMITS.confirmTtlSec);
+  assert.equal(await confirm(d, await tok.makeToken(RING, "u", "old-1", d.nowSec + 99)), "invalid");
+  assert.equal(await confirm(d, ct), "ok");
+  assert.equal(sent.welcome.length, 1);
+  assert.equal(await confirm(d, ct), "already");
   assert.equal(sent.welcome.length, 1);
 });
 
 test("(1) expired confirm token is refused; mail off or no key saves pending without mail", async () => {
   const db = d1();
   const { d, sent } = deps(db);
-  await subscribe(d, req("b@example.com"));
+  await d.store.insertPending({ id: "old-2", email: "b@example.com", norm: "b@example.com", lang: "en", source: null, nowSec: d.nowSec, sent: true });
   const later = { ...d, nowSec: d.nowSec + LIMITS.confirmTtlSec + 1 };
-  assert.equal(await confirm(later, sent.confirm[0].token), "expired");
+  assert.equal(await confirm(later, await tok.makeToken(RING, "c", "old-2", d.nowSec + LIMITS.confirmTtlSec)), "expired");
   for (const over of [{ mailOn: false }, { ring: null }]) {
     const x = deps(d1(), over);
     assert.deepEqual(await subscribe(x.d, req("c@example.com")), { status: 200, action: "saved_no_mail" });
@@ -84,7 +93,7 @@ test("(2) rate limits: IP over 3 per minute, same inbox twice in the window", as
   assert.deepEqual(await subscribe(d, req("u9@example.com", "9.9.9.9")), { status: 429, reason: "ip_limit" });
   assert.equal((await subscribe({ ...d, nowSec: d.nowSec + 61 }, req("u9@example.com", "9.9.9.9"))).status, 200); // new window
   assert.deepEqual(await subscribe(d, req("u0@example.com", "8.8.8.8")), { status: 429, reason: "address_limit" });
-  assert.equal(sent.confirm.length, 4);
+  assert.equal(sent.welcome.length, 4);
   // no clear IP or address in the counter table
   const keys = db.raw.prepare("select key from rate_limits").all().map((r) => r.key).join(" ");
   assert.doesNotMatch(keys, /9\.9\.9\.9|example/);
@@ -98,20 +107,16 @@ test("(2) +tag / case / Gmail-dot variants are one inbox: no second row, no seco
   await subscribe(d, req("john.doe@gmail.com", "1.0.0.1"));
   const later = { ...d, nowSec: d.nowSec + LIMITS.addressWindowSec + 1 };
   for (const [i, v] of ["JohnDoe+1@gmail.com", "j.o.h.n.doe+2@googlemail.com"].entries())
-    assert.deepEqual(await subscribe({ ...later, nowSec: later.nowSec + i * 700 }, req(v, `2.0.0.${i}`)), { status: 200, action: "resend_later" });
+    assert.deepEqual(await subscribe({ ...later, nowSec: later.nowSec + i * 700 }, req(v, `2.0.0.${i}`)), { status: 200, action: "already" });
   assert.equal(db.raw.prepare("select count(*) as n from email_subscribers").get().n, 1);
-  assert.equal(sent.confirm.length, 1);
-  // after a day one resend is allowed, to the address on the row
-  const dayLater = { ...d, nowSec: d.nowSec + LIMITS.resendAfterSec + 1 };
-  assert.equal((await subscribe(dayLater, req("johndoe+3@gmail.com", "3.0.0.1"))).action, "confirm_sent");
-  assert.equal(sent.confirm[1].to, "john.doe@gmail.com");
+  assert.equal(sent.welcome.length, 1);
+  assert.equal(sent.welcome[0].to, "john.doe@gmail.com");
 });
 
 test("(3)(4) unsubscribe deletes the row, suppresses the inbox, and re-subscribe sends nothing", async () => {
   const db = d1();
   const { d, sent } = deps(db);
   await subscribe(d, req("x@example.com"));
-  await confirm(d, sent.confirm[0].token);
   const ut = sent.welcome[0].token;
   assert.match(ut, /^v1\.u\.sub-1\.[0-9]+\.[A-Za-z0-9_-]+$/);
   assert.equal(await unsubscribe(d, ut.slice(0, -2) + (ut.endsWith("AA") ? "BB" : "AA")), "invalid");
@@ -124,7 +129,7 @@ test("(3)(4) unsubscribe deletes the row, suppresses the inbox, and re-subscribe
   assert.equal(await unsubscribe(d, ut), "already");
   const later = { ...d, nowSec: d.nowSec + 3600 };
   assert.deepEqual(await subscribe(later, req("X+again@Example.com", "4.4.4.4")), { status: 200, action: "suppressed" });
-  assert.equal(sent.confirm.length, 1);
+  assert.equal(sent.welcome.length, 1);
   assert.equal(db.raw.prepare("select count(*) as n from email_subscribers").get().n, 0);
 });
 
