@@ -1,0 +1,495 @@
+{
+  "episode_default": "mr-001",
+  "count": 34,
+  "items": [
+    {
+      "id": "img:worker_deadpan",
+      "kind": "image",
+      "file": "web/public/game/worker_deadpan.png",
+      "tags": [
+        "image",
+        "protagonist",
+        "emotion:deadpan"
+      ],
+      "episodes": [
+        "mr-001"
+      ],
+      "source": "new",
+      "reuse": "candidate"
+    },
+    {
+      "id": "img:worker_shocked",
+      "kind": "image",
+      "file": "web/public/game/worker_shocked.png",
+      "tags": [
+        "image",
+        "protagonist",
+        "emotion:shocked"
+      ],
+      "episodes": [
+        "mr-001"
+      ],
+      "source": "new",
+      "reuse": "candidate"
+    },
+    {
+      "id": "img:worker_smug",
+      "kind": "image",
+      "file": "web/public/game/worker_smug.png",
+      "tags": [
+        "image",
+        "protagonist",
+        "emotion:smug"
+      ],
+      "episodes": [
+        "mr-001"
+      ],
+      "source": "new",
+      "reuse": "candidate"
+    },
+    {
+      "id": "img:worker_crying",
+      "kind": "image",
+      "file": "web/public/game/worker_crying.png",
+      "tags": [
+        "image",
+        "protagonist",
+        "emotion:crying"
+      ],
+      "episodes": [
+        "mr-001"
+      ],
+      "source": "new",
+      "reuse": "candidate"
+    },
+    {
+      "id": "img:worker_sweating",
+      "kind": "image",
+      "file": "web/public/game/worker_sweating.png",
+      "tags": [
+        "image",
+        "protagonist",
+        "emotion:sweating"
+      ],
+      "episodes": [
+        "mr-001"
+      ],
+      "source": "new",
+      "reuse": "candidate"
+    },
+    {
+      "id": "img:worker_laughing",
+      "kind": "image",
+      "file": "web/public/game/worker_laughing.png",
+      "tags": [
+        "image",
+        "protagonist",
+        "emotion:laughing"
+      ],
+      "episodes": [
+        "mr-001"
+      ],
+      "source": "new",
+      "reuse": "candidate"
+    },
+    {
+      "id": "img:worker_facepalm",
+      "kind": "image",
+      "file": "web/public/game/worker_facepalm.png",
+      "tags": [
+        "image",
+        "protagonist",
+        "emotion:facepalm"
+      ],
+      "episodes": [
+        "mr-001"
+      ],
+      "source": "new",
+      "reuse": "candidate"
+    },
+    {
+      "id": "img:worker_proud",
+      "kind": "image",
+      "file": "web/public/game/worker_proud.png",
+      "tags": [
+        "image",
+        "protagonist",
+        "emotion:proud"
+      ],
+      "episodes": [
+        "mr-001"
+      ],
+      "source": "new",
+      "reuse": "candidate"
+    },
+    {
+      "id": "img:worker_bored",
+      "kind": "image",
+      "file": "web/public/game/worker_bored.png",
+      "tags": [
+        "image",
+        "protagonist",
+        "emotion:bored"
+      ],
+      "episodes": [
+        "mr-001"
+      ],
+      "source": "new",
+      "reuse": "candidate"
+    },
+    {
+      "id": "img:bg_office",
+      "kind": "image",
+      "file": "web/public/game/bg_office.webp",
+      "tags": [
+        "image",
+        "background"
+      ],
+      "episodes": [
+        "mr-001"
+      ],
+      "source": "new",
+      "reuse": "candidate"
+    },
+    {
+      "id": "img:timer_panel",
+      "kind": "image",
+      "file": "web/public/game/timer_panel.png",
+      "tags": [
+        "image",
+        "prop"
+      ],
+      "episodes": [
+        "mr-001"
+      ],
+      "source": "new",
+      "reuse": "candidate"
+    },
+    {
+      "id": "img:clock_button",
+      "kind": "image",
+      "file": "web/public/game/clock_button.png",
+      "tags": [
+        "image",
+        "prop"
+      ],
+      "episodes": [
+        "mr-001"
+      ],
+      "source": "new",
+      "reuse": "candidate"
+    },
+    {
+      "id": "img:email_pile",
+      "kind": "image",
+      "file": "web/public/game/email_pile.png",
+      "tags": [
+        "image",
+        "prop"
+      ],
+      "episodes": [
+        "mr-001"
+      ],
+      "source": "new",
+      "reuse": "candidate"
+    },
+    {
+      "id": "img:meeting_card",
+      "kind": "image",
+      "file": "web/public/game/meeting_card.png",
+      "tags": [
+        "image",
+        "prop"
+      ],
+      "episodes": [
+        "mr-001"
+      ],
+      "source": "new",
+      "reuse": "candidate"
+    },
+    {
+      "id": "img:banner_gold",
+      "kind": "image",
+      "file": "web/public/game/banner_gold.png",
+      "tags": [
+        "image",
+        "prop"
+      ],
+      "episodes": [
+        "mr-001"
+      ],
+      "source": "new",
+      "reuse": "candidate"
+    },
+    {
+      "id": "img:trophy",
+      "kind": "image",
+      "file": "web/public/game/trophy.png",
+      "tags": [
+        "image",
+        "prop"
+      ],
+      "episodes": [
+        "mr-001"
+      ],
+      "source": "new",
+      "reuse": "candidate"
+    },
+    {
+      "id": "img:door",
+      "kind": "image",
+      "file": "web/public/game/door.png",
+      "tags": [
+        "image",
+        "prop"
+      ],
+      "episodes": [
+        "mr-001"
+      ],
+      "source": "new",
+      "reuse": "candidate"
+    },
+    {
+      "id": "img:confetti_star",
+      "kind": "image",
+      "file": "web/public/game/confetti_star.png",
+      "tags": [
+        "image",
+        "prop"
+      ],
+      "episodes": [
+        "mr-001"
+      ],
+      "source": "new",
+      "reuse": "candidate"
+    },
+    {
+      "id": "img:duck",
+      "kind": "image",
+      "file": "web/public/game/duck.png",
+      "tags": [
+        "image",
+        "prop"
+      ],
+      "episodes": [
+        "mr-001"
+      ],
+      "source": "new",
+      "reuse": "candidate"
+    },
+    {
+      "id": "img:poof",
+      "kind": "image",
+      "file": "web/public/game/poof.png",
+      "tags": [
+        "image",
+        "prop"
+      ],
+      "episodes": [
+        "mr-001"
+      ],
+      "source": "new",
+      "reuse": "candidate"
+    },
+    {
+      "id": "img:boss_walk",
+      "kind": "image",
+      "file": "web/public/game/boss_walk.png",
+      "tags": [
+        "image",
+        "boss",
+        "pose:walk"
+      ],
+      "episodes": [
+        "mr-001"
+      ],
+      "source": "new",
+      "reuse": "candidate"
+    },
+    {
+      "id": "img:boss_grab",
+      "kind": "image",
+      "file": "web/public/game/boss_grab.png",
+      "tags": [
+        "image",
+        "boss",
+        "pose:grab"
+      ],
+      "episodes": [
+        "mr-001"
+      ],
+      "source": "new",
+      "reuse": "candidate"
+    },
+    {
+      "id": "img:worker_dragged",
+      "kind": "image",
+      "file": "web/public/game/worker_dragged.png",
+      "tags": [
+        "image",
+        "protagonist",
+        "emotion:dragged"
+      ],
+      "episodes": [
+        "mr-001"
+      ],
+      "source": "new",
+      "reuse": "candidate"
+    },
+    {
+      "id": "img:drag_combo",
+      "kind": "image",
+      "file": "web/public/game/drag_combo.png",
+      "tags": [
+        "image",
+        "prop"
+      ],
+      "episodes": [
+        "mr-001"
+      ],
+      "source": "new",
+      "reuse": "candidate"
+    },
+    {
+      "id": "sfx:go",
+      "kind": "sfx",
+      "file": "web/public/sfx/01_go/pick.mp3",
+      "tags": [
+        "sfx",
+        "event:go"
+      ],
+      "episodes": [
+        "mr-001"
+      ],
+      "source": "see web/public/sfx/SOURCES.md",
+      "reuse": "candidate"
+    },
+    {
+      "id": "sfx:tap",
+      "kind": "sfx",
+      "file": "web/public/sfx/02_tap/pick.mp3",
+      "tags": [
+        "sfx",
+        "event:tap"
+      ],
+      "episodes": [
+        "mr-001"
+      ],
+      "source": "see web/public/sfx/SOURCES.md",
+      "reuse": "candidate"
+    },
+    {
+      "id": "sfx:nice",
+      "kind": "sfx",
+      "file": "web/public/sfx/03_nice/pick.mp3",
+      "tags": [
+        "sfx",
+        "event:nice"
+      ],
+      "episodes": [
+        "mr-001"
+      ],
+      "source": "see web/public/sfx/SOURCES.md",
+      "reuse": "candidate"
+    },
+    {
+      "id": "sfx:perfect",
+      "kind": "sfx",
+      "file": "web/public/sfx/04_perfect/pick.mp3",
+      "tags": [
+        "sfx",
+        "event:perfect"
+      ],
+      "episodes": [
+        "mr-001"
+      ],
+      "source": "see web/public/sfx/SOURCES.md",
+      "reuse": "candidate"
+    },
+    {
+      "id": "sfx:early",
+      "kind": "sfx",
+      "file": "web/public/sfx/05_early/pick.mp3",
+      "tags": [
+        "sfx",
+        "event:early"
+      ],
+      "episodes": [
+        "mr-001"
+      ],
+      "source": "see web/public/sfx/SOURCES.md",
+      "reuse": "candidate"
+    },
+    {
+      "id": "sfx:late",
+      "kind": "sfx",
+      "file": "web/public/sfx/06_late/pick.mp3",
+      "tags": [
+        "sfx",
+        "event:late"
+      ],
+      "episodes": [
+        "mr-001"
+      ],
+      "source": "see web/public/sfx/SOURCES.md",
+      "reuse": "candidate"
+    },
+    {
+      "id": "sfx:win",
+      "kind": "sfx",
+      "file": "web/public/sfx/07_win/pick.mp3",
+      "tags": [
+        "sfx",
+        "event:win"
+      ],
+      "episodes": [
+        "mr-001"
+      ],
+      "source": "see web/public/sfx/SOURCES.md",
+      "reuse": "candidate"
+    },
+    {
+      "id": "sfx:lose",
+      "kind": "sfx",
+      "file": "web/public/sfx/08_lose/pick.mp3",
+      "tags": [
+        "sfx",
+        "event:lose"
+      ],
+      "episodes": [
+        "mr-001"
+      ],
+      "source": "see web/public/sfx/SOURCES.md",
+      "reuse": "candidate"
+    },
+    {
+      "id": "sfx:bgm",
+      "kind": "bgm",
+      "file": "web/public/sfx/bgm/5.mp3",
+      "tags": [
+        "bgm",
+        "event:bgm"
+      ],
+      "episodes": [
+        "mr-001"
+      ],
+      "source": "see web/public/sfx/SOURCES.md",
+      "reuse": "candidate"
+    },
+    {
+      "id": "frame:timing_stop",
+      "kind": "frame",
+      "file": "docs/GAME_FRAME_SPEC.md",
+      "tags": [
+        "frame",
+        "timing",
+        "tap"
+      ],
+      "episodes": [
+        "mr-001"
+      ],
+      "source": "new",
+      "reuse": "candidate"
+    }
+  ]
+}
