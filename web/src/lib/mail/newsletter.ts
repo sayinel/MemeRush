@@ -90,12 +90,12 @@ export function renderNewsletter(v: NewsletterVars): Newsletter {
     // reply
     section(
       `<p style="${p(16, C.amber, "font-weight:800;margin-bottom:4px;")}">하고 싶은 게임이 따로 있나요?</p>` +
-        `<p style="${p(14, C.cream)}">이 메일에 그냥 답장해 주세요. 게임 이름 한 줄이면 충분해요. 읽고 가장 많이 나온 게임부터 만들어요.</p>`,
+        `<p style="${p(14, C.cream)}">게임 이름 한 줄을 <a href="mailto:${esc(v.replyAddress)}" style="color:${C.amber};text-decoration:underline;">${esc(v.replyAddress)}</a> 로 보내 주세요. 읽고 가장 많이 나온 게임부터 만들어요.</p>`,
     ) +
     // footer
     footerRow(
       `이 메일은 Meme Rush에서 &lsquo;새 게임 메일로 받기&rsquo;를 신청하셔서 보내 드렸어요.<br>` +
-        `<a href="${esc(v.unsubUrl)}" style="color:${C.foot};text-decoration:underline;">수신취소</a> · 답장은 ${esc(v.replyAddress)} 로 받아요`,
+        `<a href="${esc(v.unsubUrl)}" style="color:${C.foot};text-decoration:underline;">수신취소</a> · 문의는 ${esc(v.replyAddress)} 로 보내 주세요(이 메일은 답장을 받지 않아요)`,
     ),
   );
 
@@ -113,11 +113,11 @@ export function renderNewsletter(v: NewsletterVars): Newsletter {
   lines.push(
     "",
     "하고 싶은 게임이 따로 있나요?",
-    "이 메일에 그냥 답장해 주세요. 게임 이름 한 줄이면 충분해요. 읽고 가장 많이 나온 게임부터 만들어요.",
+    `게임 이름 한 줄을 ${v.replyAddress} 로 보내 주세요. 읽고 가장 많이 나온 게임부터 만들어요.`,
     "",
     "이 메일은 Meme Rush에서 '새 게임 메일로 받기'를 신청하셔서 보내 드렸어요.",
     `수신취소: ${v.unsubUrl}`,
-    `답장은 ${v.replyAddress} 로 받아요`,
+    `문의는 ${v.replyAddress} 로 보내 주세요(이 메일은 답장을 받지 않아요)`,
   );
 
   return { subject, preheader: PREHEADER, html, text: lines.join("\n") };

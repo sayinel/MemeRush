@@ -83,7 +83,8 @@ export function buildWelcomeMail(opts: { lang: string; host: string; challengeId
           from: "From MemeRush",
           unsub: "Unsubscribe",
         };
-  const text = `${t.hello}\n\n${t.play}: ${gameUrl}\n\n${t.later}\n\n${t.from}\n${t.unsub}: ${unsubUrl}\n`;
+  const contact = "memerush@superagents.run"; // 문의(CS) 주소. 발신 DoNotReply는 답장을 받지 않는다(사장님 10/31, 공정 카드 밈러시-슈퍼프로젝트 #155)
+  const text = `${t.hello}\n\n${t.play}: ${gameUrl}\n\n${t.later}\n\n${t.from}\n${t.unsub}: ${unsubUrl}\n${lang === "ko" ? "문의" : "Contact"}: ${contact}\n`;
   const html = shell(
     lang,
     t.subject,
@@ -95,7 +96,7 @@ export function buildWelcomeMail(opts: { lang: string; host: string; challengeId
       bigButton(esc(gameUrl), esc(t.play)) +
       `<p style="${p(14, C.soft, "margin-top:16px;")}">${esc(t.later)}</p>` +
       `</td></tr>` +
-      footerRow(`${esc(t.from)}<br><a href="${esc(unsubUrl)}" style="color:${C.foot};text-decoration:underline;">${esc(t.unsub)}</a>`),
+      footerRow(`${esc(t.from)}<br><a href="${esc(unsubUrl)}" style="color:${C.foot};text-decoration:underline;">${esc(t.unsub)}</a> · ${lang === "ko" ? "문의" : "Contact"} ${contact}`),
   );
   return {
     subject: t.subject,

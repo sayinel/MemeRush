@@ -21,7 +21,7 @@ test("required text, 3 vote links, bulletproof button, images", () => {
   assert.ok(r.html.includes("https://memerush.superagents.run/mail/banner.jpg"));
   assert.ok(r.html.includes("https://memerush.superagents.run/mail/video-thumb.jpg"));
   assert.ok(r.html.includes('alt="Meme Rush 배너'));
-  assert.ok(r.html.includes("memerush@superagents.run 로 받아요") && r.html.includes("수신취소"));
+  assert.ok(r.html.includes("문의는 memerush@superagents.run 로 보내 주세요") && r.html.includes("수신취소"));
   assert.ok(r.html.includes("word-break:keep-all") && r.html.includes('width="600"'));
   assert.ok(r.html.includes("퇴근까지 5초. 버튼 누를 준비 됐죠?"));
   assert.ok(r.text.includes("vote?c=ufo&s=a%20b%261") && r.text.includes("2.086s off"));
