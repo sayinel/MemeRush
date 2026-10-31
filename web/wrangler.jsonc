@@ -16,5 +16,8 @@
       "migrations_dir": "d1/migrations"
     }
   ],
+  "previews": {
+    "d1_databases": [{ "binding": "DB", "database_name": "memerush-preview", "database_id": "105dff38-14ae-43ba-8308-6acb7137309b" }]
+  },
   "observability": { "enabled": true }
 }
