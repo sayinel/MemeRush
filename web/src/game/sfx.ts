@@ -269,10 +269,13 @@ export function play(name: Name, force = false, semis = 0) {
 
 // iOS: a one-sample silent buffer started inside the gesture opens the output, and a silent <audio> loop moves older iOS
 // (no navigator.audioSession) to the playback category so the ring/silent switch no longer mutes Web Audio.
-let warmed = false;
+// The first touch may be a pointerdown that iOS does not count as an unlocking gesture, so keep warming on every
+// touch until the context really runs; only then stop (a flag set at the first touch left iPhones silent until the
+// sound button was toggled, 유정 10/31).
+let unlocked = false;
+let silentAudio = false;
 function warmUp(c: AudioContext | null) {
-  if (!c || warmed) return;
-  warmed = true;
+  if (!c || unlocked) return;
   try {
     const src = c.createBufferSource();
     src.buffer = c.createBuffer(1, 1, 22050);
@@ -281,7 +284,17 @@ function warmUp(c: AudioContext | null) {
   } catch {
     /* warm-up is best effort */
   }
-  if (!("audioSession" in navigator)) {
+  void c
+    .resume()
+    .then(() => {
+      if (c.state === "running") {
+        unlocked = true;
+        startBgm(); // the music may have been waiting for the unlock
+      }
+    })
+    .catch(() => undefined);
+  if (!silentAudio && !("audioSession" in navigator)) {
+    silentAudio = true;
     try {
       const a = new Audio("data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=");
       a.loop = true;
