@@ -1,6 +1,6 @@
 {
   "episode_default": "mr-001",
-  "count": 40,
+  "count": 52,
   "items": [
     {
       "id": "img:worker_deadpan",
@@ -359,7 +359,7 @@
         "prop"
       ],
       "episodes": [
-        "mr-002"
+        "mr-001"
       ],
       "source": "new",
       "reuse": "candidate"
@@ -373,7 +373,7 @@
         "prop"
       ],
       "episodes": [
-        "mr-002"
+        "mr-001"
       ],
       "source": "new",
       "reuse": "candidate"
@@ -387,7 +387,7 @@
         "prop"
       ],
       "episodes": [
-        "mr-002"
+        "mr-001"
       ],
       "source": "new",
       "reuse": "candidate"
@@ -401,7 +401,7 @@
         "prop"
       ],
       "episodes": [
-        "mr-002"
+        "mr-001"
       ],
       "source": "new",
       "reuse": "candidate"
@@ -415,7 +415,7 @@
         "prop"
       ],
       "episodes": [
-        "mr-002"
+        "mr-001"
       ],
       "source": "new",
       "reuse": "candidate"
@@ -429,7 +429,181 @@
         "prop"
       ],
       "episodes": [
-        "mr-002"
+        "mr-001"
+      ],
+      "source": "new",
+      "reuse": "candidate"
+    },
+    {
+      "id": "img:worker_tg_sweating",
+      "kind": "image",
+      "file": "web/public/game/worker_tg_sweating.png",
+      "tags": [
+        "image",
+        "protagonist",
+        "emotion:tg_sweating"
+      ],
+      "episodes": [
+        "mr-001"
+      ],
+      "source": "new",
+      "reuse": "candidate"
+    },
+    {
+      "id": "img:worker_tg_shocked",
+      "kind": "image",
+      "file": "web/public/game/worker_tg_shocked.png",
+      "tags": [
+        "image",
+        "protagonist",
+        "emotion:tg_shocked"
+      ],
+      "episodes": [
+        "mr-001"
+      ],
+      "source": "new",
+      "reuse": "candidate"
+    },
+    {
+      "id": "img:worker_tg_smug",
+      "kind": "image",
+      "file": "web/public/game/worker_tg_smug.png",
+      "tags": [
+        "image",
+        "protagonist",
+        "emotion:tg_smug"
+      ],
+      "episodes": [
+        "mr-001"
+      ],
+      "source": "new",
+      "reuse": "candidate"
+    },
+    {
+      "id": "img:worker_tg_crying",
+      "kind": "image",
+      "file": "web/public/game/worker_tg_crying.png",
+      "tags": [
+        "image",
+        "protagonist",
+        "emotion:tg_crying"
+      ],
+      "episodes": [
+        "mr-001"
+      ],
+      "source": "new",
+      "reuse": "candidate"
+    },
+    {
+      "id": "img:worker_tg_deadpan",
+      "kind": "image",
+      "file": "web/public/game/worker_tg_deadpan.png",
+      "tags": [
+        "image",
+        "protagonist",
+        "emotion:tg_deadpan"
+      ],
+      "episodes": [
+        "mr-001"
+      ],
+      "source": "new",
+      "reuse": "candidate"
+    },
+    {
+      "id": "img:worker_tg_laughing",
+      "kind": "image",
+      "file": "web/public/game/worker_tg_laughing.png",
+      "tags": [
+        "image",
+        "protagonist",
+        "emotion:tg_laughing"
+      ],
+      "episodes": [
+        "mr-001"
+      ],
+      "source": "new",
+      "reuse": "candidate"
+    },
+    {
+      "id": "img:frontman_stand",
+      "kind": "image",
+      "file": "web/public/game/frontman_stand.png",
+      "tags": [
+        "image",
+        "prop"
+      ],
+      "episodes": [
+        "mr-001"
+      ],
+      "source": "new",
+      "reuse": "candidate"
+    },
+    {
+      "id": "img:frontman_point",
+      "kind": "image",
+      "file": "web/public/game/frontman_point.png",
+      "tags": [
+        "image",
+        "prop"
+      ],
+      "episodes": [
+        "mr-001"
+      ],
+      "source": "new",
+      "reuse": "candidate"
+    },
+    {
+      "id": "img:frontman_walk",
+      "kind": "image",
+      "file": "web/public/game/frontman_walk.png",
+      "tags": [
+        "image",
+        "prop"
+      ],
+      "episodes": [
+        "mr-001"
+      ],
+      "source": "new",
+      "reuse": "candidate"
+    },
+    {
+      "id": "img:frontman_peek",
+      "kind": "image",
+      "file": "web/public/game/frontman_peek.png",
+      "tags": [
+        "image",
+        "prop"
+      ],
+      "episodes": [
+        "mr-001"
+      ],
+      "source": "new",
+      "reuse": "candidate"
+    },
+    {
+      "id": "img:frontman_arms_back",
+      "kind": "image",
+      "file": "web/public/game/frontman_arms_back.png",
+      "tags": [
+        "image",
+        "prop"
+      ],
+      "episodes": [
+        "mr-001"
+      ],
+      "source": "new",
+      "reuse": "candidate"
+    },
+    {
+      "id": "img:frontman_headshake",
+      "kind": "image",
+      "file": "web/public/game/frontman_headshake.png",
+      "tags": [
+        "image",
+        "prop"
+      ],
+      "episodes": [
+        "mr-001"
       ],
       "source": "new",
       "reuse": "candidate"
