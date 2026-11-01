@@ -1,6 +1,6 @@
 {
   "episode_default": "mr-001",
-  "count": 52,
+  "count": 55,
   "items": [
     {
       "id": "img:worker_deadpan",
@@ -598,6 +598,48 @@
       "id": "img:frontman_headshake",
       "kind": "image",
       "file": "web/public/game/frontman_headshake.png",
+      "tags": [
+        "image",
+        "prop"
+      ],
+      "episodes": [
+        "mr-001"
+      ],
+      "source": "new",
+      "reuse": "candidate"
+    },
+    {
+      "id": "img:dalgona_disc_heart",
+      "kind": "image",
+      "file": "web/public/game/dalgona_disc_heart.png",
+      "tags": [
+        "image",
+        "prop"
+      ],
+      "episodes": [
+        "mr-001"
+      ],
+      "source": "new",
+      "reuse": "candidate"
+    },
+    {
+      "id": "img:dalgona_disc_star",
+      "kind": "image",
+      "file": "web/public/game/dalgona_disc_star.png",
+      "tags": [
+        "image",
+        "prop"
+      ],
+      "episodes": [
+        "mr-001"
+      ],
+      "source": "new",
+      "reuse": "candidate"
+    },
+    {
+      "id": "img:dalgona_disc_umbrella",
+      "kind": "image",
+      "file": "web/public/game/dalgona_disc_umbrella.png",
       "tags": [
         "image",
         "prop"
