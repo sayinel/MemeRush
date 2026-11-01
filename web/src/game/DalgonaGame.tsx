@@ -3,7 +3,7 @@
 // 개발용 시제품: 밈러시 2편 달고나 뽑기 (outline_trace 틀). 서버·API 없이 로컬 판정만 쓴다.
 // 로직은 src/game/dalgona_logic.ts (순수 함수, 시험 tests/dalgona_logic.test.mjs).
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
 import {
   DEFAULT_TOLERANCE,
   MAX_CRACKS,
@@ -19,9 +19,12 @@ import {
   type ShapeId,
   type TracePt,
 } from "./dalgona_logic";
+import { DALGONA_LAYOUT as L } from "./layout_dalgona";
 
 const W = 400;
 const H = 400;
+const STAGE_W = 720;
+const STAGE_H = 1280;
 const SHAPE_NAME: Record<ShapeId, string> = { circle: "원", triangle: "삼각형", star: "별", heart: "하트", umbrella: "우산" };
 
 type Phase = "ready" | "playing" | "between" | "done";
@@ -361,6 +364,15 @@ export default function DalgonaGame() {
     sync(SHAPE_LIMIT_MS[SHAPE_ORDER[0]]);
   };
 
+  // 무대 크기: 폭 = min(뷰포트 폭, 뷰포트 높이*9/16), 720x1280을 CSS scale로 줄인다.
+  const [scale, setScale] = useState(0.5);
+  useEffect(() => {
+    const fit = () => setScale(Math.min(window.innerWidth / STAGE_W, window.innerHeight / STAGE_H));
+    fit();
+    window.addEventListener("resize", fit);
+    return () => window.removeEventListener("resize", fit);
+  }, []);
+
   const { phase, round, leftMs, live, rounds, valid } = ui;
   const shape = SHAPE_ORDER[Math.min(round, 2)];
   const cracks = live?.cracks ?? 0;
@@ -389,65 +401,105 @@ export default function DalgonaGame() {
   // 라운드마다 끌고 가는 쪽이 달라진다: 1판 군인 1명, 2판 군인 2명, 3판 프론트맨(최종 보스)
   const dragSrc = ["/game/drag_r1_soldier.png", "/game/drag_r2_soldiers.png", "/game/drag_r3_frontman.png"][Math.min(round, 2)];
   const hotPeek = round >= 2 ? "frontman_peek" : "assistant_peek";
+  const dragBox = [L.drag_r1, L.drag_r2, L.drag_r3][Math.min(round, 2)];
+
+  // 레이아웃 좌표(DALGONA_LAYOUT)만 읽어 배치한다. x,y=중심, bottom이면 y=박스 아래 끝.
+  type Box = { x: number; y: number; w: number; h: number };
+  const box = (k: Box, bottom = false): CSSProperties => ({
+    position: "absolute",
+    left: k.x - k.w / 2,
+    top: bottom ? k.y - k.h : k.y - k.h / 2,
+    width: k.w,
+    height: k.h,
+  });
+  const imgStyle = (k: Box, bottom = false, extra: CSSProperties = {}): CSSProperties => ({ ...box(k, bottom), objectFit: "contain", ...extra });
+  const timerRed = phase === "playing" && leftMs <= 3000;
+  const bombSrc = hot ? "bomb_hot" : "bomb_start";
+  const showExplosion = bomb && !dragDone;
+  const titleParts = `[[${SHAPE_NAME[shape]}]] 모양을 따내라`.split(/(\[\[.*?\]\])/);
+  const bottomText =
+    phase === "ready"
+      ? "초록 점에서 시작해 갈색 홈을 따라 그리고, 끝선을 초록 점에 닿게 이어야 성공"
+      : phase === "playing"
+        ? `정확도 ${live ? live.accuracy.toFixed(0) : 0}% (진행 중) · 끝선을 초록 점에 이으세요`
+        : phase === "between" && last
+          ? last.complete
+            ? `성공! 정확도 ${last.accuracy}%${last.timeLeftMs < 800 ? " · 아슬아슬!" : ""}`
+            : `시간 초과, 균열 ${last.cracks}칸`
+          : "";
 
   return (
-    <main
-      className="relative flex min-h-dvh flex-col items-center bg-black text-white"
-      style={{ backgroundImage: "linear-gradient(rgba(0,0,0,0.55), rgba(0,0,0,0.75)), url(/game/bg_dalgona_playground.webp)", backgroundSize: "cover", backgroundPosition: "center" }}
-    >
-      <div className="w-full max-w-[400px] px-2 pb-6">
-        <p className="my-2 rounded bg-yellow-400 px-2 py-1 text-center text-xs font-bold text-black">
-          개발용 시제품입니다 (달고나 뽑기 틀 시험, 서버 연결 없음)
-        </p>
-        <div className="flex items-center justify-between py-2 text-sm">
-          <span className="font-bold">
-            라운드 {round + 1}/3 · {SHAPE_NAME[shape]}
-          </span>
-          <span className="tabular-nums">{(leftMs / 1000).toFixed(1)}초</span>
-          <span aria-label="균열">
-            {Array.from({ length: MAX_CRACKS }, (_, i) => (
-              <span key={i} className={i < cracks ? "text-red-500" : "text-gray-600"}>
-                {i < cracks ? "✕" : "○"}{" "}
-              </span>
-            ))}
-          </span>
-        </div>
-        <div className="relative overflow-hidden rounded">
-          <style>{`@keyframes dgSway{0%,100%{transform:rotate(-5deg) translateY(0)}50%{transform:rotate(5deg) translateY(-6px)}}@keyframes dgShake{0%,100%{transform:translateX(0)}25%{transform:translateX(-3px)}75%{transform:translateX(3px)}}@keyframes dgDrag{from{transform:translateX(105%)}to{transform:translateX(-125%)}}`}</style>
+    <main className="relative flex min-h-dvh flex-col items-center bg-black text-white">
+      <div style={{ width: STAGE_W * scale, height: STAGE_H * scale, flex: "none" }}>
+        <div
+          data-testid="stage"
+          style={{ width: STAGE_W, height: STAGE_H, transform: `scale(${scale})`, transformOrigin: "0 0", position: "relative", overflow: "hidden", backgroundImage: "url(/game/bg_dalgona_playground.webp)", backgroundSize: "cover", backgroundPosition: "center", fontFamily: "var(--font-noto), Arial, sans-serif" }}
+        >
+          <style>{`@keyframes dgSway{0%,100%{transform:rotate(-5deg) translateY(0)}50%{transform:rotate(5deg) translateY(-6px)}}@keyframes dgShake{0%,100%{transform:translateX(0)}25%{transform:translateX(-3px)}75%{transform:translateX(3px)}}@keyframes dgDrag{from{transform:translateX(0)}to{transform:translateX(-1100px)}}@keyframes dgBomb{0%,100%{transform:rotate(-4deg)}50%{transform:rotate(4deg)}}@keyframes dgBoom{from{transform:scale(0.4);opacity:0.2}to{transform:scale(1);opacity:1}}`}</style>
+          <div style={{ ...box(L.badge_round), display: "flex", alignItems: "center", justifyContent: "center", borderRadius: 999, background: "rgba(0,0,0,0.6)", fontWeight: 800, fontSize: L.badge_round.font }}>
+            ROUND {round + 1}/3
+          </div>
+          <div style={{ ...box(L.caption_top), display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, fontSize: L.caption_top.font, textShadow: "0 2px 6px rgba(0,0,0,0.8)", whiteSpace: "nowrap" }}>
+            {titleParts.map((t, i) => (t.startsWith("[[") ? <span key={i} style={{ color: "#ffd54a" }}>{t.slice(2, -2)}</span> : <span key={i}>{t}</span>))}
+          </div>
+          <div style={{ ...box(L.progress_dots), display: "flex", alignItems: "center", justifyContent: "center", fontSize: L.progress_dots.font, letterSpacing: 4, color: "#fff", textShadow: "0 0 4px #000, 0 2px 6px #000" }} aria-label="진행">
+            {[0, 1, 2].map((i) => (i <= round ? "●" : "○")).join(" ")}
+          </div>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/game/timer_panel.png" alt="" style={imgStyle(L.timer_panel)} />
+          <div className="tabular-nums" style={{ ...box(L.timer_digits), display: "flex", alignItems: "center", justifyContent: "center", fontFamily: '"Anton", Impact, sans-serif', fontSize: L.timer_digits.font, color: timerRed ? "#ff3b30" : "#fff", textShadow: "0 3px 8px rgba(0,0,0,0.7)" }}>
+            {(leftMs / 1000).toFixed(1)}
+          </div>
           <canvas
             ref={canvasRef}
             width={W}
             height={H}
-            className="w-full touch-none rounded bg-neutral-900"
+            className="touch-none"
+            style={{ ...box(L.disc), borderRadius: "50%" }}
             onPointerDown={onDown}
             onPointerMove={onMove}
             onPointerUp={onUp}
             onPointerCancel={onUp}
           />
-          <div className="pointer-events-none absolute inset-0" aria-hidden>
+          {!showExplosion && !exit && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={`/game/${bombSrc}.png`} alt="" style={imgStyle(L.bomb_start, false, { animation: hot ? "dgBomb 0.15s infinite" : undefined })} />
+          )}
+          <div className="pointer-events-none" style={{ position: "absolute", inset: 0 }} aria-hidden>
             {!exit && (
               // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={`/game/${worker}.png`}
-                alt=""
-                className="absolute bottom-1 left-1 h-24 w-auto object-contain drop-shadow-lg"
-                style={{ animation: hot ? "dgShake 0.12s infinite" : phase === "playing" || phase === "ready" ? "dgSway 1.6s ease-in-out infinite" : undefined, transformOrigin: "50% 100%" }}
-              />
+              <img src={`/game/${worker}.png`} alt="" style={imgStyle(L.hero_ready, true, { filter: "drop-shadow(0 6px 8px rgba(0,0,0,0.5))", animation: hot ? "dgShake 0.12s infinite" : phase === "playing" || phase === "ready" ? "dgSway 1.6s ease-in-out infinite" : undefined, transformOrigin: "50% 100%" })} />
             )}
             {!exit && (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={`/game/${hot ? hotPeek : assistant}.png`} alt="" className="absolute bottom-1 right-1 h-24 w-auto object-contain drop-shadow-lg" />
+              <img src={`/game/${hot ? hotPeek : assistant}.png`} alt="" style={imgStyle(L.support_ready, true, { filter: "drop-shadow(0 6px 8px rgba(0,0,0,0.5))" })} />
             )}
             {exit && (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={dragSrc} alt="" className="absolute bottom-2 left-0 h-36 w-auto drop-shadow-xl" style={{ animation: "dgDrag 1.6s ease-in forwards" }} />
+              <img src={dragSrc} alt="" style={imgStyle({ x: L.hero_ready.x, y: L.hero_ready.y, w: dragBox.w, h: dragBox.h }, true, { animation: "dgDrag 1.6s ease-in forwards" })} />
             )}
+            {showExplosion && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src="/game/bomb_explosion.png" alt="" style={{ ...imgStyle({ x: L.disc.x, y: L.disc.y, w: L.bomb_explosion.w * 2, h: L.bomb_explosion.h * 2 }), animation: "dgBoom 0.4s ease-out forwards" }} />
+            )}
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/game/clock_button.png" alt="" style={imgStyle(L.prop_button)} />
+          </div>
+          <div style={{ ...box(L.caption_bottom), display: "flex", alignItems: "center", justifyContent: "center", textAlign: "center", fontSize: L.caption_bottom.font, fontWeight: 700, lineHeight: 1.25, textShadow: "0 2px 6px rgba(0,0,0,0.85)" }}>
+            {bottomText}
           </div>
         </div>
-        <p className="py-2 text-center text-sm text-gray-300">
-          {phase === "ready" && "초록 점에서 시작해 갈색 홈을 따라 그리고, 끝선을 초록 점에 닿게 이어야 성공"}
-          {phase === "playing" && `정확도 ${live ? live.accuracy.toFixed(0) : 0}% (진행 중) · 끝선을 초록 점에 이으세요`}
-          {phase === "between" && last && (last.complete ? `성공! 정확도 ${last.accuracy}%${last.timeLeftMs < 800 ? " · 아슬아슬!" : ""}` : `시간 초과, 균열 ${last.cracks}칸`)}
+      </div>
+      <div className="w-full max-w-[400px] px-2 pb-6">
+        <p className="my-2 rounded bg-yellow-400 px-2 py-1 text-center text-xs font-bold text-black">
+          개발용 시제품입니다 (달고나 뽑기 틀 시험, 서버 연결 없음)
+        </p>
+        <p className="py-1 text-center text-sm" aria-label="균열">
+          {Array.from({ length: MAX_CRACKS }, (_, i) => (
+            <span key={i} className={i < cracks ? "text-red-500" : "text-gray-600"}>
+              {i < cracks ? "✕" : "○"}{" "}
+            </span>
+          ))}
         </p>
         {phase === "between" && (
           <button className="w-full rounded bg-green-700 py-3 font-bold" onClick={nextRound}>
@@ -455,7 +507,11 @@ export default function DalgonaGame() {
           </button>
         )}
         {summary && (!exit || dragDone) && (
-          <div className="rounded bg-neutral-800 p-4 text-center">
+          <div className="rounded bg-neutral-800 p-4 text-center" data-testid="result">
+            {bomb && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src="/game/bomb_disc_broken.png" alt="" className="mx-auto mb-2 h-16 w-auto" />
+            )}
             <p className="text-xl font-bold">{last && !last.complete && !last.broken ? "💣 펑! 시간 초과" : summary.failed ? (last && last.broken && last.cracks < 3 ? "끝선이 첫선에 닿지 않아 실패" : "달고나가 깨졌어요") : summary.totalCracks === 0 ? "NO CRACKS. NO NOTES." : "클리어!"}</p>
             {last && !last.complete && <p className="mt-1 text-sm text-orange-300">테두리 {Math.round(last.coverage * 100)}%까지 그렸어요{last.coverage >= 0.8 ? " · 아슬아슬하게 놓쳤어요!" : ""}</p>}
             <p className="mt-2">정확도 {summary.totalAccuracy}%</p>
