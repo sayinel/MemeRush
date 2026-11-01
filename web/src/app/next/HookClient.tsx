@@ -21,7 +21,7 @@ export default function HookClient({ from }: { from: HookFrom }) {
   }
   return (
     <main className="relative flex min-h-dvh flex-col items-center bg-black text-white" data-testid="hook-page">
-      <HookStage from={from} challengeId={HOOK_EVENT_CHALLENGE} scale={scale} onBack={back} backLabel={lang === "ko" ? "순위" : "Back"} />
+      <HookStage from={from} challengeId={HOOK_EVENT_CHALLENGE} scale={scale} onBack={back} backLabel={lang === "ko" ? "이전" : "Back"} />
     </main>
   );
 }

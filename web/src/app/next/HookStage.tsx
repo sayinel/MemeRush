@@ -153,7 +153,7 @@ export function HookOverlay({ challengeId, onClose, lang }: { challengeId: strin
   }, []);
   return (
     <div ref={ref} className="absolute inset-0 z-30 overflow-hidden bg-black" role="dialog" aria-modal="true" data-testid="email-screen">
-      <HookStage from="001" challengeId={challengeId} scale={scale} onBack={onClose} backLabel={lang === "ko" ? "순위" : "Back"} />
+      <HookStage from="001" challengeId={challengeId} scale={scale} onBack={onClose} backLabel={lang === "ko" ? "이전" : "Back"} />
     </div>
   );
 }
