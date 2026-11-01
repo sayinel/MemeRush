@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { DALGONA_EMAIL_HOOK_LAYOUT as L } from "@/game/layout_dalgona_email_hook";
-import { useLang } from "@/lib/i18n";
+import { captureSrc, useLang } from "@/lib/i18n";
 import { hookSrc, nextTitleNo, sendHookEvent, type HookFrom } from "@/lib/next_hook";
 
 const STAGE_W = 720;
@@ -46,7 +46,7 @@ export function HookStage({ from, challengeId, scale, onBack, backLabel }: { fro
       const res = await fetch("/api/subscribe", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: v, lang, src: hookSrc(from) }),
+        body: JSON.stringify({ email: v, lang, src: hookSrc(from, captureSrc()) }),
       });
       if (res.ok) {
         setState("sent");

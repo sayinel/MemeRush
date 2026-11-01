@@ -17,6 +17,15 @@ test("next hook: src passes the subscribe route filter unchanged", () => {
   }
 });
 
+test("next hook: channel is appended and still passes the subscribe filter within 40 chars", () => {
+  assert.equal(hookSrc("001", "sns_kr"), "hook_from_001.sns_kr");
+  assert.equal(hookSrc("001", null), "hook_from_001");
+  assert.equal(hookSrc("001", "a b/c!"), "hook_from_001.abc");
+  const long = hookSrc("002", "x".repeat(60));
+  assert.ok(long.length <= 40);
+  assert.equal(long.replace(/[^\w.-]/g, "").slice(0, 40), long);
+});
+
 test("next hook: meta is only from+variant and within the guard", () => {
   const m = hookMeta("001");
   assert.deepEqual(Object.keys(m).sort(), ["from", "variant"]);

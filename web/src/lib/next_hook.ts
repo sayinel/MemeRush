@@ -13,8 +13,11 @@ export function nextTitleNo(from: HookFrom): string {
 }
 
 /** /api/subscribe 의 src 값. 서버가 [\w.-] 40자로 거르므로 그대로 통과한다. */
-export function hookSrc(from: HookFrom): string {
-  return `hook_from_${from}`;
+export function hookSrc(from: HookFrom, channel?: string | null): string {
+  // 유입 채널(?src=)을 뒤에 붙여 이메일 등록이 어느 채널에서 왔는지 남긴다: hook_from_001.sns_kr
+  const base = `hook_from_${from}`;
+  const ch = channel ? channel.replace(/[^\w.-]/g, "").slice(0, 40) : "";
+  return ch ? `${base}.${ch}`.slice(0, 40) : base;
 }
 
 /** 이벤트 meta: from 과 variant 만. */
