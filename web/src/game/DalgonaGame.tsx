@@ -63,6 +63,44 @@ function buzz(pattern: number | number[]) {
   }
 }
 
+// 우산 판은 사장님이 고른 원판 그림을 그대로 보여 준다(홈 경로도 이 그림에서 뽑았다)
+let umbrellaImg: HTMLImageElement | null = null;
+function umbrellaDisc(): HTMLImageElement | null {
+  if (typeof window === "undefined") return null;
+  if (!umbrellaImg) {
+    umbrellaImg = new Image();
+    umbrellaImg.src = "/game/dalgona_disc_umbrella_ref.png";
+  }
+  return umbrellaImg.complete && umbrellaImg.naturalWidth > 0 ? umbrellaImg : null;
+}
+
+// 시험 기록: 내부망(.ts.net)이나 로컬에서 열었을 때만 사장님 PC의 작은 수집기로 보낸다(운영 주소에서는 아무것도 보내지 않는다).
+// 목적은 '사람이 잘하는 건지 게임이 빠듯하게 설계된 건지'를 숫자(통과율, 걸린 시간)로 가리는 것이다.
+function logRound(shape: ShapeId, limitMs: number, elapsedMs: number, r: RoundResult) {
+  try {
+    const h = location.hostname;
+    const tail = h.endsWith(".ts.net");
+    if (!tail && h !== "localhost" && h !== "127.0.0.1") return;
+    const body = JSON.stringify({
+      t: new Date().toISOString(),
+      shape,
+      limitMs,
+      usedMs: Math.round(r.complete && r.completeAtMs !== null ? r.completeAtMs : elapsedMs),
+      leftMs: r.timeLeftMs,
+      cracks: r.cracks,
+      accuracy: r.accuracy,
+      coverage: Math.round(r.coverage * 1000) / 1000,
+      complete: r.complete,
+      timedOut: r.timedOut,
+      broken: r.broken,
+      ua: navigator.userAgent.slice(0, 80),
+    });
+    void fetch(`${location.protocol}//${h}:${tail ? 8444 : 3928}/log`, { method: "POST", mode: "no-cors", body, keepalive: true }).catch(() => {});
+  } catch {
+    /* 기록은 없어도 게임에 영향 없음 */
+  }
+}
+
 const OUTLINE_CACHE = new Map<ShapeId, ReturnType<typeof shapeOutline>>();
 function outlineOf(shape: ShapeId) {
   let o = OUTLINE_CACHE.get(shape);
@@ -110,12 +148,16 @@ function drawAll(c: HTMLCanvasElement, g: G) {
   }
   // 모양 홈
   const o = outlineOf(SHAPE_ORDER[Math.min(g.round, 2)]);
+  const umbImg = SHAPE_ORDER[Math.min(g.round, 2)] === "umbrella" ? umbrellaDisc() : null;
+  if (umbImg) ctx.drawImage(umbImg, W / 2 - 192, H / 2 - 192, 384, 384);
   ctx.strokeStyle = "#5b3612";
   ctx.lineWidth = 7;
   ctx.lineJoin = "round";
-  ctx.beginPath();
-  o.forEach((p, i) => (i ? ctx.lineTo(p.x * W, p.y * H) : ctx.moveTo(p.x * W, p.y * H)));
-  ctx.stroke();
+  if (!umbImg) {
+    ctx.beginPath();
+    o.forEach((p, i) => (i ? ctx.lineTo(p.x * W, p.y * H) : ctx.moveTo(p.x * W, p.y * H)));
+    ctx.stroke();
+  }
   // 시작점
   ctx.fillStyle = "#2ecc71";
   ctx.beginPath();
@@ -235,6 +277,7 @@ export default function DalgonaGame() {
           g.live = fin;
           if (!validateHumanTrace(shape, g.trace).ok) g.valid = false;
           g.rounds = [...g.rounds, fin];
+          logRound(shape, limit, cur.complete || cur.broken ? el : limit, fin);
           g.phase = fin.broken || !fin.complete || g.rounds.length >= SHAPE_ORDER.length ? "done" : "between";
           left = fin.complete ? fin.timeLeftMs : 0;
           g.leftMs = left;
@@ -287,6 +330,7 @@ export default function DalgonaGame() {
     g.live = fin;
     if (!validateHumanTrace(shape, g.trace).ok) g.valid = false;
     g.rounds = [...g.rounds, fin];
+    logRound(shape, SHAPE_LIMIT_MS[shape], el, fin);
     g.phase = fin.broken || !fin.complete || g.rounds.length >= SHAPE_ORDER.length ? "done" : "between";
     g.leftMs = fin.complete ? fin.timeLeftMs : 0;
     buzz(fin.complete ? 40 : [250, 80, 250, 80, 500]);
