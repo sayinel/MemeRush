@@ -14,7 +14,7 @@ export const dalgona: ScreenDef = {
     { name: "support_hot", kind: "image", src: "frontman_peek.png", note: "조연 위기: 프론트맨 엿봄" },
     { name: "support_extra", kind: "image", src: "assistant_whistle.png", note: "조연 변형(휘파람)" },
     { name: "boss_walk", kind: "image", src: "boss_walk.png", note: "사장 등장(끌려가기 직전)" },
-    { name: "drag_combo", kind: "image", src: "drag_combo.png", note: "끌려가기 컷(사장이 주연을 끌고 감)" },
+    { name: "drag_combo", kind: "image", src: "drag_combo_oc.png", note: "끌려가기 컷(사장이 주연을 끌고 감)" },
     { name: "prop_clock", kind: "image", src: "clock_button.png", note: "소품 예: 시계 버튼" },
   ],
 };

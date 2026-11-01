@@ -437,7 +437,7 @@ export default function DalgonaGame() {
             )}
             {exit && (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src="/game/drag_combo.png" alt="" className="absolute bottom-2 left-0 h-36 w-auto drop-shadow-xl" style={{ animation: "dgDrag 1.6s ease-in forwards" }} />
+              <img src="/game/drag_combo_oc.png" alt="" className="absolute bottom-2 left-0 h-36 w-auto drop-shadow-xl" style={{ animation: "dgDrag 1.6s ease-in forwards" }} />
             )}
           </div>
         </div>
