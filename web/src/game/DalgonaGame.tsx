@@ -386,6 +386,9 @@ export default function DalgonaGame() {
     bomb ? "worker_oc_shocked" : failed ? "worker_oc_crying" : success ? (phase === "done" ? "worker_oc_laughing" : "worker_oc_laughing") : hot ? "worker_oc_shocked" : "worker_oc_sweating";
   const assistant = phase === "ready" ? "assistant_whistle" : phase === "playing" ? "assistant_clipboard" : success ? "assistant_flag" : "assistant_shrug";
   const boss = bomb ? "frontman_point" : failed ? "frontman_headshake" : hot ? "frontman_peek" : null;
+  // 라운드마다 끌고 가는 쪽이 달라진다: 1판 군인 1명, 2판 군인 2명, 3판 프론트맨(최종 보스)
+  const dragSrc = ["/game/drag_r1_soldier.png", "/game/drag_r2_soldiers.png", "/game/drag_r3_frontman.png"][Math.min(round, 2)];
+  const hotPeek = round >= 2 ? "frontman_peek" : "assistant_peek";
 
   return (
     <main
@@ -433,11 +436,11 @@ export default function DalgonaGame() {
             )}
             {!exit && (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={`/game/${hot ? "frontman_peek" : assistant}.png`} alt="" className="absolute bottom-1 right-1 h-24 w-auto object-contain drop-shadow-lg" />
+              <img src={`/game/${hot ? hotPeek : assistant}.png`} alt="" className="absolute bottom-1 right-1 h-24 w-auto object-contain drop-shadow-lg" />
             )}
             {exit && (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src="/game/drag_combo_oc.png" alt="" className="absolute bottom-2 left-0 h-36 w-auto drop-shadow-xl" style={{ animation: "dgDrag 1.6s ease-in forwards" }} />
+              <img src={dragSrc} alt="" className="absolute bottom-2 left-0 h-36 w-auto drop-shadow-xl" style={{ animation: "dgDrag 1.6s ease-in forwards" }} />
             )}
           </div>
         </div>
