@@ -20,6 +20,7 @@ import {
   type TracePt,
 } from "./dalgona_logic";
 import { DALGONA_LAYOUT as L } from "./layout_dalgona";
+import { DALGONA_INTRO_LAYOUT as LI } from "./layout_dalgona_intro";
 
 const W = 400;
 const H = 400;
@@ -386,6 +387,7 @@ export default function DalgonaGame() {
   const hot = phase === "playing" && leftMs <= 3000;
   const exit = bomb || failed;
   const [dragDone, setDragDone] = useState(false);
+  const [intro, setIntro] = useState(true); // 시작 화면(사장님 조합판 dalgona_intro 저장 11/1): 지금 플레이를 누르면 본 플레이 화면
   useEffect(() => {
     if (!exit) {
       setDragDone(false);
@@ -427,6 +429,42 @@ export default function DalgonaGame() {
             ? `성공! 정확도 ${last.accuracy}%${last.timeLeftMs < 800 ? " · 아슬아슬!" : ""}`
             : `시간 초과, 균열 ${last.cracks}칸`
           : "";
+
+  if (intro) {
+    const ib = (k: { x: number; y: number; w: number; h: number }): CSSProperties => ({ position: "absolute", left: k.x - k.w / 2, top: k.y - k.h / 2, width: k.w, height: k.h });
+    const outline = "0 0 0 #000, 0 4px 10px rgba(0,0,0,0.55)";
+    return (
+      <main className="relative flex min-h-dvh flex-col items-center bg-black text-white">
+        <div style={{ width: STAGE_W * scale, height: STAGE_H * scale, flex: "none" }}>
+          <div
+            data-testid="intro-screen"
+            style={{ width: STAGE_W, height: STAGE_H, transform: `scale(${scale})`, transformOrigin: "0 0", position: "relative", overflow: "hidden", backgroundImage: "url(/game/bg_dalgona_playground.webp)", backgroundSize: "cover", backgroundPosition: "center" }}
+          >
+            <div style={{ ...ib(LI.title), display: "flex", alignItems: "center", justifyContent: "center", fontFamily: '"Anton", Impact, sans-serif', fontSize: LI.title.font, color: "#fff", WebkitTextStroke: "8px #1a1a1a", paintOrder: "stroke fill", textShadow: outline, whiteSpace: "nowrap" }}>
+              MEME RUSH <span style={{ color: "#ffd54a", marginLeft: 16 }}>#002</span>
+            </div>
+            <div style={{ ...ib(LI.subtitle), display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, fontSize: LI.subtitle.font, color: "#fff", WebkitTextStroke: "8px #1a1a1a", paintOrder: "stroke fill", textShadow: outline, whiteSpace: "nowrap" }}>
+              달고나 뽑기
+            </div>
+            <div style={{ ...ib(LI.description), display: "flex", alignItems: "center", justifyContent: "center", textAlign: "center", fontWeight: 800, fontSize: LI.description.font, lineHeight: 1.25, color: "#fff", WebkitTextStroke: "5px #1a1a1a", paintOrder: "stroke fill", textShadow: outline }}>
+              폭탄이 터지기 전에 따내세요
+            </div>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/game/worker_oc_sweating.png" alt="" style={{ ...ib(LI.hero), objectFit: "contain", filter: "drop-shadow(0 6px 8px rgba(0,0,0,0.5))", animation: "dgSway 1.6s ease-in-out infinite", transformOrigin: "50% 100%" }} />
+            <style>{`@keyframes dgSway{0%,100%{transform:rotate(-5deg) translateY(0)}50%{transform:rotate(5deg) translateY(-6px)}}`}</style>
+            <button
+              type="button"
+              data-testid="intro-start"
+              onClick={() => setIntro(false)}
+              style={{ ...ib(LI.btn_start), borderRadius: 999, border: "6px solid #fff", background: "#0f7a2e", color: "#fff", fontWeight: 800, fontSize: LI.btn_start.font, boxShadow: "0 6px 14px rgba(0,0,0,0.45)" }}
+            >
+              지금 플레이
+            </button>
+          </div>
+        </div>
+      </main>
+    );
+  }
 
   return (
     <main className="relative flex min-h-dvh flex-col items-center bg-black text-white">

@@ -50,7 +50,7 @@ export const dalgona_intro: ScreenDef = {
       "weight": 700,
       "shadow": "rgb(0, 0, 0) 0px 0px 8.6px, rgb(0, 0, 0) 0px 0px 8.6px, rgb(0, 0, 0) 0px 2.2px 0px",
       "align": "center",
-      "text": "Film the toaster and stop the clip the instant the toast jumps."
+      "text": "폭탄이 터지기 전에 따내세요"
     },
     {
       "name": "hero",
