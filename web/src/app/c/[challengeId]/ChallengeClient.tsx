@@ -30,6 +30,7 @@ type FinishResponse = FinishResult & {
   globalRank: number;
   friendsRank: number | null;
 };
+const RANK_TOP = 5; // 상위 몇 명까지 스크롤 없이 보여 줄지(내 순위는 그 아래 한 줄로 붙인다, 사장님 2026-10-30·11-01)
 type Row = { nickname: string; errorMs: number; rank: number; isMe?: boolean };
 type Board = { rows: Row[]; myRank?: number | null; gapMs?: number | null };
 
@@ -702,6 +703,7 @@ export default function ChallengeClient({
   const rows = globalBoard.rows;
   const meInList = rows.some((r) => r.isMe || (!!myNick && r.nickname === myNick && r.errorMs === me.bestErrorMs));
   const myOutside = !meInList && me.globalRank != null && me.bestErrorMs != null;
+  const isMineRow = (r: Row) => !!(r.isMe || (!!myNick && r.nickname === myNick && r.errorMs === me.bestErrorMs));
   const bg = art("bg_office") ?? "/game/bg_office.webp";
   const trophy = art("trophy") ?? "/game/trophy.png";
   return (
@@ -723,8 +725,8 @@ export default function ChallengeClient({
           </h1>
           <ul className="rk-list">
             {rows.length === 0 && <li>No one here yet. Be the first.</li>}
-            {rows.map((r, i) => {
-              const mine = r.isMe || (!!myNick && r.nickname === myNick && r.errorMs === me.bestErrorMs);
+            {rows.slice(0, RANK_TOP).map((r, i) => {
+              const mine = isMineRow(r);
               return (
                 <li key={`${r.nickname}-${i}`} className={mine ? "me" : ""}>
                   <b>{r.rank}</b>
@@ -733,8 +735,15 @@ export default function ChallengeClient({
                 </li>
               );
             })}
+            {rows.slice(RANK_TOP).filter(isMineRow).map((r) => (
+              <li key="me-pinned" className="me rk-pin">
+                <b>{r.rank}</b>
+                <span className="n">You</span>
+                <em>{seconds(r.errorMs)}</em>
+              </li>
+            ))}
             {myOutside && (
-              <li className="me">
+              <li className="me rk-pin">
                 <b>{me.globalRank}</b>
                 <span className="n">You</span>
                 <em>{seconds(me.bestErrorMs!)}</em>

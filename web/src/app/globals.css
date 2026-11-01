@@ -166,6 +166,7 @@ body {
 .rk-list li span.n { min-width: 0; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .rk-list li em { margin-left: auto; font-style: normal; }
 .rk-list li.me { background: #ffd54a; color: #3f2c00; }
+.rk-list li.rk-pin { margin-top: 1.6cqw; box-shadow: 0 -1.2cqw 0 -0.4cqw rgb(255 255 255 / 0.25); }
 .rk-list li.me b { color: #3f2c00; }
 .rk-help { color: #fff; font: 500 3.3cqw/1.45 var(--font-sans); text-align: center; }
 .rk-bottom { display: flex; flex-direction: column; align-items: center; gap: 1.8cqw; }
