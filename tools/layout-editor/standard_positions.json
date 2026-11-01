@@ -1,0 +1,18 @@
+{
+  "_설명": "사람이 조합판에서 맞춘 위치의 작은 오차(몇 px)를 표준 위치로 보정한다. normalize_layout.mjs가 읽는다. 표에 없는 요소는 건드리지 않는다.",
+  "global": {
+    "centerX": 360,
+    "centerTol": 8,
+    "grid": 1,
+    "_centerElements": "가운데 정렬 요소(이름 목록)는 x가 360±8이면 360으로 맞춘다"
+  },
+  "centerElements": ["caption_top", "caption_bottom", "btn_retry", "btn_rank", "btn_start", "btn_submit", "btn_email", "btn_share", "input", "help", "next_banner", "verdict", "score", "badge", "title", "subtitle"],
+  "slots": [
+    { "name": "btn_retry", "screens": ["result_perfect", "result_early", "result_late"], "y": 935, "yTol": 6, "w": 633.6, "wTol": 8 },
+    { "name": "btn_rank", "screens": ["result_perfect", "result_early", "result_late"], "y": 1051, "yTol": 6, "w": 633.6, "wTol": 8 },
+    { "name": "next_banner", "screens": ["intro", "result_perfect", "result_early", "result_late"], "y": 1190, "yTol": 12, "w": 560, "wTol": 8 },
+    { "name": "next_banner", "screens": ["ranking"], "y": 1165, "yTol": 12, "w": 550, "wTol": 12 },
+    { "name": "caption_top", "screens": ["result_early", "result_late"], "y": 106.4, "yTol": 4 },
+    { "name": "chip", "screens": ["result_perfect", "result_early", "result_late"], "y": 42.7, "yTol": 4 }
+  ]
+}

@@ -3,7 +3,9 @@
 // ---- /api/events -------------------------------------------------------------------------------------------------
 
 /** Event types the browser may send. Server-side events are written by their own routes. */
-export const CLIENT_EVENTS = new Set(["challenge_link_opened", "video_downloaded", "native_share_invoked", "challenge_link_copied"]);
+export const CLIENT_EVENTS = new Set(["challenge_link_opened", "video_downloaded", "native_share_invoked", "challenge_link_copied",
+  // 2편 예고 훅(배너 -> /next). meta 는 from·variant 만.
+  "next_banner_viewed", "next_banner_clicked", "hook_viewed", "hook_email_focus", "hook_email_submitted"]);
 
 /** Upper bound for the serialized `meta` object (bytes, UTF-8). The client only sends `{ src }` today. */
 export const EVENT_META_MAX_BYTES = 2048;

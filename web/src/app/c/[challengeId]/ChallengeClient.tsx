@@ -8,6 +8,13 @@ import { fillCaption, pickCaption } from "@/game/captions";
 import { captureSrc, useLang, type Lang, type Strings } from "@/lib/i18n";
 import { musicEnabled, onMusicChange, onSoundChange, setMusicEnabled, setSoundEnabled, soundEnabled, soundFeature } from "@/game/sfx";
 import SoundLab from "@/game/SoundLab";
+import NextBanner from "@/app/next/NextBanner";
+import { HookOverlay } from "@/app/next/HookStage";
+import { INTRO_LAYOUT } from "@/game/layout_intro";
+import { RANKING_LAYOUT } from "@/game/layout_ranking";
+import { RESULT_PERFECT_LAYOUT } from "@/game/layout_result_perfect";
+import { RESULT_EARLY_LAYOUT } from "@/game/layout_result_early";
+import { RESULT_LATE_LAYOUT } from "@/game/layout_result_late";
 
 // Public demos can hide the email CTA entirely: build with NEXT_PUBLIC_HIDE_EMAIL=1.
 const HIDE_EMAIL = process.env.NEXT_PUBLIC_HIDE_EMAIL === "1";
@@ -237,138 +244,16 @@ function LangToggle({ lang, setLang, small }: { lang: Lang; setLang: (l: Lang) =
   );
 }
 
-// Email CTA (GAME_FLOW_SCENARIO 7절; screens_v2 input / wrong address / sent, screens_v3 save failed). Posts to the
-// temporary /api/subscribe. The address is never logged.
-function EmailScreen({
-  t,
-  lang,
-  dailyNo,
-  title,
-  art,
-  onAgain,
-  onRank,
-  onClose,
-}: {
-  t: Strings;
-  lang: Lang;
-  dailyNo: string;
-  title: string;
-  art: Art;
-  onAgain: () => void;
-  onRank: () => void;
-  onClose: () => void;
-}) {
-  const [email, setEmail] = useState("");
-  const [state, setState] = useState<"input" | "invalid" | "sending" | "failed" | "sent">("input");
-  const [invalidMsg, setInvalidMsg] = useState("");
-  const sprite = (key: string) => art(key) ?? `/game/${key}.png`;
+// 이메일 받기 화면: /next 와 같은 훅 화면(달고나 앞 주인공, 문구 "다음 게임 메일로 받기")을 쓴다. 제출은 POST /api/subscribe (주소는 로그에 남기지 않는다).
+function EmailScreen({ challengeId, lang, onClose }: { challengeId: string; lang: Lang; onClose: () => void }) {
+  return <HookOverlay challengeId={challengeId} lang={lang} onClose={onClose} />;
+}
 
-  async function submit() {
-    const v = email.trim();
-    if (!v.includes("@")) {
-      setInvalidMsg(t.emailNoAt);
-      return setState("invalid");
-    }
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)) {
-      setInvalidMsg(t.emailBad);
-      return setState("invalid");
-    }
-    setState("sending");
-    try {
-      const res = await fetch("/api/subscribe", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: v, lang, src: captureSrc() }),
-      });
-      setState(res.ok ? "sent" : "failed");
-    } catch {
-      setState("failed");
-    }
-  }
-
-  const bad = state === "invalid";
-  const failed = state === "failed";
-  /* eslint-disable @next/next/no-img-element */
-  return (
-    <div className="rs-email" role="dialog" aria-modal="true" data-testid="email-screen" data-state={state}>
-      {state === "sent" ? (
-        <>
-          <div className="rs-cap" style={{ top: "30cqw", fontSize: "6.6cqw" }}>
-            {t.emailSent}
-          </div>
-          <img className="rs-hero" style={{ bottom: "46cqw", width: "46cqw" }} src={sprite("worker_smug")} alt="" />
-          <div className="rs-btns">
-            <button className="rs-go" onClick={onAgain}>
-              {t.emailAgain}
-            </button>
-            <button className="rs-go blue" onClick={onRank}>
-              {t.seeRank}
-            </button>
-          </div>
-        </>
-      ) : (
-        <>
-          <button className="rk-back" onClick={onClose}>
-            ‹ {lang === "ko" ? "순위" : "Ranking"}
-          </button>
-          <div className="rs-cap" style={{ top: "9cqw", fontSize: "8.4cqw" }}>
-            MEME RUSH <span style={{ color: "#ffd54a" }}>{dailyNo}</span>
-          </div>
-          {!failed && (
-            <div className="rs-cap" style={{ top: "20cqw", fontSize: "5.2cqw" }}>
-              {title}
-            </div>
-          )}
-          {/* Stage: hero and the paper pile share one box so they always move together; the form sits below it. */}
-          <div className="rs-stage">
-            <div className="rs-group" style={{ width: "44cqw" }}>
-              <img style={{ width: "100%", display: "block" }} src={sprite(failed ? "worker_facepalm" : "worker_sweating")} alt="" />
-              {!failed && <img className="rs-pile" src={sprite("email_pile")} alt="" />}
-            </div>
-          </div>
-          <form
-            className="rs-form"
-            noValidate
-            onSubmit={(e) => {
-              e.preventDefault();
-              if (state !== "sending") void submit();
-            }}
-          >
-            {/* One fixed slot above the input for both the wrong-address and the save-failed message,
-                so switching states never moves the input, button or hero. */}
-            <div className="rs-errl" role="alert" style={{ visibility: bad || failed ? "visible" : "hidden" }}>
-              {bad ? invalidMsg : failed ? t.emailFailed : " "}
-            </div>
-            <input
-              type="email"
-              data-clarity-mask="True"
-              inputMode="email"
-              autoComplete="email"
-              value={email}
-              onChange={(e) => {
-                setEmail(e.target.value);
-                if (bad) setState("input");
-              }}
-              placeholder={t.emailInput}
-              aria-label={t.emailInput}
-              aria-invalid={bad || failed}
-              className={bad || failed ? "bad" : ""}
-            />
-            <button type="submit" className="rs-go" disabled={state === "sending"}>
-              {state === "sending" ? t.emailSending : failed ? t.emailRetry : t.emailMe}
-            </button>
-            <p className="rk-help">{failed ? t.emailKeep : t.emailHelp}</p>
-            {t.emailLegal && (
-              <p className="rs-legal" style={{ visibility: failed ? "hidden" : "visible" }}>
-                {t.emailLegal}
-              </p>
-            )}
-          </form>
-        </>
-      )}
-    </div>
-  );
-  /* eslint-enable @next/next/no-img-element */
+// 2편 예고 배너(사장님 조합판 좌표, 720x1280 기준). 버튼 묶음은 배너 위로 올려 겹치지 않게 한다: 맨 아래 버튼의 아래 끝 -> .play-box 폭(720) 대비 cqw.
+const RESULT_LAYOUTS = { win: RESULT_PERFECT_LAYOUT, early: RESULT_EARLY_LAYOUT, late: RESULT_LATE_LAYOUT } as const;
+const cqwFromBottom = (yBottom: number): number => +((1280 - yBottom) / 7.2).toFixed(2);
+function bannerBtnBottom(l: { btn_rank: { y: number; h: number } }): number {
+  return +((1280 - (l.btn_rank.y + l.btn_rank.h / 2)) / 7.2).toFixed(2);
 }
 
 const VERDICT: Record<string, string> = { win: "PERFECT", early: "TOO EARLY", late: "TOO LATE" };
@@ -397,6 +282,7 @@ function ResultScreen({
   onRank: () => void;
 }) {
   const key = resultKey(last);
+  const RL: { hero: { y: number; h: number }; duck?: { y: number; h: number }; btn_rank: { y: number; h: number } } = RESULT_LAYOUTS[key as keyof typeof RESULT_LAYOUTS] ?? RESULT_LATE_LAYOUT;
   const win = key === "win";
   const heroKey = win ? "worker_smug" : key === "early" ? "worker_shocked" : "worker_crying";
   const cap = pickCaption(challenge, last);
@@ -422,13 +308,13 @@ function ResultScreen({
         <span className="s">{seconds(last.errorMs)} off</span>
         <span className="b">{badge}</span>
       </div>
-      <img className="rs-hero" src={hero} alt="" />
-      {!win && <img className="rs-duck" src={duck} alt="" />}
+      <img className="rs-hero" style={{ bottom: `${cqwFromBottom(RL.hero.y + RL.hero.h / 2)}cqw` }} src={hero} alt="" />
+      {!win && <img className="rs-duck" style={{ bottom: `${cqwFromBottom((RL.duck ? RL.duck.y + RL.duck.h / 2 : RL.hero.y - RL.hero.h / 2 + 40))}cqw` }} src={duck} alt="" />}
       {/* eslint-enable @next/next/no-img-element */}
-      <div className="rs-cap" style={{ bottom: "38cqw", fontSize: "7.4cqw" }}>
+      <div className="rs-cap" style={{ bottom: `${cqwFromBottom(RL.hero.y - RL.hero.h / 2 + 8)}cqw`, fontSize: "7.4cqw" }}>
         {fillCaption(challenge, cap.bottom, played)}
       </div>
-      <div className="rs-btns">
+      <div className="rs-btns" style={{ bottom: `${bannerBtnBottom(RESULT_LAYOUTS[key] ?? RESULT_LATE_LAYOUT)}cqw` }}>
         <button className="rs-go" onClick={onRetry}>
           {t.tryAgain}
         </button>
@@ -436,6 +322,7 @@ function ResultScreen({
           {t.seeRank}
         </button>
       </div>
+      <NextBanner pos={(RESULT_LAYOUTS[key] ?? RESULT_LATE_LAYOUT).next_banner} challengeId={challenge.id} />
     </div>
   );
 }
@@ -760,21 +647,7 @@ export default function ChallengeClient({
             />
           )}
           {emailOpen && !HIDE_EMAIL && (
-            <EmailScreen
-              t={t}
-              lang={lang}
-              dailyNo={dailyNo}
-              title={challenge.title}
-              art={art}
-              onAgain={() => {
-                setEmailOpen(false);
-                void start();
-              }}
-              onRank={() => {
-                setEmailOpen(false);
-              }}
-              onClose={() => setEmailOpen(false)}
-            />
+            <EmailScreen challengeId={challengeId} lang={lang} onClose={() => setEmailOpen(false)} />
           )}
         </div>
         <SideInfoRight challengeId={challengeId} refresh={playKey + (last?.errorMs ?? 0)} t={t} onEmail={() => setEmailOpen(true)} />
@@ -808,29 +681,15 @@ export default function ChallengeClient({
             <img className="anim-jitter" style={{ width: "100%" }} src={hero} alt="" />
           </div>
           {/* eslint-enable @next/next/no-img-element */}
-          <div className="rs-btns">
+          <div className="rs-btns" style={{ bottom: `${+((1280 - (INTRO_LAYOUT.next_banner.y - INTRO_LAYOUT.next_banner.h / 2) + 10) / 7.2).toFixed(2)}cqw` }}>
             {error && <p className="rk-note">{error}</p>}
             <button className="rs-go" onClick={start} disabled={busy}>
               {needsJoin && invite ? `Join ${invite.ownerNickname}'s league & play` : t.playNow}
             </button>
           </div>
+          <NextBanner pos={INTRO_LAYOUT.next_banner} challengeId={challengeId} />
           {emailOpen && !HIDE_EMAIL && (
-            <EmailScreen
-              t={t}
-              lang={lang}
-              dailyNo={dailyNo}
-              title={challenge.title}
-              art={art}
-              onAgain={() => {
-                setEmailOpen(false);
-                retry();
-              }}
-              onRank={() => {
-                setEmailOpen(false);
-                void seeMyRank();
-              }}
-              onClose={() => setEmailOpen(false)}
-            />
+            <EmailScreen challengeId={challengeId} lang={lang} onClose={() => setEmailOpen(false)} />
           )}
         </div>
         <SideInfoRight challengeId={challengeId} refresh={playKey} t={t} onEmail={() => setEmailOpen(true)} />
@@ -852,7 +711,7 @@ export default function ChallengeClient({
       <div className="play-box" data-testid="rank-screen">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img className="rs-bg" src={bg} alt="" aria-hidden />
-        <div className="rk-wrap">
+        <div className="rk-wrap" style={{ paddingBottom: `${+((1280 - (RANKING_LAYOUT.next_banner.y - RANKING_LAYOUT.next_banner.h / 2) + 8) / 7.2).toFixed(2)}cqw` }}>
           <button className="rk-back" onClick={start} disabled={busy}>
             ‹ {t.tryAgain}
           </button>
@@ -903,22 +762,9 @@ export default function ChallengeClient({
             </a>
           </div>
         </div>
+        <NextBanner pos={RANKING_LAYOUT.next_banner} challengeId={challengeId} />
         {emailOpen && !HIDE_EMAIL && (
-            <EmailScreen
-              t={t}
-              lang={lang}
-              dailyNo={dailyNo}
-              title={challenge.title}
-              art={art}
-              onAgain={() => {
-                setEmailOpen(false);
-                void start();
-              }}
-              onRank={() => {
-                setEmailOpen(false);
-              }}
-              onClose={() => setEmailOpen(false)}
-            />
+            <EmailScreen challengeId={challengeId} lang={lang} onClose={() => setEmailOpen(false)} />
           )}
       </div>
     </main>

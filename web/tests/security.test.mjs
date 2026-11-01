@@ -8,8 +8,8 @@ import { checkEventMeta, checkNickname, CLIENT_EVENTS, EVENT_META_MAX_BYTES } fr
 const read = (p) => readFileSync(new URL(`../${p}`, import.meta.url), "utf8");
 
 // (1) /api/events
-test("events: only the four client event types are accepted", () => {
-  assert.deepEqual([...CLIENT_EVENTS].sort(), ["challenge_link_copied", "challenge_link_opened", "native_share_invoked", "video_downloaded"]);
+test("events: only the known client event types are accepted", () => {
+  assert.deepEqual([...CLIENT_EVENTS].sort(), ["challenge_link_copied", "challenge_link_opened", "hook_email_focus", "hook_email_submitted", "hook_viewed", "native_share_invoked", "next_banner_clicked", "next_banner_viewed", "video_downloaded"]);
   assert.equal(CLIENT_EVENTS.has("attempt_finished"), false);
 });
 

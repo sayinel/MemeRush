@@ -1,0 +1,33 @@
+// 랭킹 layout (coordinates = the 720x1280 game frame 1:1; x,y = element CENTER; w,h = displayed size; font = px).
+// Measured from the running game (DOM getBoundingClientRect). NOT read by game code yet: the game still uses its own CSS/Phaser
+// values; this file only holds the same numbers for the layout editor (tools/layout-editor, apply_layout.mjs dalgona_ranking).
+export const DALGONA_RANKING_LAYOUT = {
+  panel: { x: 360, y: 640, w: 720, h: 1280 },
+  btn_back: { x: 127.22, y: 48.65, w: 198.64, h: 54.9, font: 28.8 },
+  lang_toggle: { x: 637.8, y: 41.5, w: 121.2, h: 47, font: 23.8 },
+  trophy: { x: 186.59, y: 166.29, w: 64.8, h: 64.8 },
+  title: { x: 394.67, y: 169.45, w: 648, h: 64.8, font: 54.7 },
+  row1: { x: 363.15, y: 254.47, w: 648, h: 64.1 },
+  row1_rank: { x: 78.75, y: 254.47, w: 36, h: 41, font: 27.4 },
+  row1_name: { x: 339.45, y: 254.47, w: 456.7, h: 41, font: 27.4 },
+  row1_time: { x: 623.85, y: 254.47, w: 83.3, h: 41, font: 27.4 },
+  row2: { x: 363.15, y: 328.57, w: 648, h: 64.1 },
+  row2_rank: { x: 78.75, y: 328.57, w: 36, h: 41, font: 27.4 },
+  row2_name: { x: 339.45, y: 328.57, w: 456.7, h: 41, font: 27.4 },
+  row2_time: { x: 623.85, y: 328.57, w: 83.3, h: 41, font: 27.4 },
+  row3: { x: 363.15, y: 402.67, w: 648, h: 64.1 },
+  row3_rank: { x: 78.75, y: 402.67, w: 36, h: 41, font: 27.4 },
+  row3_name: { x: 339.45, y: 402.67, w: 456.7, h: 41, font: 27.4 },
+  row3_time: { x: 623.85, y: 402.67, w: 83.3, h: 41, font: 27.4 },
+  row4: { x: 363.15, y: 476.87, w: 648, h: 64.1 },
+  row4_rank: { x: 78.75, y: 476.87, w: 36, h: 41, font: 27.4 },
+  row4_name: { x: 339.45, y: 476.87, w: 456.7, h: 41, font: 27.4 },
+  row4_time: { x: 623.85, y: 476.87, w: 83.3, h: 41, font: 27.4 },
+  row5: { x: 363.15, y: 550.97, w: 648, h: 64.1 },
+  row5_rank: { x: 78.75, y: 550.97, w: 36, h: 41, font: 27.4 },
+  row5_name: { x: 339.45, y: 550.97, w: 456.7, h: 41, font: 27.4 },
+  row5_time: { x: 623.85, y: 550.97, w: 83.3, h: 41, font: 27.4 },
+  help: { x: 355.27, y: 994.44, w: 509.1, h: 34.5, font: 23.8 },
+  btn_email: { x: 360, y: 1087.47, w: 648, h: 103.6, font: 40.3 },
+  btn_share: { x: 360, y: 1207.2, w: 648, h: 88, font: 34.6 },
+} as const;

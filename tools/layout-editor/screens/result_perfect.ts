@@ -85,17 +85,6 @@ export const result_perfect: ScreenDef = {
       "src": "worker_smug.png"
     },
     {
-      "name": "caption_bottom",
-      "kind": "text",
-      "color": "rgb(255, 255, 255)",
-      "family": "anton",
-      "weight": 400,
-      "stroke": 7.9,
-      "strokeColor": "rgb(26, 26, 26)",
-      "align": "center",
-      "text": "STOPPED 0.021S OFF. ICONIC."
-    },
-    {
       "name": "btn_retry",
       "kind": "box",
       "color": "rgb(255, 255, 255)",
@@ -122,6 +111,7 @@ export const result_perfect: ScreenDef = {
       "border": "rgb(255, 255, 255)",
       "radius": 51.78125,
       "text": "내 순위 보기"
-    }
+    },
+    { "name": "next_banner", "kind": "image", "src": "banner_next_ep.png", "note": "2편 예고 훅 배너(누르면 다음 편 예고·이메일 훅 페이지가 열림)" },
   ]
 };

@@ -13,3 +13,17 @@ html, body, #root { margin: 0; height: 100%; font-family: system-ui, "Malgun Got
 .panel .row { display: grid; grid-template-columns: 52px 1fr; align-items: center; gap: 6px; margin-bottom: 8px; }
 .panel input[type=number], .panel input[type=text] { width: 100%; box-sizing: border-box; padding: 5px 6px; font-size: 14px; }
 .panel .hint { color: #5b6180; font-size: 12px; line-height: 1.5; margin-top: 12px; }
+
+.root { display: flex; height: 100%; }
+.root > .shell { flex: 1; min-width: 0; }
+.side { width: 240px; flex: none; background: #1b2140; color: #cfd4ee; overflow: auto; font-size: 13px; padding: 8px 0; }
+.side-root { padding: 6px 12px; font-weight: 700; color: #fff; }
+.side-row { padding: 4px 12px; cursor: pointer; white-space: nowrap; }
+.side-row:hover { background: #262d54; }
+.side-row.ep { padding-left: 20px; font-weight: 600; color: #fff; }
+.side-row.scr { padding-left: 34px; display: flex; gap: 6px; }
+.side-row.scr .nm { flex: 1; overflow: hidden; text-overflow: ellipsis; }
+.side-row.ver { padding-left: 56px; font-size: 12px; }
+.side-row.cur { background: #34407a; color: #fff; }
+.side .dim { color: #8089b5; font-size: 11px; margin-left: 4px; }
+.side .revert { display: block; margin: 4px 0 2px; font-size: 12px; padding: 3px 8px; border: 0; border-radius: 4px; background: #fede25; color: #14192e; font-weight: 700; cursor: pointer; }

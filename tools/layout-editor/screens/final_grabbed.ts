@@ -114,6 +114,7 @@ export const final_grabbed: ScreenDef = {
       "stroke": 16,
       "strokeColor": "#14192E",
       "text": "BACK TO YOUR DESK"
-    }
-  ]
+    },
+      { "name": "next_banner", "kind": "image", "src": "banner_next_ep.png", "note": "2편 예고 훅 배너(누르면 다음 편 예고·이메일 훅 페이지가 열림)" },
+]
 };
