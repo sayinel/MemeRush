@@ -1,6 +1,6 @@
 {
   "episode_default": "mr-001",
-  "count": 34,
+  "count": 40,
   "items": [
     {
       "id": "img:worker_deadpan",
@@ -346,6 +346,90 @@
       ],
       "episodes": [
         "mr-001"
+      ],
+      "source": "new",
+      "reuse": "candidate"
+    },
+    {
+      "id": "img:assistant_stand",
+      "kind": "image",
+      "file": "web/public/game/assistant_stand.png",
+      "tags": [
+        "image",
+        "prop"
+      ],
+      "episodes": [
+        "mr-002"
+      ],
+      "source": "new",
+      "reuse": "candidate"
+    },
+    {
+      "id": "img:assistant_whistle",
+      "kind": "image",
+      "file": "web/public/game/assistant_whistle.png",
+      "tags": [
+        "image",
+        "prop"
+      ],
+      "episodes": [
+        "mr-002"
+      ],
+      "source": "new",
+      "reuse": "candidate"
+    },
+    {
+      "id": "img:assistant_clipboard",
+      "kind": "image",
+      "file": "web/public/game/assistant_clipboard.png",
+      "tags": [
+        "image",
+        "prop"
+      ],
+      "episodes": [
+        "mr-002"
+      ],
+      "source": "new",
+      "reuse": "candidate"
+    },
+    {
+      "id": "img:assistant_flag",
+      "kind": "image",
+      "file": "web/public/game/assistant_flag.png",
+      "tags": [
+        "image",
+        "prop"
+      ],
+      "episodes": [
+        "mr-002"
+      ],
+      "source": "new",
+      "reuse": "candidate"
+    },
+    {
+      "id": "img:assistant_peek",
+      "kind": "image",
+      "file": "web/public/game/assistant_peek.png",
+      "tags": [
+        "image",
+        "prop"
+      ],
+      "episodes": [
+        "mr-002"
+      ],
+      "source": "new",
+      "reuse": "candidate"
+    },
+    {
+      "id": "img:assistant_shrug",
+      "kind": "image",
+      "file": "web/public/game/assistant_shrug.png",
+      "tags": [
+        "image",
+        "prop"
+      ],
+      "episodes": [
+        "mr-002"
       ],
       "source": "new",
       "reuse": "candidate"

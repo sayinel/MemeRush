@@ -22,5 +22,11 @@
   "boss_walk": "boss_walk.png",
   "boss_grab": "boss_grab.png",
   "worker_dragged": "worker_dragged.png",
-  "drag_combo": "drag_combo.png"
+  "drag_combo": "drag_combo.png",
+  "assistant_stand": "assistant_stand.png",
+  "assistant_whistle": "assistant_whistle.png",
+  "assistant_clipboard": "assistant_clipboard.png",
+  "assistant_flag": "assistant_flag.png",
+  "assistant_peek": "assistant_peek.png",
+  "assistant_shrug": "assistant_shrug.png"
 }
