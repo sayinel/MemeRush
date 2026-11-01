@@ -383,7 +383,7 @@ export default function DalgonaGame() {
     return () => clearTimeout(t);
   }, [exit]);
   const worker =
-    bomb ? "worker_tg_shocked" : failed ? "worker_tg_crying" : success ? (phase === "done" ? "worker_tg_laughing" : "worker_tg_smug") : hot ? "worker_tg_shocked" : "worker_tg_sweating";
+    bomb ? "worker_oc_shocked" : failed ? "worker_oc_crying" : success ? (phase === "done" ? "worker_oc_laughing" : "worker_oc_laughing") : hot ? "worker_oc_shocked" : "worker_oc_sweating";
   const assistant = phase === "ready" ? "assistant_whistle" : phase === "playing" ? "assistant_clipboard" : success ? "assistant_flag" : "assistant_shrug";
   const boss = bomb ? "frontman_point" : failed ? "frontman_headshake" : hot ? "frontman_peek" : null;
 

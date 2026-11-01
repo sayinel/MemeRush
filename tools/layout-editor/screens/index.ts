@@ -1,3 +1,4 @@
+import { dalgona } from "./dalgona";
 import { countdown } from "./countdown";
 import { email_failed } from "./email_failed";
 import { email_input } from "./email_input";
@@ -29,5 +30,6 @@ export const SCREENS: ScreenDef[] = [
   email_invalid,
   email_failed,
   email_sent,
+  dalgona,
 ];
 export const PENDING: string[] = [];

@@ -73,5 +73,5 @@ function localApi() {
 
 export default defineConfig({
   plugins: [react(), localApi()],
-  server: { host: "127.0.0.1", port: 5183, strictPort: true, fs: { strict: true } },
+  server: { host: "127.0.0.1", port: 5183, allowedHosts: [".ts.net"], strictPort: true, fs: { strict: true } },
 });
