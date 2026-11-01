@@ -10,6 +10,8 @@ export const SECURITY_HEADERS = [
 ];
 
 const nextConfig: NextConfig = {
+  // 개발 서버를 내부망(Tailscale) 주소로 열어 폰에서 시험할 때 필요하다(개발 모드 전용, 운영 빌드에는 영향 없음).
+  allowedDevOrigins: ["desktop-2udnsls.tail7bf3c0.ts.net"],
   async headers() {
     return [{ source: "/:path*", headers: SECURITY_HEADERS }];
   },
