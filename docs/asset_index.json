@@ -1,6 +1,6 @@
 {
   "episode_default": "mr-001",
-  "count": 34,
+  "count": 55,
   "items": [
     {
       "id": "img:worker_deadpan",
@@ -340,6 +340,306 @@
       "id": "img:drag_combo",
       "kind": "image",
       "file": "web/public/game/drag_combo.png",
+      "tags": [
+        "image",
+        "prop"
+      ],
+      "episodes": [
+        "mr-001"
+      ],
+      "source": "new",
+      "reuse": "candidate"
+    },
+    {
+      "id": "img:assistant_stand",
+      "kind": "image",
+      "file": "web/public/game/assistant_stand.png",
+      "tags": [
+        "image",
+        "prop"
+      ],
+      "episodes": [
+        "mr-001"
+      ],
+      "source": "new",
+      "reuse": "candidate"
+    },
+    {
+      "id": "img:assistant_whistle",
+      "kind": "image",
+      "file": "web/public/game/assistant_whistle.png",
+      "tags": [
+        "image",
+        "prop"
+      ],
+      "episodes": [
+        "mr-001"
+      ],
+      "source": "new",
+      "reuse": "candidate"
+    },
+    {
+      "id": "img:assistant_clipboard",
+      "kind": "image",
+      "file": "web/public/game/assistant_clipboard.png",
+      "tags": [
+        "image",
+        "prop"
+      ],
+      "episodes": [
+        "mr-001"
+      ],
+      "source": "new",
+      "reuse": "candidate"
+    },
+    {
+      "id": "img:assistant_flag",
+      "kind": "image",
+      "file": "web/public/game/assistant_flag.png",
+      "tags": [
+        "image",
+        "prop"
+      ],
+      "episodes": [
+        "mr-001"
+      ],
+      "source": "new",
+      "reuse": "candidate"
+    },
+    {
+      "id": "img:assistant_peek",
+      "kind": "image",
+      "file": "web/public/game/assistant_peek.png",
+      "tags": [
+        "image",
+        "prop"
+      ],
+      "episodes": [
+        "mr-001"
+      ],
+      "source": "new",
+      "reuse": "candidate"
+    },
+    {
+      "id": "img:assistant_shrug",
+      "kind": "image",
+      "file": "web/public/game/assistant_shrug.png",
+      "tags": [
+        "image",
+        "prop"
+      ],
+      "episodes": [
+        "mr-001"
+      ],
+      "source": "new",
+      "reuse": "candidate"
+    },
+    {
+      "id": "img:worker_tg_sweating",
+      "kind": "image",
+      "file": "web/public/game/worker_tg_sweating.png",
+      "tags": [
+        "image",
+        "protagonist",
+        "emotion:tg_sweating"
+      ],
+      "episodes": [
+        "mr-001"
+      ],
+      "source": "new",
+      "reuse": "candidate"
+    },
+    {
+      "id": "img:worker_tg_shocked",
+      "kind": "image",
+      "file": "web/public/game/worker_tg_shocked.png",
+      "tags": [
+        "image",
+        "protagonist",
+        "emotion:tg_shocked"
+      ],
+      "episodes": [
+        "mr-001"
+      ],
+      "source": "new",
+      "reuse": "candidate"
+    },
+    {
+      "id": "img:worker_tg_smug",
+      "kind": "image",
+      "file": "web/public/game/worker_tg_smug.png",
+      "tags": [
+        "image",
+        "protagonist",
+        "emotion:tg_smug"
+      ],
+      "episodes": [
+        "mr-001"
+      ],
+      "source": "new",
+      "reuse": "candidate"
+    },
+    {
+      "id": "img:worker_tg_crying",
+      "kind": "image",
+      "file": "web/public/game/worker_tg_crying.png",
+      "tags": [
+        "image",
+        "protagonist",
+        "emotion:tg_crying"
+      ],
+      "episodes": [
+        "mr-001"
+      ],
+      "source": "new",
+      "reuse": "candidate"
+    },
+    {
+      "id": "img:worker_tg_deadpan",
+      "kind": "image",
+      "file": "web/public/game/worker_tg_deadpan.png",
+      "tags": [
+        "image",
+        "protagonist",
+        "emotion:tg_deadpan"
+      ],
+      "episodes": [
+        "mr-001"
+      ],
+      "source": "new",
+      "reuse": "candidate"
+    },
+    {
+      "id": "img:worker_tg_laughing",
+      "kind": "image",
+      "file": "web/public/game/worker_tg_laughing.png",
+      "tags": [
+        "image",
+        "protagonist",
+        "emotion:tg_laughing"
+      ],
+      "episodes": [
+        "mr-001"
+      ],
+      "source": "new",
+      "reuse": "candidate"
+    },
+    {
+      "id": "img:frontman_stand",
+      "kind": "image",
+      "file": "web/public/game/frontman_stand.png",
+      "tags": [
+        "image",
+        "prop"
+      ],
+      "episodes": [
+        "mr-001"
+      ],
+      "source": "new",
+      "reuse": "candidate"
+    },
+    {
+      "id": "img:frontman_point",
+      "kind": "image",
+      "file": "web/public/game/frontman_point.png",
+      "tags": [
+        "image",
+        "prop"
+      ],
+      "episodes": [
+        "mr-001"
+      ],
+      "source": "new",
+      "reuse": "candidate"
+    },
+    {
+      "id": "img:frontman_walk",
+      "kind": "image",
+      "file": "web/public/game/frontman_walk.png",
+      "tags": [
+        "image",
+        "prop"
+      ],
+      "episodes": [
+        "mr-001"
+      ],
+      "source": "new",
+      "reuse": "candidate"
+    },
+    {
+      "id": "img:frontman_peek",
+      "kind": "image",
+      "file": "web/public/game/frontman_peek.png",
+      "tags": [
+        "image",
+        "prop"
+      ],
+      "episodes": [
+        "mr-001"
+      ],
+      "source": "new",
+      "reuse": "candidate"
+    },
+    {
+      "id": "img:frontman_arms_back",
+      "kind": "image",
+      "file": "web/public/game/frontman_arms_back.png",
+      "tags": [
+        "image",
+        "prop"
+      ],
+      "episodes": [
+        "mr-001"
+      ],
+      "source": "new",
+      "reuse": "candidate"
+    },
+    {
+      "id": "img:frontman_headshake",
+      "kind": "image",
+      "file": "web/public/game/frontman_headshake.png",
+      "tags": [
+        "image",
+        "prop"
+      ],
+      "episodes": [
+        "mr-001"
+      ],
+      "source": "new",
+      "reuse": "candidate"
+    },
+    {
+      "id": "img:dalgona_disc_heart",
+      "kind": "image",
+      "file": "web/public/game/dalgona_disc_heart.png",
+      "tags": [
+        "image",
+        "prop"
+      ],
+      "episodes": [
+        "mr-001"
+      ],
+      "source": "new",
+      "reuse": "candidate"
+    },
+    {
+      "id": "img:dalgona_disc_star",
+      "kind": "image",
+      "file": "web/public/game/dalgona_disc_star.png",
+      "tags": [
+        "image",
+        "prop"
+      ],
+      "episodes": [
+        "mr-001"
+      ],
+      "source": "new",
+      "reuse": "candidate"
+    },
+    {
+      "id": "img:dalgona_disc_umbrella",
+      "kind": "image",
+      "file": "web/public/game/dalgona_disc_umbrella.png",
       "tags": [
         "image",
         "prop"

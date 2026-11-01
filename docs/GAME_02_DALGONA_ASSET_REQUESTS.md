@@ -36,3 +36,9 @@
 - 깨지는 소리 후보: `ep13-newapt-avoidance__scene_23__1`(2.5초), `ep15-floor-noise-mat__씬04__1`(3.3초), `ep35-cctv-elevator__씬06__2`(1.0초)
 - 갈라지는 소리 후보: `ep13-newapt-avoidance__scene_32__1`(2.9초), `lf05-trip-home-accident__씬17__1`(1.1초)
 - 고른 것은 `asset_index.json`에 `source: library:sfx#<id>`, `episodes: ["mr-002"]`로 올린다.
+
+## 확정된 색과 완성 에셋 (사장님 2026-11-01)
+
+- 달고나 색의 기준은 윤기 나는 캐러멜 갈색이다(대표 값 `#c87c2e`, 홈 선은 짙은 갈색). 쇠통 뚜껑에 담은 연한 살구·베이지 시트는 "너무 살구색"이라 쓰지 않는다.
+- 완성: `dalgona_disc_heart`, `dalgona_disc_star`, `dalgona_disc_umbrella`(투명 PNG, 하트·별·우산 홈이 찍힌 원판). 캐릭터는 주인공(`worker_tg_*`), 사장(`frontman_*`), 조교(`assistant_*`).
+- 남은 것: 구름 놀이터 배경(후보 시트 있음, 선택 대기), 금·조각·폭탄 효과, 결과 배경, OG 이미지, 바늘.
