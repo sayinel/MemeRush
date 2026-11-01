@@ -29,10 +29,10 @@ function lap(shape, totalMs, { offset = 0, from = 0, to = 1, laps = 1, hz = 60 }
   return out;
 }
 
-test("라운드 모양(하트·별·우산)은 닫힌 0~1 폴리라인, 갈수록 제한 시간이 짧다", () => {
+test("라운드 모양(하트·별·우산)은 순서대로 쉬운 것에서 어려운 것, 복잡할수록 시간을 더 준다", () => {
   assert.deepEqual(SHAPE_ORDER, ["heart", "star", "umbrella"]);
   const lim = SHAPE_ORDER.map((s) => SHAPE_LIMIT_MS[s]);
-  assert.ok(lim[0] > lim[1] && lim[1] > lim[2], String(lim));
+  assert.ok(lim[0] < lim[1] && lim[1] < lim[2], String(lim)); // 복잡한 모양일수록 시간은 더 주되, 필요한 속도는 비슷하게 빠듯하다
 });
 
 test("모양 3개는 닫힌 0~1 폴리라인", () => {
@@ -46,13 +46,14 @@ test("모양 3개는 닫힌 0~1 폴리라인", () => {
 
 test("완벽한 궤적: 정확도 높고 균열 0, 완주, 남은 시간 있음", () => {
   for (const s of SHAPE_ORDER) {
-    const r = judgeRound(s, lap(s, 6000));
+    const r = judgeRound(s, lap(s, SHAPE_LIMIT_MS[s] * 0.6));
     assert.equal(r.cracks, 0, s);
     assert.ok(r.accuracy >= 95, s + " " + r.accuracy);
     assert.equal(r.complete, true);
     assert.equal(r.timedOut, false);
     const lim = SHAPE_LIMIT_MS[s];
-    assert.ok(r.timeLeftMs > lim - 6500 && r.timeLeftMs <= lim - 5100, s + " " + r.timeLeftMs);
+    const lapMs = lim * 0.6;
+    assert.ok(r.timeLeftMs > lim - lapMs - 500 && r.timeLeftMs <= lim - lapMs * 0.85, s + " " + r.timeLeftMs);
   }
 });
 
@@ -111,7 +112,7 @@ test("너무 빠른 궤적은 사람이 아니라 무효", () => {
 });
 
 test("3라운드 합산: 평균 정확도, 남은 시간 합, 실패 여부", () => {
-  const good = SHAPE_ORDER.map((s) => judgeRound(s, lap(s, 6000)));
+  const good = SHAPE_ORDER.map((s) => judgeRound(s, lap(s, SHAPE_LIMIT_MS[s] * 0.6)));
   const sum = summarizeSession(good);
   assert.equal(sum.failed, false);
   assert.equal(sum.allComplete, true);
@@ -137,7 +138,7 @@ test("정렬 키: 정확도 높은 순, 동점이면 남은 시간 많은 순, �
 });
 
 test("무효 궤적(valid=false)은 랭킹 제외", () => {
-  const good = SHAPE_ORDER.map((s) => judgeRound(s, lap(s, 6000)));
+  const good = SHAPE_ORDER.map((s) => judgeRound(s, lap(s, SHAPE_LIMIT_MS[s] * 0.6)));
   assert.equal(summarizeSession(good, false).rankEligible, false);
 });
 
@@ -150,7 +151,7 @@ test("제출 라운드가 부족하면 미완주로 랭킹 제외, 평균은 3�
 
 test("끝선이 첫선에 닿지 않으면 테두리를 거의 다 그려도 성공이 아니다", () => {
   for (const s of SHAPE_ORDER) {
-    const full = lap(s, 6000);
+    const full = lap(s, SHAPE_LIMIT_MS[s] * 0.6);
     const cut = full.slice(0, Math.floor(full.length * 0.93)); // 93%까지만 그리고 멈춤(시작 점까지 못 돌아옴)
     const r = judgeRound(s, cut, { elapsedMs: 9000 });
     assert.equal(r.complete, false, s);
@@ -160,7 +161,7 @@ test("끝선이 첫선에 닿지 않으면 테두리를 거의 다 그려도 성
 
 test("끝선이 첫선에 닿지 않은 채 펜을 떼면 무조건 실패(깨짐)", () => {
   for (const s of SHAPE_ORDER) {
-    const full = lap(s, 6000);
+    const full = lap(s, SHAPE_LIMIT_MS[s] * 0.6);
     const cut = full.slice(0, Math.floor(full.length * 0.93));
     const open = judgeRound(s, cut, { elapsedMs: 5000, ended: true });
     assert.equal(open.complete, false, s);
