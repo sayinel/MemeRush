@@ -367,8 +367,31 @@ export default function DalgonaGame() {
   const last = rounds[rounds.length - 1];
   const summary: SessionSummary | null = phase === "done" ? summarizeSession(rounds, valid) : null;
 
+  // 캐릭터 연출(사장님 확정 3종): 주인공(청록 트레이닝복)은 상황별 표정, 조교는 시작·진행·성공 때, 사장은 마지막 3초에 엿보고 실패하면 나타난다.
+  const bomb = phase === "done" && !!last && !last.complete && !last.broken;
+  const failed = phase === "done" && !!summary && summary.failed;
+  const success = phase === "between" || (phase === "done" && !failed && !bomb);
+  const hot = phase === "playing" && leftMs <= 3000;
+  const exit = bomb || failed;
+  const [dragDone, setDragDone] = useState(false);
+  useEffect(() => {
+    if (!exit) {
+      setDragDone(false);
+      return;
+    }
+    const t = setTimeout(() => setDragDone(true), 1800);
+    return () => clearTimeout(t);
+  }, [exit]);
+  const worker =
+    bomb ? "worker_tg_shocked" : failed ? "worker_tg_crying" : success ? (phase === "done" ? "worker_tg_laughing" : "worker_tg_smug") : hot ? "worker_tg_shocked" : "worker_tg_sweating";
+  const assistant = phase === "ready" ? "assistant_whistle" : phase === "playing" ? "assistant_clipboard" : success ? "assistant_flag" : "assistant_shrug";
+  const boss = bomb ? "frontman_point" : failed ? "frontman_headshake" : hot ? "frontman_peek" : null;
+
   return (
-    <main className="flex min-h-dvh flex-col items-center bg-black text-white">
+    <main
+      className="relative flex min-h-dvh flex-col items-center bg-black text-white"
+      style={{ backgroundImage: "linear-gradient(rgba(0,0,0,0.55), rgba(0,0,0,0.75)), url(/game/bg_dalgona_playground.webp)", backgroundSize: "cover", backgroundPosition: "center" }}
+    >
       <div className="w-full max-w-[400px] px-2 pb-6">
         <p className="my-2 rounded bg-yellow-400 px-2 py-1 text-center text-xs font-bold text-black">
           개발용 시제품입니다 (달고나 뽑기 틀 시험, 서버 연결 없음)
@@ -386,16 +409,38 @@ export default function DalgonaGame() {
             ))}
           </span>
         </div>
-        <canvas
-          ref={canvasRef}
-          width={W}
-          height={H}
-          className="w-full touch-none rounded bg-neutral-900"
-          onPointerDown={onDown}
-          onPointerMove={onMove}
-          onPointerUp={onUp}
-          onPointerCancel={onUp}
-        />
+        <div className="relative overflow-hidden rounded">
+          <style>{`@keyframes dgSway{0%,100%{transform:rotate(-5deg) translateY(0)}50%{transform:rotate(5deg) translateY(-6px)}}@keyframes dgShake{0%,100%{transform:translateX(0)}25%{transform:translateX(-3px)}75%{transform:translateX(3px)}}@keyframes dgDrag{from{transform:translateX(105%)}to{transform:translateX(-125%)}}`}</style>
+          <canvas
+            ref={canvasRef}
+            width={W}
+            height={H}
+            className="w-full touch-none rounded bg-neutral-900"
+            onPointerDown={onDown}
+            onPointerMove={onMove}
+            onPointerUp={onUp}
+            onPointerCancel={onUp}
+          />
+          <div className="pointer-events-none absolute inset-0" aria-hidden>
+            {!exit && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={`/game/${worker}.png`}
+                alt=""
+                className="absolute bottom-1 left-1 h-24 w-auto object-contain drop-shadow-lg"
+                style={{ animation: hot ? "dgShake 0.12s infinite" : phase === "playing" || phase === "ready" ? "dgSway 1.6s ease-in-out infinite" : undefined, transformOrigin: "50% 100%" }}
+              />
+            )}
+            {!exit && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={`/game/${hot ? "frontman_peek" : assistant}.png`} alt="" className="absolute bottom-1 right-1 h-24 w-auto object-contain drop-shadow-lg" />
+            )}
+            {exit && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src="/game/drag_combo.png" alt="" className="absolute bottom-2 left-0 h-36 w-auto drop-shadow-xl" style={{ animation: "dgDrag 1.6s ease-in forwards" }} />
+            )}
+          </div>
+        </div>
         <p className="py-2 text-center text-sm text-gray-300">
           {phase === "ready" && "초록 점에서 시작해 갈색 홈을 따라 그리고, 끝선을 초록 점에 닿게 이어야 성공"}
           {phase === "playing" && `정확도 ${live ? live.accuracy.toFixed(0) : 0}% (진행 중) · 끝선을 초록 점에 이으세요`}
@@ -406,7 +451,7 @@ export default function DalgonaGame() {
             다음 라운드
           </button>
         )}
-        {summary && (
+        {summary && (!exit || dragDone) && (
           <div className="rounded bg-neutral-800 p-4 text-center">
             <p className="text-xl font-bold">{last && !last.complete && !last.broken ? "💣 펑! 시간 초과" : summary.failed ? (last && last.broken && last.cracks < 3 ? "끝선이 첫선에 닿지 않아 실패" : "달고나가 깨졌어요") : summary.totalCracks === 0 ? "NO CRACKS. NO NOTES." : "클리어!"}</p>
             {last && !last.complete && <p className="mt-1 text-sm text-orange-300">테두리 {Math.round(last.coverage * 100)}%까지 그렸어요{last.coverage >= 0.8 ? " · 아슬아슬하게 놓쳤어요!" : ""}</p>}
