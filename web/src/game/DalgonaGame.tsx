@@ -63,15 +63,24 @@ function buzz(pattern: number | number[]) {
   }
 }
 
-// 우산 판은 사장님이 고른 원판 그림을 그대로 보여 준다(홈 경로도 이 그림에서 뽑았다)
-let umbrellaImg: HTMLImageElement | null = null;
-function umbrellaDisc(): HTMLImageElement | null {
+// 달고나 원판은 사장님이 컨펌한 그림을 그대로 보여 준다(홈 경로도 이 그림에서 뽑았다). 그림이 아직 안 불러와졌으면 선으로 대신 그린다.
+const DISC_SRC: Partial<Record<ShapeId, string>> = {
+  heart: "/game/dalgona_disc_heart_confirmed.png",
+  star: "/game/dalgona_disc_star_confirmed.png",
+  umbrella: "/game/dalgona_disc_umbrella_confirmed.png",
+};
+const DISC_IMG = new Map<ShapeId, HTMLImageElement>();
+function discImage(shape: ShapeId): HTMLImageElement | null {
   if (typeof window === "undefined") return null;
-  if (!umbrellaImg) {
-    umbrellaImg = new Image();
-    umbrellaImg.src = "/game/dalgona_disc_umbrella_ref.png";
+  const src = DISC_SRC[shape];
+  if (!src) return null;
+  let img = DISC_IMG.get(shape);
+  if (!img) {
+    img = new Image();
+    img.src = src;
+    DISC_IMG.set(shape, img);
   }
-  return umbrellaImg.complete && umbrellaImg.naturalWidth > 0 ? umbrellaImg : null;
+  return img.complete && img.naturalWidth > 0 ? img : null;
 }
 
 // 시험 기록: 내부망(.ts.net)이나 로컬에서 열었을 때만 사장님 PC의 작은 수집기로 보낸다(운영 주소에서는 아무것도 보내지 않는다).
@@ -100,6 +109,7 @@ function logRound(shape: ShapeId, limitMs: number, elapsedMs: number, r: RoundRe
     /* 기록은 없어도 게임에 영향 없음 */
   }
 }
+
 
 const OUTLINE_CACHE = new Map<ShapeId, ReturnType<typeof shapeOutline>>();
 function outlineOf(shape: ShapeId) {
@@ -148,7 +158,7 @@ function drawAll(c: HTMLCanvasElement, g: G) {
   }
   // 모양 홈
   const o = outlineOf(SHAPE_ORDER[Math.min(g.round, 2)]);
-  const umbImg = SHAPE_ORDER[Math.min(g.round, 2)] === "umbrella" ? umbrellaDisc() : null;
+  const umbImg = discImage(SHAPE_ORDER[Math.min(g.round, 2)]);
   if (umbImg) ctx.drawImage(umbImg, W / 2 - 192, H / 2 - 192, 384, 384);
   ctx.strokeStyle = "#5b3612";
   ctx.lineWidth = 7;
