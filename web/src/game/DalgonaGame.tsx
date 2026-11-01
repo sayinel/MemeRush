@@ -5,9 +5,11 @@
 
 import { useEffect, useRef, useState } from "react";
 import {
+  DEFAULT_TOLERANCE,
   MAX_CRACKS,
   SHAPE_LIMIT_MS,
   SHAPE_ORDER,
+  distToPolyline,
   judgeRound,
   shapeOutline,
   summarizeSession,
@@ -33,8 +35,43 @@ interface G {
   live: RoundResult | null;
   rounds: RoundResult[];
   valid: boolean;
+  leftMs: number; // 남은 시간(그리기용)
+  lim: number; // 이 라운드 제한 시간
+  prevCracks: number;
+  lastBuzz: number;
 }
-const fresh = (): G => ({ phase: "ready", round: 0, trace: [], t0: null, live: null, rounds: [], valid: true });
+const fresh = (): G => ({
+  phase: "ready",
+  round: 0,
+  trace: [],
+  t0: null,
+  live: null,
+  rounds: [],
+  valid: true,
+  leftMs: 0,
+  lim: 0,
+  prevCracks: 0,
+  lastBuzz: 0,
+});
+
+// 긴박감 장치: 휴대폰 진동(지원하는 기기만, 안 되면 조용히 무시)
+function buzz(pattern: number | number[]) {
+  try {
+    if (typeof navigator !== "undefined" && typeof navigator.vibrate === "function") navigator.vibrate(pattern);
+  } catch {
+    /* 진동 미지원 */
+  }
+}
+
+const OUTLINE_CACHE = new Map<ShapeId, ReturnType<typeof shapeOutline>>();
+function outlineOf(shape: ShapeId) {
+  let o = OUTLINE_CACHE.get(shape);
+  if (!o) {
+    o = shapeOutline(shape);
+    OUTLINE_CACHE.set(shape, o);
+  }
+  return o;
+}
 
 function nearestPoint(trace: TracePt[], tMs: number): { x: number; y: number } {
   let best: TracePt | undefined = trace[0];
@@ -51,16 +88,29 @@ function drawAll(c: HTMLCanvasElement, g: G) {
   ctx.save();
   ctx.translate(shake, shake);
   // 달고나 원판
-  ctx.fillStyle = "#d9a441";
+  ctx.fillStyle = "#c87c2e"; // 사장님 2026-11-01 확정 달고나 색
   ctx.beginPath();
   ctx.arc(W / 2, H / 2, 192, 0, Math.PI * 2);
   ctx.fill();
   ctx.strokeStyle = "#fff";
   ctx.lineWidth = 6;
   ctx.stroke();
+  // 큰 카운트다운 숫자(원판 위, 홈 아래): 3초부터 빨갛게 맥박친다
+  if (g.phase === "playing" && g.lim > 0) {
+    const sec = Math.ceil(g.leftMs / 1000);
+    const hot = g.leftMs <= 3000;
+    const pulse = 0.5 + 0.5 * Math.sin(performance.now() / (hot ? 90 : 250));
+    ctx.save();
+    ctx.font = `bold ${hot ? 200 + pulse * 20 : 190}px sans-serif`;
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillStyle = hot ? `rgba(255,50,30,${0.3 + pulse * 0.3})` : "rgba(255,255,255,0.22)";
+    ctx.fillText(String(sec), W / 2, H / 2 + 8);
+    ctx.restore();
+  }
   // 모양 홈
-  const o = shapeOutline(SHAPE_ORDER[Math.min(g.round, 2)]);
-  ctx.strokeStyle = "#7a4e12";
+  const o = outlineOf(SHAPE_ORDER[Math.min(g.round, 2)]);
+  ctx.strokeStyle = "#5b3612";
   ctx.lineWidth = 7;
   ctx.lineJoin = "round";
   ctx.beginPath();
@@ -100,6 +150,47 @@ function drawAll(c: HTMLCanvasElement, g: G) {
       ctx.stroke();
     }
   }
+  // 도화선: 위쪽 선이 시간에 따라 타들어 간다
+  if (g.phase === "playing" && g.lim > 0) {
+    const ratio = Math.max(0, Math.min(1, g.leftMs / g.lim));
+    const x1 = 16 + (W - 32) * ratio;
+    ctx.save();
+    ctx.lineCap = "round";
+    ctx.lineWidth = 6;
+    ctx.strokeStyle = "rgba(255,255,255,0.25)";
+    ctx.beginPath();
+    ctx.moveTo(16, 14);
+    ctx.lineTo(W - 16, 14);
+    ctx.stroke();
+    ctx.strokeStyle = ratio < 0.3 ? "#ff4d2e" : "#ffd24a";
+    ctx.beginPath();
+    ctx.moveTo(16, 14);
+    ctx.lineTo(x1, 14);
+    ctx.stroke();
+    ctx.fillStyle = "#fff6c8";
+    ctx.beginPath();
+    ctx.arc(x1, 14, 5 + Math.random() * 3, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+    // 마지막 3초: 화면 가장자리가 붉게 맥박
+    if (g.leftMs <= 3000) {
+      const pulse = 0.5 + 0.5 * Math.sin(performance.now() / 90);
+      const grd = ctx.createRadialGradient(W / 2, H / 2, H * 0.28, W / 2, H / 2, H * 0.72);
+      grd.addColorStop(0, "rgba(255,0,0,0)");
+      grd.addColorStop(1, `rgba(255,0,0,${0.25 + pulse * 0.3})`);
+      ctx.fillStyle = grd;
+      ctx.fillRect(0, 0, W, H);
+    }
+  }
+  // 시간 초과: 폭탄이 터진다
+  if (res && !res.complete && !res.broken && g.phase === "done") {
+    ctx.fillStyle = "rgba(255,120,0,0.35)";
+    ctx.fillRect(0, 0, W, H);
+    ctx.font = "170px sans-serif";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText("💥", W / 2, H / 2);
+  }
   ctx.restore();
 }
 
@@ -131,8 +222,14 @@ export default function DalgonaGame() {
         const shape = SHAPE_ORDER[g.round];
         const limit = SHAPE_LIMIT_MS[shape];
         left = Math.max(0, limit - el);
+        g.leftMs = left;
+        g.lim = limit;
         const cur = judgeRound(shape, g.trace, { elapsedMs: el });
         g.live = cur;
+        if (cur.cracks > g.prevCracks) {
+          g.prevCracks = cur.cracks;
+          buzz([90, 40, 90]); // 균열이 생겼다
+        }
         if (cur.complete || cur.broken || el >= limit) {
           const fin = judgeRound(shape, g.trace, { elapsedMs: cur.complete || cur.broken ? el : limit });
           g.live = fin;
@@ -140,6 +237,8 @@ export default function DalgonaGame() {
           g.rounds = [...g.rounds, fin];
           g.phase = fin.broken || !fin.complete || g.rounds.length >= SHAPE_ORDER.length ? "done" : "between";
           left = fin.complete ? fin.timeLeftMs : 0;
+          g.leftMs = left;
+          buzz(fin.complete ? 40 : [250, 80, 250, 80, 500]); // 성공은 톡, 실패는 쿵쿵쿵
         }
         sync(left);
       }
@@ -169,7 +268,14 @@ export default function DalgonaGame() {
   const onMove = (e: React.PointerEvent<HTMLCanvasElement>) => {
     const g = gRef.current;
     if (g.phase !== "playing" || g.t0 === null || e.buttons === 0) return;
-    g.trace.push({ ...toPt(e), t: performance.now() - g.t0 });
+    const p = toPt(e);
+    g.trace.push({ ...p, t: performance.now() - g.t0 });
+    // 홈 밖으로 벗어나 있으면 손끝이 떨린다
+    const now = performance.now();
+    if (now - g.lastBuzz > 70 && distToPolyline(p, outlineOf(SHAPE_ORDER[g.round])) > DEFAULT_TOLERANCE) {
+      g.lastBuzz = now;
+      buzz(35);
+    }
   };
 
   const onUp = () => {
@@ -182,6 +288,8 @@ export default function DalgonaGame() {
     if (!validateHumanTrace(shape, g.trace).ok) g.valid = false;
     g.rounds = [...g.rounds, fin];
     g.phase = fin.broken || !fin.complete || g.rounds.length >= SHAPE_ORDER.length ? "done" : "between";
+    g.leftMs = fin.complete ? fin.timeLeftMs : 0;
+    buzz(fin.complete ? 40 : [250, 80, 250, 80, 500]);
     sync(fin.complete ? fin.timeLeftMs : 0);
   };
 
@@ -234,7 +342,7 @@ export default function DalgonaGame() {
         <p className="py-2 text-center text-sm text-gray-300">
           {phase === "ready" && "초록 점에서 시작해 갈색 홈을 따라 그리고, 끝선을 초록 점에 닿게 이어야 성공"}
           {phase === "playing" && `정확도 ${live ? live.accuracy.toFixed(0) : 0}% (진행 중) · 끝선을 초록 점에 이으세요`}
-          {phase === "between" && last && (last.complete ? `성공! 정확도 ${last.accuracy}%` : `시간 초과, 균열 ${last.cracks}칸`)}
+          {phase === "between" && last && (last.complete ? `성공! 정확도 ${last.accuracy}%${last.timeLeftMs < 800 ? " · 아슬아슬!" : ""}` : `시간 초과, 균열 ${last.cracks}칸`)}
         </p>
         {phase === "between" && (
           <button className="w-full rounded bg-green-700 py-3 font-bold" onClick={nextRound}>
@@ -244,6 +352,7 @@ export default function DalgonaGame() {
         {summary && (
           <div className="rounded bg-neutral-800 p-4 text-center">
             <p className="text-xl font-bold">{last && !last.complete && !last.broken ? "💣 펑! 시간 초과" : summary.failed ? (last && last.broken && last.cracks < 3 ? "끝선이 첫선에 닿지 않아 실패" : "달고나가 깨졌어요") : summary.totalCracks === 0 ? "NO CRACKS. NO NOTES." : "클리어!"}</p>
+            {last && !last.complete && <p className="mt-1 text-sm text-orange-300">테두리 {Math.round(last.coverage * 100)}%까지 그렸어요{last.coverage >= 0.8 ? " · 아슬아슬하게 놓쳤어요!" : ""}</p>}
             <p className="mt-2">정확도 {summary.totalAccuracy}%</p>
             <p>남은 시간 {(summary.timeLeftMs / 1000).toFixed(1)}초</p>
             <p>

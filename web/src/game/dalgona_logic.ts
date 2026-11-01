@@ -8,9 +8,9 @@ export const SHAPE_ORDER: ShapeId[] = ["heart", "star", "umbrella"];
 export const SHAPE_LIMIT_MS: Record<ShapeId, number> = {
   circle: 10000,
   triangle: 10000,
-  heart: 9000,
-  star: 8000,
-  umbrella: 7000,
+  heart: 5500,
+  star: 6500,
+  umbrella: 8500,
 };
 
 export interface Pt {
@@ -95,23 +95,30 @@ export function shapeOutline(shape: ShapeId): Pt[] {
     return pts;
   }
   if (shape === "umbrella") {
-    // 일반 우산 윤곽(캐노피 + 물결 가장자리 + J자 손잡이). 한 번에 이어 그리는 닫힌 선.
-    const arc = (cx: number, cy: number, r: number, a0: number, a1: number, n = 24): Pt[] =>
+    // 사장님이 고른 우산 원판 그림을 따른다: 넓은 반원 지붕, 가장자리의 작은 물결 5개, 가운데서 내려오는 J자 손잡이.
+    // 한 번에 이어 그리는 닫힌 선이다(시작 점은 지붕 왼쪽 끝).
+    const ell = (cx: number, cy: number, rx: number, ry: number, a0: number, a1: number, n: number): Pt[] =>
       Array.from({ length: n + 1 }, (_, i) => {
         const a = a0 + ((a1 - a0) * i) / n;
-        return { x: cx + r * Math.cos(a), y: cy + r * Math.sin(a) };
+        return { x: cx + rx * Math.cos(a), y: cy + ry * Math.sin(a) };
       });
-    const cut = Math.acos(0.5); // 가운데 물결에서 손잡이 오른쪽 변(x=0.56)이 나오는 각
+    const base = 0.52; // 지붕 아랫선 높이
+    const sag = 0.05; // 물결이 처지는 깊이
+    const rw = 0.076; // 물결 하나의 반폭
+    const aR = Math.acos(0.025 / rw); // 가운데 물결에서 손잡이 오른쪽 변(x=0.525)이 나오는 각
+    const yS = base + sag * Math.sin(aR);
     const c: Pt[] = [
-      ...arc(0.5, 0.5, 0.38, Math.PI, Math.PI * 2, 40), // 캐노피 윗선: 왼쪽 → 오른쪽
-      ...arc(0.75, 0.5, 0.13, 0, Math.PI, 16), // 오른쪽 물결
-      ...arc(0.5, 0.5, 0.12, 0, cut, 10), // 가운데 물결(오른쪽 반)
-      { x: 0.56, y: 0.78 }, // 손잡이 오른쪽 변
-      ...arc(0.47, 0.78, 0.09, 0, Math.PI, 16), // 손잡이 갈고리 바깥(아래를 돌아 왼쪽 끝)
-      ...arc(0.47, 0.78, 0.03, Math.PI, 0, 10), // 갈고리 안쪽(다시 아래를 돌아 오른쪽으로)
-      { x: 0.5, y: 0.5 + 0.12 }, // 손잡이 왼쪽 변 위
-      ...arc(0.5, 0.5, 0.12, Math.PI / 2, Math.PI, 10), // 가운데 물결(왼쪽 반)
-      ...arc(0.25, 0.5, 0.13, 0, Math.PI, 16), // 왼쪽 물결
+      ...ell(0.5, base, 0.38, 0.3, Math.PI, Math.PI * 2, 48), // 지붕 윗선: 왼쪽 → 오른쪽
+      ...ell(0.804, base, rw, sag, 0, Math.PI, 14), // 오른쪽 바깥 물결
+      ...ell(0.652, base, rw, sag, 0, Math.PI, 14), // 오른쪽 안쪽 물결
+      ...ell(0.5, base, rw, sag, 0, aR, 8), // 가운데 물결(오른쪽 반)
+      { x: 0.525, y: 0.8 }, // 손잡이 오른쪽 변
+      ...ell(0.455, 0.8, 0.07, 0.07, 0, Math.PI, 16), // 손잡이 갈고리 바깥(아래를 돌아 왼쪽 끝)
+      ...ell(0.455, 0.8, 0.02, 0.02, Math.PI, 0, 8), // 갈고리 안쪽(다시 아래를 돌아 오른쪽으로)
+      { x: 0.475, y: yS }, // 손잡이 왼쪽 변 위
+      ...ell(0.5, base, rw, sag, Math.PI - aR, Math.PI, 8), // 가운데 물결(왼쪽 반)
+      ...ell(0.348, base, rw, sag, 0, Math.PI, 14), // 왼쪽 안쪽 물결
+      ...ell(0.196, base, rw, sag, 0, Math.PI, 14), // 왼쪽 바깥 물결
     ];
     c.push({ ...c[0] });
     return densify(c, 0.01);
