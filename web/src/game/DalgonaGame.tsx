@@ -143,19 +143,6 @@ function drawAll(c: HTMLCanvasElement, g: G) {
   ctx.strokeStyle = "#fff";
   ctx.lineWidth = 6;
   ctx.stroke();
-  // 큰 카운트다운 숫자(원판 위, 홈 아래): 3초부터 빨갛게 맥박친다
-  if (g.phase === "playing" && g.lim > 0) {
-    const sec = Math.ceil(g.leftMs / 1000);
-    const hot = g.leftMs <= 3000;
-    const pulse = 0.5 + 0.5 * Math.sin(performance.now() / (hot ? 90 : 250));
-    ctx.save();
-    ctx.font = `bold ${hot ? 200 + pulse * 20 : 190}px sans-serif`;
-    ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
-    ctx.fillStyle = hot ? `rgba(255,50,30,${0.3 + pulse * 0.3})` : "rgba(255,255,255,0.22)";
-    ctx.fillText(String(sec), W / 2, H / 2 + 8);
-    ctx.restore();
-  }
   // 모양 홈
   const o = outlineOf(SHAPE_ORDER[Math.min(g.round, 2)]);
   const umbImg = discImage(SHAPE_ORDER[Math.min(g.round, 2)]);
@@ -173,6 +160,22 @@ function drawAll(c: HTMLCanvasElement, g: G) {
   ctx.beginPath();
   ctx.arc(o[0].x * W, o[0].y * H, 8, 0, Math.PI * 2);
   ctx.fill();
+  // 마지막 3초: 화면 한가운데에 큰 카운트다운(사장님 2026-11-01). 원판 그림 위, 바늘 자국 아래에 그려 홈이 가려지지 않게 맑게 띄운다.
+  if (g.phase === "playing" && g.lim > 0 && g.leftMs <= 3000) {
+    const sec = Math.max(1, Math.ceil(g.leftMs / 1000));
+    const pulse = 0.5 + 0.5 * Math.sin(performance.now() / 80);
+    ctx.save();
+    ctx.font = `bold ${230 + pulse * 30}px sans-serif`;
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.lineJoin = "round";
+    ctx.lineWidth = 10;
+    ctx.strokeStyle = `rgba(255,255,255,${0.35 + pulse * 0.2})`;
+    ctx.strokeText(String(sec), W / 2, H / 2 + 10);
+    ctx.fillStyle = `rgba(230,30,20,${0.45 + pulse * 0.3})`;
+    ctx.fillText(String(sec), W / 2, H / 2 + 10);
+    ctx.restore();
+  }
   // 바늘 자국(궤적)
   if (g.trace.length > 1) {
     ctx.strokeStyle = "#111";
@@ -291,7 +294,7 @@ export default function DalgonaGame() {
           g.phase = fin.broken || !fin.complete || g.rounds.length >= SHAPE_ORDER.length ? "done" : "between";
           left = fin.complete ? fin.timeLeftMs : 0;
           g.leftMs = left;
-          buzz(fin.complete ? 40 : [250, 80, 250, 80, 500]); // 성공은 톡, 실패는 쿵쿵쿵
+          buzz(0); // 한 판이 끝나면 진동은 멈춘다(사장님 2026-11-01)
         }
         sync(left);
       }
@@ -343,7 +346,7 @@ export default function DalgonaGame() {
     logRound(shape, SHAPE_LIMIT_MS[shape], el, fin);
     g.phase = fin.broken || !fin.complete || g.rounds.length >= SHAPE_ORDER.length ? "done" : "between";
     g.leftMs = fin.complete ? fin.timeLeftMs : 0;
-    buzz(fin.complete ? 40 : [250, 80, 250, 80, 500]);
+    buzz(0); // 손을 떼어 끝나도 진동은 멈춘다
     sync(fin.complete ? fin.timeLeftMs : 0);
   };
 
