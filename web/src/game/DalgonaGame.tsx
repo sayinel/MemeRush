@@ -445,11 +445,6 @@ export default function DalgonaGame() {
           <div style={{ ...box(L.progress_dots), display: "flex", alignItems: "center", justifyContent: "center", fontSize: L.progress_dots.font, letterSpacing: 4, color: "#fff", textShadow: "0 0 4px #000, 0 2px 6px #000" }} aria-label="진행">
             {[0, 1, 2].map((i) => (i <= round ? "●" : "○")).join(" ")}
           </div>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/game/timer_panel.png" alt="" style={imgStyle(L.timer_panel)} />
-          <div className="tabular-nums" style={{ ...box(L.timer_digits), display: "flex", alignItems: "center", justifyContent: "center", fontFamily: '"Anton", Impact, sans-serif', fontSize: L.timer_digits.font, color: timerRed ? "#ff3b30" : "#fff", textShadow: "0 3px 8px rgba(0,0,0,0.7)" }}>
-            {(leftMs / 1000).toFixed(1)}
-          </div>
           <canvas
             ref={canvasRef}
             width={W}
@@ -462,8 +457,14 @@ export default function DalgonaGame() {
             onPointerCancel={onUp}
           />
           {!showExplosion && !exit && (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={`/game/${bombSrc}.png`} alt="" style={imgStyle(L.bomb_start, false, { animation: hot ? "dgBomb 0.15s infinite" : undefined })} />
+            // 폭탄 시계가 남은 시간 타이머다(사장님 11/1 '타이머를 폭탄으로 통일'): 그림에 박힌 00:05 위에 남은 초를 덮어 쓴다
+            <div style={{ ...box(L.bomb_start), animation: hot ? "dgBomb 0.15s infinite" : undefined }}>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={`/game/${bombSrc}.png`} alt="" style={{ width: "100%", height: "100%", display: "block" }} />
+              <div className="tabular-nums" style={{ position: "absolute", left: "14.5%", top: "50.5%", width: "60%", height: "21.5%", background: "#1a1a1a", border: "3px solid #f5c518", borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: '"Anton", Impact, sans-serif', fontSize: Math.round(L.bomb_start.h * 0.16), letterSpacing: 2, color: timerRed ? "#ff3b30" : "#f5c518" }}>
+                {`00:${String(Math.max(0, Math.ceil(leftMs / 1000))).padStart(2, "0")}`}
+              </div>
+            </div>
           )}
           <div className="pointer-events-none" style={{ position: "absolute", inset: 0 }} aria-hidden>
             {!exit && (

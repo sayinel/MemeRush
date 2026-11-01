@@ -10,8 +10,6 @@ export const dalgona: ScreenDef = {
     {"name": "caption_top", "kind": "text", "family": "sans", "weight": 700, "align": "center", "color": "#FFFFFF", "stroke": 14, "strokeColor": "#14192E", "text": "[[하트]] 모양을 따내라", "note": "모양 이름 한 줄(달고나 전용 문구)"},
     {"name": "star_left", "kind": "image", "src": "confetti_star.png", "note": "장식 별 왼쪽"},
     {"name": "star_right", "kind": "image", "src": "confetti_star.png", "note": "장식 별 오른쪽"},
-    {"name": "timer_panel", "kind": "image", "src": "timer_panel.png", "note": "남은 시간 패널(1편 시계판 재활용)"},
-    {"name": "timer_digits", "kind": "text", "family": "anton", "weight": 400, "align": "center", "color": "#FEDE25", "stroke": 10, "strokeColor": "#14192E", "text": "4.8", "note": "남은 시간 숫자(초)"},
     {"name": "progress_dots", "kind": "text", "family": "sans", "weight": 700, "align": "center", "color": "#FEDE25", "stroke": 6, "strokeColor": "#14192E", "text": "● ○ ○", "note": "라운드 진행 점 3개"},
     {"name": "disc", "kind": "image", "src": "dalgona_disc_heart.png", "note": "실제 게임에서는 이 자리에 캔버스가 올라간다"},
     {"name": "hero_ready", "kind": "image", "src": "worker_oc_sweating.png", "anchor": "bottom", "note": "주인공 대기: 판 왼쪽 아래에서 덜덜"},
