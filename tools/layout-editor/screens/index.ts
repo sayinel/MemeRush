@@ -6,7 +6,6 @@ import { dalgona_result_perfect } from "./dalgona_result_perfect";
 import { dalgona_result_early } from "./dalgona_result_early";
 import { dalgona_result_late } from "./dalgona_result_late";
 import { dalgona_intro } from "./dalgona_intro";
-import { dalgona_round1 } from "./dalgona_round1";
 import { dalgona_ranking } from "./dalgona_ranking";
 import { dalgona_email_hook } from "./dalgona_email_hook";
 import { banner_next_ep } from "./banner_next_ep";
@@ -46,7 +45,6 @@ export const SCREENS: ScreenDef[] = [
   banner_next_ep,
   dalgona_email_hook,
   dalgona_intro,
-  dalgona_round1,
   dalgona_ranking,
   dalgona_result_perfect,
   dalgona_result_early,

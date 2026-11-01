@@ -29,5 +29,7 @@ export const dalgona: ScreenDef = {
     {"name": "bomb_hot", "kind": "image", "src": "bomb_hot.png", "note": "시간 폭탄(마지막 3초, 00:03)"},
     {"name": "bomb_explosion", "kind": "image", "src": "bomb_explosion.png", "note": "시간 초과 폭발(판 위에 터짐)"},
     {"name": "bomb_disc_broken", "kind": "image", "src": "bomb_disc_broken.png", "note": "그을린 깨진 판(실패 결과)"},
+    {"name": "ready_ribbon", "kind": "image", "src": "banner_gold.png", "note": "라운드 시작 때만 뜨는 리본(GET READY)"},
+    {"name": "ready_label", "kind": "text", "family": "anton", "weight": 400, "align": "center", "color": "#FFFFFF", "stroke": 8, "strokeColor": "#14192E", "text": "GET READY", "note": "리본 안 문구(라운드 시작 때만)"},
   ],
 };

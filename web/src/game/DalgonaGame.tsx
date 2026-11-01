@@ -504,6 +504,13 @@ export default function DalgonaGame() {
               </div>
             </div>
           )}
+          {phase === "ready" && round === 0 && (
+            <>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/game/banner_gold.png" alt="" style={imgStyle(L.ready_ribbon)} />
+              <div style={{ ...box(L.ready_label), display: "flex", alignItems: "center", justifyContent: "center", fontFamily: '"Anton", Impact, sans-serif', fontSize: L.ready_label.font, color: "#fff", WebkitTextStroke: "6px #14192E", paintOrder: "stroke fill" }}>GET READY</div>
+            </>
+          )}
           <div className="pointer-events-none" style={{ position: "absolute", inset: 0 }} aria-hidden>
             {!exit && (
               // eslint-disable-next-line @next/next/no-img-element

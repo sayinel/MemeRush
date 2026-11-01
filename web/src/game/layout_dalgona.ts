@@ -23,4 +23,6 @@ export const DALGONA_LAYOUT = {
   bomb_hot: { x: 1250, y: 300, w: 130, h: 151 }, // 시간 폭탄(마지막 3초, 00:03)
   bomb_explosion: { x: 1250, y: 560, w: 300, h: 285 }, // 시간 초과 폭발(판 위에 터짐)
   bomb_disc_broken: { x: 1250, y: 860, w: 260, h: 188 }, // 그을린 깨진 판(실패 결과)
+  ready_ribbon: { x: 360, y: 700, w: 440, h: 138 }, // 라운드 시작 때만 뜨는 리본(1라운드 시작 화면을 본 플레이로 합침)
+  ready_label: { x: 362, y: 681, w: 220, h: 66, font: 44 }, // "GET READY"
 } as const;
