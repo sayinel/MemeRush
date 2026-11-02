@@ -49,10 +49,27 @@ def text(name, s, color, weight):
     left = cx - e["w"] / 2
     d.text((left, cy), s, font=font(e["font"], weight), fill=color, anchor="lm")
 
+import sys
+EN = "--lang" in sys.argv and sys.argv[sys.argv.index("--lang") + 1] == "en"
+# 문구(2026-11-02 핏, 영어판 추가: 사장님 '화면은 영어'. 영어 문구는 초안이고 마야와 후킹 문구를 다듬는다)
+COPY = {
+    "ko": ("NEXT #002", "달고나 뽑기 2탄", "깨뜨리지 않고 따낼 수 있을까? ›"),
+    "en": ("NEXT #002", "DALGONA CHALLENGE", "Can you carve it without cracking? ›"),
+}["en" if EN else "ko"]
+
+def fit_text(name, s, color, weight):
+    """상자 너비(w)를 넘으면 글자 크기를 줄여 맞춘다(영어 문구가 한국어보다 길어서)."""
+    e = L[name]
+    size = e["font"]
+    while size > 12 and ImageDraw.Draw(img).textlength(s, font=font(size, weight)) > e["w"]:
+        size -= 1
+    L[name] = dict(e, font=size)
+    text(name, s, color, weight)
+
 paste("banner_disc", "dalgona_disc_umbrella.png")
 paste("banner_hero", "worker_oc_sweating.png")
-text("t_next", "NEXT #002", (254, 222, 37, 255), 900)
-text("t_name", "달고나 뽑기 2탄", (255, 255, 255, 255), 800)
-text("t_sub", "깨뜨리지 않고 따낼 수 있을까? ›", (190, 215, 255, 255), 600)
-img.save(os.path.join(game, "banner_next_ep.png"))
-print("rendered", img.size)
+fit_text("t_next", COPY[0], (254, 222, 37, 255), 900)
+fit_text("t_name", COPY[1], (255, 255, 255, 255), 800)
+fit_text("t_sub", COPY[2], (190, 215, 255, 255), 600)
+img.save(os.path.join(game, "banner_next_ep_en.png" if EN else "banner_next_ep.png"))
+print("rendered", "en" if EN else "ko", img.size)

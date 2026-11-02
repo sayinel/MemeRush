@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import { sendHookEvent } from "@/lib/next_hook";
+import { useLang } from "@/lib/i18n";
 
 type Pos = { x: number; y: number; w: number; h: number };
 
@@ -9,6 +10,7 @@ type Pos = { x: number; y: number; w: number; h: number };
 // 누르면 같은 탭에서 /next?from=001 (예고+이메일 훅 페이지)로 간다.
 export default function NextBanner({ pos, challengeId }: { pos: Pos; challengeId: string }) {
   const seen = useRef(false);
+  const { lang } = useLang(); // 영어판은 영어 배너 이미지(렌더: tools/layout-editor/render_banner.py --lang en)
   useEffect(() => {
     if (seen.current) return;
     seen.current = true;
@@ -30,7 +32,7 @@ export default function NextBanner({ pos, challengeId }: { pos: Pos; challengeId
         display: "block",
       }}
     >
-      <img src="/game/banner_next_ep.png" alt="" style={{ width: "100%", display: "block" }} />
+      <img src={lang === "en" ? "/game/banner_next_ep_en.png" : "/game/banner_next_ep.png"} alt="" style={{ width: "100%", display: "block" }} />
     </a>
   );
   /* eslint-enable @next/next/no-img-element */
